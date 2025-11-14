@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiConfig from '../../config/apiConfig';
 
-export default function Login() {
+const Login = () =>{
   const [isEmailLogin, setIsEmailLogin] = useState(true);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -12,33 +12,33 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    // e.preventDefault();
+    // setLoading(true);
+    // setError('');
 
-    try {
-      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          [isEmailLogin ? 'email' : 'phone']: identifier,
-          password,
-        }),
-      });
+    // try {
+    //   const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/login`, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({
+    //       [isEmailLogin ? 'email' : 'phone']: identifier,
+    //       password,
+    //     }),
+    //   });
 
-      const data = await res.json();
+    //   const data = await res.json();
 
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        navigate('/student/home');
-      } else {
-        setError(data.message || 'Login failed');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    //   if (res.ok) {
+    //     localStorage.setItem('token', data.token);
+        navigate(' /home');
+    //   } else {
+    //     setError(data.message || 'Login failed');
+    //   }
+    // } catch (err) {
+    //   setError('Network error. Please try again.');
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   return (
@@ -126,5 +126,7 @@ export default function Login() {
   );
 }
 
+
+export default Login;
 
 

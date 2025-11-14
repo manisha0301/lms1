@@ -1,16 +1,20 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
+import Login from './pages/auth/login';
+import Signup from './pages/auth/signup';
 import Home from './pages/Home';
+import VerifyOTP from './pages/auth/VerifyOTP';
+import CoursesDashboard from './pages/student/CoursesDashboard';
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/otp" element={<VerifyOTP />} />
+        <Route path="/student/dash" element={<CoursesDashboard />} />
       </Routes>
     </Router>
   );
