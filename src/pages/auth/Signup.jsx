@@ -1,13 +1,11 @@
 // src/pages/auth/Signup.jsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import apiConfig from '../../config/apiConfig';
 
-function VerifyOTP({ email, phone }) {
-  return <div>OTP sent to {email} and {phone}</div>;
-}
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -19,6 +17,10 @@ const Signup = () => {
   });
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -28,24 +30,42 @@ const Signup = () => {
     }));
   };
 
+  const sendOTP = async (type) => {
+    navigate('/otp', { state: { phone: form.phone, email: form.email, type, fromSignup: true } })
+  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
     if (!form.termsAccepted) return alert("Please accept terms & conditions");
+    if (!emailVerified || !phoneVerified) return alert("Please verify both email and phone");
 
     setLoading(true);
     try {
-      await axios.post('/api/auth/signup', form);
-      setOtpSent(true);
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOtpSent(true);
+      } else {
+        alert(data.message || "Signup failed");
+      }
     } catch (err) {
-      alert(err.response?.data?.message || "Signup failed");
+      alert('Network error');
     } finally {
       setLoading(false);
     }
   };
 
-  if (otpSent) {
-    return <VerifyOTP email={form.email} phone={form.phone} />;
-  }
+  // const handleVerifyComplete = () => {
+  //   window.location.href = '/student/home';
+  // };
+
+  // if (otpSent) {
+  //   return <VerifyOTP email={form.email} phone={form.phone} onVerify={handleVerifyComplete} />;
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -77,25 +97,53 @@ const Signup = () => {
             />
           </div>
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="relative">
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 pr-32 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => sendOTP('email')}
+              disabled={verifyingEmail || emailVerified}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md transition ${
+                emailVerified 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              } ${verifyingEmail ? 'opacity-50' : ''}`}
+            >
+              {emailVerified ? 'Verified' : verifyingEmail ? 'Sending...' : 'Verify Email'}
+            </button>
+          </div>
 
-          <input
-            type="tel"
-            name="phone"
-            placeholder="Mobile Number"
-            value={form.phone}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="relative">
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Mobile Number"
+              value={form.phone}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 pr-36 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => sendOTP('phone')}
+              disabled={verifyingPhone || phoneVerified}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md transition ${
+                phoneVerified 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              } ${verifyingPhone ? 'opacity-50' : ''}`}
+            >
+              {phoneVerified ? 'Verified' : verifyingPhone ? 'Sending...' : 'Verify Phone'}
+            </button>
+          </div>
 
           <input
             type="password"
@@ -133,10 +181,10 @@ const Signup = () => {
 
           <button
             type="submit"
-            disabled={loading || !form.termsAccepted}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50"
+            disabled={loading || !form.termsAccepted || !emailVerified || !phoneVerified}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Sending OTP..." : "Sign Up"}
+            {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
 
@@ -149,6 +197,10 @@ const Signup = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Signup;
+
+
+
+

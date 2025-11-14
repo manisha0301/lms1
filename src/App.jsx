@@ -5,6 +5,8 @@ import Signup from './pages/auth/Signup';
 import Home from './pages/Home';
 import FacultySignup from './pages/auth/FacultySignup';
 import AcademicSignup from './pages/auth/AcademicSignup';
+import VerifyOTP from './pages/auth/VerifyOTP';
+import CoursesDashboard from './pages/student/CoursesDashboard';
 
 export default function App() {
   return (
@@ -18,6 +20,8 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/facultysignup" element={<FacultySignup />} />
         <Route path="/academicsignup" element={<AcademicSignup />} />
+        <Route path="/otp" element={<VerifyOTP />} />
+        <Route path="/student/dash" element={<CoursesDashboard />} />
       </Routes>
     </Router>
   );

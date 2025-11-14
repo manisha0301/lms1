@@ -1,8 +1,10 @@
-// src/pages/auth/Signup.jsx
+// src/pages/auth/FacultySignup.jsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const FacultySignup = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -22,28 +24,40 @@ const FacultySignup = () => {
     termsAccepted: false,
   });
 
-  const [profilePreview, setProfilePreview] = useState(null);
-  const [passwordError, setPasswordError] = useState('');
+  // ----- verification flags -----------------------------------------
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
 
-  // Validate password match on change
+  // ----- password match --------------------------------------------
+  const [passwordError, setPasswordError] = useState('');
+  const [profilePreview, setProfilePreview] = useState(null);
+
+  // ----- keep verification state after OTP page returns -------------
+  useEffect(() => {
+    if (location.state?.emailVerified) setEmailVerified(true);
+    if (location.state?.phoneVerified) setPhoneVerified(true);
+  }, [location.state]);
+
+  // ----- password match validation ----------------------------------
   useEffect(() => {
     if (form.password || form.confirmPassword) {
-      if (form.password !== form.confirmPassword) {
-        setPasswordError("Passwords do not match");
-      } else {
-        setPasswordError('');
-      }
+      setPasswordError(
+        form.password !== form.confirmPassword ? 'Passwords do not match' : ''
+      );
     } else {
       setPasswordError('');
     }
   }, [form.password, form.confirmPassword]);
 
+  // ----- generic change handler -------------------------------------
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
     if (type === 'file') {
       const file = files[0];
-      setForm(prev => ({ ...prev, [name]: file }));
+      setForm((prev) => ({ ...prev, [name]: file }));
 
       if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -53,59 +67,70 @@ const FacultySignup = () => {
         setProfilePreview(null);
       }
     } else if (type === 'checkbox') {
-      setForm(prev => ({ ...prev, [name]: checked }));
+      setForm((prev) => ({ ...prev, [name]: checked }));
     } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const countWords = (text) => text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  // ----- word counter for short CV ----------------------------------
+  const countWords = (text) =>
+    text.trim().split(/\s+/).filter((w) => w.length > 0).length;
 
+  // ----- OTP navigation ---------------------------------------------
+  const sendOTP = (type) => {
+    if (type === 'email' && !form.email) return alert('Enter email first');
+    if (type === 'phone' && !form.phone) return alert('Enter phone first');
+
+    const payload = {
+      email: form.email,
+      phone: form.phone,
+      type,
+      fromSignup: true,
+      returnTo: '/faculty-signup', // optional – OTP page can use it
+    };
+
+    navigate('/otp', { state: payload });
+  };
+
+  // ----- final submit ------------------------------------------------
   const handleSignup = (e) => {
     e.preventDefault();
 
-    if (!form.termsAccepted) {
-      alert('Please accept the Terms & Conditions');
-      return;
-    }
+    if (!form.termsAccepted) return alert('Accept Terms & Conditions');
+    if (!emailVerified || !phoneVerified)
+      return alert('Please verify both email and phone');
+    if (form.shortCV && countWords(form.shortCV) > 100)
+      return alert('Short CV must be ≤ 100 words');
+    if (form.password !== form.confirmPassword)
+      return alert('Passwords do not match');
+    if (form.password.length < 6)
+      return alert('Password must be ≥ 6 characters');
 
-    if (form.shortCV && countWords(form.shortCV) > 100) {
-      alert('Short CV must be 100 words or less');
-      return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
-    }
-
-    if (form.password.length < 6) {
-      alert('Password must be at least 6 characters');
-      return;
-    }
-
-    // Log form data
-    const formData = { ...form };
-    delete formData.profilePicture;
-    console.log('Signup Form Submitted:', {
-      ...formData,
-      profilePicture: form.profilePicture ? form.profilePicture.name : null,
+    // ---- demo mode (replace with real API call) ----
+    console.log('Faculty Signup submitted:', {
+      ...form,
+      profilePicture: form.profilePicture?.name ?? null,
     });
-
     alert('Account created successfully! (Demo mode)');
   };
 
+  // -----------------------------------------------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">Create Your Account</h1>
-            <p className="text-gray-600 mt-2">Join Cybernetics LMS Professional Network</p>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Create Your Faculty Account
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Join Cybernetics LMS Professional Network
+            </p>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-6">
-            {/* Name */}
+            {/* ---------- Name ---------- */}
             <div className="grid md:grid-cols-2 gap-5">
               <input
                 type="text"
@@ -114,7 +139,7 @@ const FacultySignup = () => {
                 value={form.firstName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="text"
@@ -123,12 +148,12 @@ const FacultySignup = () => {
                 value={form.lastName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            {/* Email & Phone */}
-            <div className="grid md:grid-cols-2 gap-5">
+            {/* ---------- Email (with verify) ---------- */}
+            <div className="relative">
               <input
                 type="email"
                 name="email"
@@ -136,8 +161,28 @@ const FacultySignup = () => {
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 pr-36 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
+              <button
+                type="button"
+                onClick={() => sendOTP('email')}
+                disabled={verifyingEmail || emailVerified}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md transition ${
+                  emailVerified
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                } ${verifyingEmail ? 'opacity-50' : ''}`}
+              >
+                {emailVerified
+                  ? 'Verified'
+                  : verifyingEmail
+                  ? 'Sending...'
+                  : 'Verify Email'}
+              </button>
+            </div>
+
+            {/* ---------- Phone (with verify) ---------- */}
+            <div className="relative">
               <input
                 type="tel"
                 name="phone"
@@ -145,11 +190,27 @@ const FacultySignup = () => {
                 value={form.phone}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 pr-36 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
+              <button
+                type="button"
+                onClick={() => sendOTP('phone')}
+                disabled={verifyingPhone || phoneVerified}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md transition ${
+                  phoneVerified
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                } ${verifyingPhone ? 'opacity-50' : ''}`}
+              >
+                {phoneVerified
+                  ? 'Verified'
+                  : verifyingPhone
+                  ? 'Sending...'
+                  : 'Verify Phone'}
+              </button>
             </div>
 
-            {/* Address */}
+            {/* ---------- Rest of the fields (unchanged) ---------- */}
             <textarea
               name="address"
               placeholder="Full Address"
@@ -160,9 +221,10 @@ const FacultySignup = () => {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
 
-            {/* Employment Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Employment Status
+              </label>
               <div className="flex space-x-6">
                 <label className="flex items-center">
                   <input
@@ -190,7 +252,6 @@ const FacultySignup = () => {
               </div>
             </div>
 
-            {/* Designation & Qualification */}
             <div className="grid md:grid-cols-2 gap-5">
               <input
                 type="text"
@@ -212,7 +273,6 @@ const FacultySignup = () => {
               />
             </div>
 
-            {/* Short CV */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Short CV (Max 100 words) — {countWords(form.shortCV)} words
@@ -228,9 +288,10 @@ const FacultySignup = () => {
               />
             </div>
 
-            {/* Profile Picture */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile Picture
+              </label>
               <input
                 type="file"
                 name="profilePicture"
@@ -240,12 +301,15 @@ const FacultySignup = () => {
               />
               {profilePreview && (
                 <div className="mt-3 flex justify-center">
-                  <img src={profilePreview} alt="Preview" className="h-32 w-32 object-cover rounded-full border-4 border-blue-200" />
+                  <img
+                    src={profilePreview}
+                    alt="Preview"
+                    className="h-32 w-32 object-cover rounded-full border-4 border-blue-200"
+                  />
                 </div>
               )}
             </div>
 
-            {/* Social Links */}
             <div className="grid md:grid-cols-3 gap-5">
               <input
                 type="url"
@@ -273,23 +337,19 @@ const FacultySignup = () => {
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <input
-                type="password"
-                name="password"
-                placeholder="Create Password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                minLength="6"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  passwordError ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-            </div>
+            <input
+              type="password"
+              name="password"
+              placeholder="Create Password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              minLength="6"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                passwordError ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
 
-            {/* Confirm Password */}
             <div>
               <input
                 type="password"
@@ -308,7 +368,6 @@ const FacultySignup = () => {
               )}
             </div>
 
-            {/* Terms */}
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -319,14 +378,27 @@ const FacultySignup = () => {
                 className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">
-                I agree to the <Link to="/terms" className="text-blue-600 underline hover:text-blue-800">Terms & Conditions</Link> and <Link to="/privacy" className="text-blue-600 underline hover:text-blue-800">Privacy Policy</Link>
+                I agree to the{' '}
+                <Link to="/terms" className="text-blue-600 underline">
+                  Terms & Conditions
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="text-blue-600 underline">
+                  Privacy Policy
+                </Link>
               </span>
             </label>
 
-            {/* Submit */}
             <button
               type="submit"
-              disabled={!form.termsAccepted || passwordError || !form.password || form.password.length < 6}
+              disabled={
+                !form.termsAccepted ||
+                passwordError ||
+                !form.password ||
+                form.password.length < 6 ||
+                !emailVerified ||
+                !phoneVerified
+              }
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Account
