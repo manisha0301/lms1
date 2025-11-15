@@ -30,7 +30,8 @@ const Login = () =>{
 
     //   if (res.ok) {
     //     localStorage.setItem('token', data.token);
-        navigate(' /home');
+    //     navigate(' /home');
+        navigate('/student/profile');  // ← This line
     //   } else {
     //     setError(data.message || 'Login failed');
     //   }

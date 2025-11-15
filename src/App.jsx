@@ -5,16 +5,20 @@ import Signup from './pages/auth/signup';
 import Home from './pages/Home';
 import VerifyOTP from './pages/auth/VerifyOTP';
 import CoursesDashboard from './pages/student/CoursesDashboard';
+import CourseDetail from './pages/student/CourseDetail';
+import ProfileDashboard from './pages/student/ProfileDashboard';
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/otp" element={<VerifyOTP />} />
         <Route path="/student/dash" element={<CoursesDashboard />} />
+        <Route path="/student/profile" element={<ProfileDashboard />} />
+        <Route path="/student/course/:id" element={<CourseDetail />} />
       </Routes>
     </Router>
   );

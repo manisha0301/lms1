@@ -110,35 +110,37 @@ export default function CoursesDashboard() {
 
       {/* Search + Filter */}
       <section className="mb-6">
-        <div className="bg-white rounded-2xl shadow-lg p-5 flex flex-col md:flex-row gap-4 items-center">
-          {/* Search */}
-          <div className="flex-1 relative w-full md:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search courses by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+       <div className="bg-white rounded-xl shadow-lg p-3 gap-4 w-fit">
+  <div className="flex items-center gap-3">
 
-          {/* Duration Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <select
-              value={selectedDuration}
-              onChange={(e) => setSelectedDuration(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Durations</option>
-              <option value="1">1 Month</option>
-              <option value="3">3 Months</option>
-              <option value="6">6 Months</option>
-              <option value="12">12 Months</option>
-            </select>
-          </div>
-        </div>
+    {/* Filter Dropdown */}
+    <select 
+      value={selectedDuration} 
+      onChange={(e) => setSelectedDuration(e.target.value)}
+      className="border border-gray-300 rounded-lg px-3 py-2 min-w-[120px]"
+    >
+      <option value="all">All Durations</option>
+      <option value="1">1 Month</option>
+      <option value="3">3 Months</option>
+      <option value="6">6 Months</option>
+      <option value="12">12 Months</option>
+    </select>
+
+    {/* Search Field */}
+    <div className="relative min-w-[200px]">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <input
+        type="text"
+        placeholder="Search..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+
+  </div>
+</div>
+
       </section>
 
       {/* My Courses */}
