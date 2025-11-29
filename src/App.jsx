@@ -14,6 +14,10 @@ import TotalCourses from './pages/academic/TotalCourses';
 import CentersManagement from './pages/academic/CentersManagement';
 import FacultiesManagement from './pages/academic/FacultiesManagement';
 import PendingApprovals from './pages/academic/PendingApprovals';
+import SuperAdminDashboard from './pages/superAdmin/SuperAdminDashboard';
+import AcademicAdminsPage from './pages/superAdmin/AcademicAdminsPage';
+import FinanceDashboard from './pages/superAdmin/FinanceDashboard';
+import CoursesManagementPage from './pages/superAdmin/CourseManagementPage';
 
 export default function App() {
   return (
@@ -36,6 +40,10 @@ export default function App() {
         <Route path="/academic/centers" element={<CentersManagement />} />
         <Route path="/academic/faculties" element={<FacultiesManagement />} />
         <Route path="/academic/approvals" element={<PendingApprovals />} />
+        <Route path="/superadmin/dash" element={<SuperAdminDashboard />} />
+        <Route path="/academic-admins" element={<AcademicAdminsPage />} />
+        <Route path="/courses" element={<CoursesManagementPage />} />
+        <Route path='/finance' element={<FinanceDashboard />} />
       </Routes>
     </Router>
   );

@@ -73,7 +73,7 @@ export default function CourseDetail() {
       { date: '2025-11-20', time: '7:00 PM', topic: 'React Hooks Live', instructor: 'John Doe' },
       { date: '2025-11-27', time: '7:00 PM', topic: 'Performance Optimization', instructor: 'John Doe' }
     ],
-    examLink: isRegistered ? 'https://exam.codekart.com/react-final' : null,
+    examLink: isRegistered ? 'https://exam.kristellar.com/react-final' : null,
     notes: isRegistered ? ['Module1.pdf', 'Hooks-Cheatsheet.pdf'] : []
   };
 

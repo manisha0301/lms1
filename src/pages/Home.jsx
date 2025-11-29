@@ -187,7 +187,7 @@ export default function Home() {
       <footer className="bg-gray-800 text-white py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm">
-            © 2025 Cybernetics LMS by <strong>Codekart Solutions Pvt. Ltd.</strong>
+            © 2025 Cybernetics LMS by <strong>Kristellar Solutions Pvt. Ltd.</strong>
           </p>
         </div>
       </footer>

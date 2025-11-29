@@ -272,7 +272,7 @@ const AcademicDashboard = () => {
             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-900">Academic Admin</p>
-                <p className="text-xs text-gray-500">admin@codekart.com</p>
+                <p className="text-xs text-gray-500">admin@kristellar.com</p>
               </div>
               <div className="w-11 h-11 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30">
                 AA

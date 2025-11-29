@@ -15,10 +15,10 @@ const indianStatesAndDistricts = {
 
 const CentersManagement = () => {
   const [centers, setCenters] = useState([
-    { id: 1, name: "CodeKart Pune Main Center", state: "Maharashtra", district: "Pune" },
-    { id: 2, name: "CodeKart Bangalore Koramangala", state: "Karnataka", district: "Bangalore" },
-    { id: 3, name: "CodeKart Andheri West", state: "Maharashtra", district: "Mumbai" },
-    { id: 4, name: "CodeKart Connaught Place", state: "Delhi", district: "New Delhi" },
+    { id: 1, name: "Kristellar Pune Main Center", state: "Maharashtra", district: "Pune" },
+    { id: 2, name: "Kristellar Bangalore Koramangala", state: "Karnataka", district: "Bangalore" },
+    { id: 3, name: "Kristellar Andheri West", state: "Maharashtra", district: "Mumbai" },
+    { id: 4, name: "Kristellar Connaught Place", state: "Delhi", district: "New Delhi" },
   ]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -215,7 +215,7 @@ const CentersManagement = () => {
                 type="text"
                 value={centerName}
                 onChange={e => setCenterName(e.target.value)}
-                placeholder="e.g. CodeKart Thane Branch"
+                placeholder="e.g. Kristellar Thane Branch"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
               />
 

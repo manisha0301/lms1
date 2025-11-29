@@ -22,7 +22,7 @@ const FacultiesManagement = () => {
         {
             id: 1,
             name: "Dr. Priya Sharma",
-            email: "priya.sharma@codekart.com",
+            email: "priya.sharma@kristellar.com",
             phone: "+91 98765 43210",
             address: "Flat 1203, Sky Towers, Hinjewadi Phase 2, Pune - 411057",
             employmentStatus: "employed",
@@ -41,14 +41,14 @@ const FacultiesManagement = () => {
             attendance: "95%",
             cvDescription: `Professional Experience:
 • Senior React Developer at TechSolutions Pvt Ltd (2021–Present)
-• Full Stack Trainer at CodeKart Academy (2020–Present)
+• Full Stack Trainer at Kristellar Academy (2020–Present)
 • Frontend Lead at StartupXYZ (2018–2021)
 `,
         },
         {
             id: 2,
             name: "Prof. Amit Kumar",
-            email: "amit.k@codekart.com",
+            email: "amit.k@kristellar.com",
             phone: "+91 87654 32109",
             address: "B-45, Andheri East, Mumbai - 400069",
             employmentStatus: "employed",
@@ -67,14 +67,14 @@ const FacultiesManagement = () => {
             attendance: "98%",
             cvDescription: `Professional Experience:
 • Senior React Developer at TechSolutions Pvt Ltd (2021–Present)
-• Full Stack Trainer at CodeKart Academy (2020–Present)
+• Full Stack Trainer at Kristellar Academy (2020–Present)
 • Frontend Lead at StartupXYZ (2018–2021)
 `,
         },
         {
             id: 3,
             name: "Ms. Sneha Patel",
-            email: "sneha.patel@codekart.com",
+            email: "sneha.patel@kristellar.com",
             phone: "+91 76543 21098",
             address: "Gandhi Road, Ahmedabad - 380001",
             employmentStatus: "freelancer",
@@ -93,7 +93,7 @@ const FacultiesManagement = () => {
             attendance: "N/A",
             cvDescription: `Professional Experience:
 • Senior React Developer at TechSolutions Pvt Ltd (2021–Present)
-• Full Stack Trainer at CodeKart Academy (2020–Present)
+• Full Stack Trainer at Kristellar Academy (2020–Present)
 • Frontend Lead at StartupXYZ (2018–2021)`,
         },
     ];
