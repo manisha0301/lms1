@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import {
     ArrowLeft, Search, Filter, MapPin, Briefcase, GraduationCap,
-    Trash2, Key, Calendar, CheckCircle, XCircle, Eye, Edit2, X, Mail, Phone,
-    Building2, UserCheck, Link as LinkIcon, FileText, Download
+    Trash2, Key, Calendar, CheckCircle, XCircle, Eye, X, Mail, Phone,
+    Building2, Link as LinkIcon, Download, Users, Award
 } from 'lucide-react';
 
 const FacultiesManagement = () => {
@@ -22,10 +22,10 @@ const FacultiesManagement = () => {
         {
             id: 1,
             name: "Dr. Priya Sharma",
-            email: "priya.sharma@codekart.com",
+            email: "priya.sharma@kristellar.com",
             phone: "+91 98765 43210",
             address: "Flat 1203, Sky Towers, Hinjewadi Phase 2, Pune - 411057",
-            employmentStatus: "employed",
+            employmentStatus: "Employed",
             designation: "Senior Faculty - React & Node.js",
             qualification: "PhD Computer Science",
             profilePic: "https://randomuser.me/api/portraits/women/44.jpg",
@@ -41,24 +41,22 @@ const FacultiesManagement = () => {
             attendance: "95%",
             cvDescription: `Professional Experience:
 • Senior React Developer at TechSolutions Pvt Ltd (2021–Present)
-• Full Stack Trainer at CodeKart Academy (2020–Present)
+• Full Stack Trainer at Kristellar Academy (2020–Present)
 • Frontend Lead at StartupXYZ (2018–2021)
 `,
         },
+        // ... (rest of the faculty data same as before)
         {
             id: 2,
             name: "Prof. Amit Kumar",
-            email: "amit.k@codekart.com",
+            email: "amit.k@kristellar.com",
             phone: "+91 87654 32109",
             address: "B-45, Andheri East, Mumbai - 400069",
-            employmentStatus: "employed",
+            employmentStatus: "Employed",
             designation: "Lead Faculty - MERN Stack",
             qualification: "M.Tech AI/ML",
             profilePic: "https://randomuser.me/api/portraits/men/32.jpg",
-            cv: "https://example.com/cv/amit-kumar.pdf",
             linkedin: "https://linkedin.com/in/amitkumar",
-            instagram: null,
-            facebook: null,
             state: "Maharashtra",
             district: "Mumbai",
             courses: ["Full Stack MERN Bootcamp"],
@@ -67,24 +65,22 @@ const FacultiesManagement = () => {
             attendance: "98%",
             cvDescription: `Professional Experience:
 • Senior React Developer at TechSolutions Pvt Ltd (2021–Present)
-• Full Stack Trainer at CodeKart Academy (2020–Present)
+• Full Stack Trainer at Kristellar Academy (2020–Present)
 • Frontend Lead at StartupXYZ (2018–2021)
 `,
         },
         {
             id: 3,
             name: "Ms. Sneha Patel",
-            email: "sneha.patel@codekart.com",
+            email: "sneha.patel@kristellar.com",
             phone: "+91 76543 21098",
             address: "Gandhi Road, Ahmedabad - 380001",
-            employmentStatus: "freelancer",
+            employmentStatus: "Freelancer",
             designation: "Python & Django Faculty",
             qualification: "M.Sc. Computer Science",
             profilePic: "https://randomuser.me/api/portraits/women/68.jpg",
-            cv: "https://example.com/cv/sneha-patel.pdf",
             linkedin: "https://linkedin.com/in/snehapatel",
             instagram: "https://instagram.com/sneha.codes",
-            facebook: null,
             state: "Gujarat",
             district: "Ahmedabad",
             courses: ["Python Django Full Course"],
@@ -93,7 +89,7 @@ const FacultiesManagement = () => {
             attendance: "N/A",
             cvDescription: `Professional Experience:
 • Senior React Developer at TechSolutions Pvt Ltd (2021–Present)
-• Full Stack Trainer at CodeKart Academy (2020–Present)
+• Full Stack Trainer at Kristellar Academy (2020–Present)
 • Frontend Lead at StartupXYZ (2018–2021)`,
         },
     ];
@@ -114,28 +110,13 @@ const FacultiesManagement = () => {
         return matchesSearch && matchesState && matchesDistrict;
     });
 
-    const approveFaculty = (id) => {
-        alert(`Faculty approved successfully!`);
-    };
-
-    const rejectFaculty = (id) => {
-        if (window.confirm("Reject this faculty request?")) {
-            alert("Faculty request rejected.");
-        }
-    };
-
-    const deleteFaculty = (id) => {
-        if (window.confirm("Are you sure you want to remove this faculty permanently?")) {
-            alert("Faculty removed.");
-        }
-    };
-
+    // Dummy actions
+    const approveFaculty = (id) => alert(`Faculty ID ${id} approved!`);
+    const rejectFaculty = (id) => window.confirm("Reject this faculty?") && alert("Rejected");
+    const deleteFaculty = (id) => window.confirm("Delete permanently?") && alert("Deleted");
     const changePassword = () => {
-        if (newPassword.length < 6) {
-            alert("Password must be at least 6 characters");
-            return;
-        }
-        alert(`Password changed successfully for ${selectedFaculty.name}!`);
+        if (newPassword.length < 6) return alert("Password too short");
+        alert(`Password changed for ${selectedFaculty.name}`);
         setIsChangePasswordOpen(false);
         setNewPassword("");
     };
@@ -146,272 +127,299 @@ const FacultiesManagement = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-            {/* Header */}
-            <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-                <div className="px-8 py-5 flex items-center justify-between max-w-[1600px] mx-auto">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => window.history.back()} className="p-2.5 hover:bg-gray-100 rounded-xl transition-all hover:scale-110">
-                            <ArrowLeft className="w-6 h-6 text-gray-700" />
+        <div className="min-h-screen bg-gray-50">
+
+            {/* Header - same style as AllCourses */}
+            <div className="bg-[#1e3a8a] text-white py-12">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="flex justify-between items-center gap-6">
+                        <div className='flex flex-row gap-6'>
+                        <button onClick={() => window.history.back()} className="text-white hover:bg-white/10 p-2 rounded-lg transition cursor-pointer">
+                            <ArrowLeft className="w-8 h-8" />
                         </button>
                         <div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                Faculty Management
-                            </h1>
-                            <p className="text-sm text-gray-500">Manage, approve, and track all faculty members</p>
+                            <h1 className="text-3xl font-semibold">Faculty Management</h1>
+                            <p className="mt-2 text-blue-100">Manage, approve, and track all faculty members</p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-8">
-                        <div className="text-right">
-                            <p className="text-3xl font-bold text-gray-900">{faculties.length}</p>
-                            <p className="text-sm text-gray-600">Total Faculties</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-3xl font-bold text-green-600">+{todayCount}</p>
-                            <p className="text-sm text-gray-600">Joined Today</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-3xl font-bold text-orange-600">{pendingRequests}</p>
-                            <p className="text-sm text-gray-600">Pending Approval</p>
-                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+                        <p className="text-3xl font-bold text-gray-800">{faculties.length}</p>
+                        <p className="text-sm text-gray-600 mt-1">Total Faculties</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+                        <p className="text-3xl font-bold text-green-600">+{todayCount}</p>
+                        <p className="text-sm text-gray-600 mt-1">Joined Today</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+                        <p className="text-3xl font-bold text-orange-600">{pendingRequests}</p>
+                        <p className="text-sm text-gray-600 mt-1">Pending Requests</p>
                     </div>
                 </div>
-            </header>
-
-            {/* Filters */}
-            <div className="px-8 py-6 max-w-[1600px] mx-auto">
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by name or email..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                            />
-                        </div>
-
-                        <select value={filterState} onChange={e => { setFilterState(e.target.value); setFilterDistrict(""); }}
-                            className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="">All States</option>
-                            {Object.keys(indianStatesAndDistricts).map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-
-                        <select value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)} disabled={!filterState}
-                            className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-gray-50">
-                            <option value="">All Districts</option>
-                            {filterState && indianStatesAndDistricts[filterState]?.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-
-                        {/* <button onClick={() => { setSearchTerm(""); setFilterState(""); setFilterDistrict(""); }}
-                            className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium flex items-center justify-center gap-2">
-                            <Filter className="w-4 h-4" /> Clear
-                        </button> */}
-
-                        {(() => {
-                            const isAnyFilterActive = searchTerm || filterState || filterDistrict;
-                            return (
-                                <button
-                                    onClick={() => {
-                                        setSearchTerm("");
-                                        setFilterState("");
-                                        setFilterDistrict("");
-                                    }}
-                                    className={`px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${isAnyFilterActive
-                                            ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md"
-                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                        }`}
-                                >
-                                    <Filter className="w-4 h-4" />
-                                    Clear Filters
-                                </button>
-                            );
-                        })()}
                     </div>
                 </div>
             </div>
 
-            {/* Faculty Cards */}
-            <div className="px-8 pb-12 max-w-[1600px] mx-auto">
+            <div className="max-w-7xl mx-auto px-6 py-10">
+                {/* Filters - same style as AllCourses */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search faculty..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition"
+                            />
+                        </div>
+
+                        <select
+                            value={filterState}
+                            onChange={e => { setFilterState(e.target.value); setFilterDistrict(""); }}
+                            className="px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition cursor-pointer"
+                        >
+                            <option value="">All States</option>
+                            {Object.keys(indianStatesAndDistricts).map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            value={filterDistrict}
+                            onChange={e => setFilterDistrict(e.target.value)}
+                            disabled={!filterState}
+                            className="px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] disabled:bg-gray-100 focus:border-[#1e40af] transition cursor-pointer"
+                        >
+                            <option value="">All Districts</option>
+                            {filterState && indianStatesAndDistricts[filterState]?.map(d => (
+                                <option key={d} value={d}>{d}</option>
+                            ))}
+                        </select>
+
+                        <button
+                            onClick={() => { setSearchTerm(""); setFilterState(""); setFilterDistrict(""); }}
+                            className="bg-[#1e40af] text-white px-6 py-3 rounded-md hover:bg-[#1e3a8a] transition flex items-center justify-center gap-2 font-medium cursor-pointer hover:shadow-lg hover:scale-105"
+                        >
+                            <Filter className="w-4 h-4" /> Clear Filters
+                        </button>
+                    </div>
+                </div>
+
+                {/* Faculty Grid - same card style as AllCourses */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredFaculties.map(faculty => (
-                        <div key={faculty.id} className={`bg-white rounded-2xl shadow-lg border-2 p-6 transition-all hover:shadow-2xl hover:scale-[1.02] ${faculty.status === 'pending' ? 'border-orange-300 ring-2 ring-orange-100' : 'border-gray-100'
-                            } ${faculty.today ? 'ring-2 ring-green-100 border-green-300' : ''}`}>
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 rounded-xl overflow-hidden ring-4 ring-indigo-100">
-                                        <img src={faculty.profilePic} alt={faculty.name} className="w-full h-full object-cover" />
+                    {filteredFaculties.map((faculty) => (
+                        <div
+                            key={faculty.id}
+                            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition"
+                        >
+                            <div className="h-48 bg-gray-200 border-b border-gray-200 relative">
+                                <img
+                                    src={faculty.profilePic}
+                                    alt={faculty.name}
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-3 left-3 bg-green-600 text-white text-xs font-medium px-3 py-1 rounded">
+                                    {faculty.status === "pending" ? "PENDING" : "ACTIVE"}
+                                </div>
+                                {faculty.today && (
+                                    <div className="absolute top-3 right-3 bg-blue-600 text-white text-xs font-medium px-3 py-1 rounded">
+                                        NEW
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg text-gray-900">{faculty.name}</h3>
-                                        <p className="text-sm text-gray-600">{faculty.designation}</p>
-                                        {faculty.today && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">NEW TODAY</span>}
-                                        {faculty.status === 'pending' && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-bold">PENDING</span>}
+                                )}
+                            </div>
+
+                            <div className="p-5">
+                                <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">{faculty.name}</h3>
+                                <p className="text-sm text-gray-600 mt-1">{faculty.designation}</p>
+
+                                <div className="flex items-center gap-4 text-xs text-gray-500 mt-4">
+                                    <div className="flex items-center gap-1">
+                                        <MapPin className="w-4 h-4" />
+                                        <span>{faculty.district}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Briefcase className="w-4 h-4" />
+                                        <span>{faculty.employmentStatus}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Calendar className="w-4 h-4" />
+                                        <span>{faculty.attendance}</span>
                                     </div>
                                 </div>
-                                <button onClick={() => deleteFaculty(faculty.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
 
-                            <div className="space-y-2 text-sm text-gray-600">
-                                <div className="flex items-center gap-2"><Mail className="w-4 h-4" /> {faculty.email}</div>
-                                <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> {faculty.phone}</div>
-                                <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {faculty.district}, {faculty.state}</div>
-                                <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Attendance: <span className="font-bold text-indigo-600">{faculty.attendance}</span></div>
-                            </div>
-
-                            <div className="mt-5 flex gap-2">
-                                <button onClick={() => openDetails(faculty)} className="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 font-medium flex items-center justify-center gap-2">
-                                    <Eye className="w-4 h-4" /> View Details
-                                </button>
-
-                                {faculty.status === 'pending' ? (
-                                    <>
-                                        <button onClick={() => approveFaculty(faculty.id)} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                                            <CheckCircle className="w-5 h-5" />
+                                <div className="mt-5 flex items-center justify-between">
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => openDetails(faculty)}
+                                            className="bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <Eye className="w-4 h-4" /> Details
                                         </button>
-                                        <button onClick={() => rejectFaculty(faculty.id)} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                                            <XCircle className="w-5 h-5" />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <button onClick={() => { setSelectedFaculty(faculty); setIsChangePasswordOpen(true); }}
-                                        className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 flex items-center gap-1">
-                                        <Key className="w-4 h-4" /> Change
+
+                                        {faculty.status === 'pending' ? (
+                                            <>
+                                                <button
+                                                    onClick={() => approveFaculty(faculty.id)}
+                                                    className="bg-green-600 text-white p-2.5 rounded-md hover:bg-green-700 transition cursor-pointer"
+                                                >
+                                                    <CheckCircle className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => rejectFaculty(faculty.id)}
+                                                    className="bg-red-600 text-white p-2.5 rounded-md hover:bg-red-700 transition cursor-pointer"
+                                                >
+                                                    <XCircle className="w-5 h-5" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => { setSelectedFaculty(faculty); setIsChangePasswordOpen(true); }}
+                                                className="bg-gray-700 text-white p-2.5 rounded-md hover:bg-gray-800 transition cursor-pointer"
+                                            >
+                                                <Key className="w-5 h-5" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => deleteFaculty(faculty.id)}
+                                        className="text-red-600 hover:bg-red-50 p-2 rounded-md transition cursor-pointer"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
-                                )}
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
+
+                {filteredFaculties.length === 0 && (
+                    <div className="text-center py-20">
+                        <p className="text-gray-500 text-lg">No faculties found matching your criteria.</p>
+                    </div>
+                )}
             </div>
 
-            {/* Faculty Details Modal */}
+            {/* View Details Modal - same style */}
             {isViewDetailsOpen && selectedFaculty && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-8 max-h-[95vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center rounded-t-3xl">
-                            <h2 className="text-2xl font-bold text-gray-900">Faculty Profile</h2>
-                            <button onClick={() => setIsViewDetailsOpen(false)} className="p-3 hover:bg-gray-100 rounded-xl transition-all">
-                                <X className="w-6 h-6 text-gray-600" />
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">Faculty Details</h2>
+                            <button onClick={() => setIsViewDetailsOpen(false)} className="text-gray-500 hover:text-gray-700 cursor-pointer">
+                                <X className="w-8 h-8" />
                             </button>
                         </div>
 
-                        <div className="p-8">
-                            <div className="flex flex-col md:flex-row gap-8 mb-8">
-                                <div className="text-center">
-                                    <img src={selectedFaculty.profilePic} alt={selectedFaculty.name} className="w-40 h-40 rounded-full object-cover ring-8 ring-indigo-100 shadow-2xl mx-auto" />
-                                    <h3 className="text-2xl font-bold mt-4">{selectedFaculty.name}</h3>
-                                    <p className="text-gray-600">{selectedFaculty.designation}</p>
-                                    <span className={`inline-block mt-3 px-4 py-2 rounded-full text-sm font-bold ${selectedFaculty.employmentStatus === 'employed' ? 'bg-green-100 text-green-700' :
-                                        selectedFaculty.employmentStatus === 'freelancer' ? 'bg-purple-100 text-purple-700' :
-                                            'bg-gray-100 text-gray-700'
-                                        }`}>
-                                        {selectedFaculty.employmentStatus.toUpperCase()}
-                                    </span>
-                                </div>
+                        <div className="grid md:grid-cols-3 gap-8">
+                            <div className="text-center">
+                                <img
+                                    src={selectedFaculty.profilePic}
+                                    alt={selectedFaculty.name}
+                                    className="w-40 h-40 rounded-full object-cover ring-8 ring-blue-100 mx-auto shadow-lg"
+                                />
+                                <h3 className="text-2xl font-bold mt-4">{selectedFaculty.name}</h3>
+                                <p className="text-gray-600">{selectedFaculty.designation}</p>
+                                <span className={`inline-block mt-3 px-5 py-2 rounded-full text-sm font-bold ${
+                                    selectedFaculty.employmentStatus === 'employed'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-purple-100 text-purple-700'
+                                }`}>
+                                    {selectedFaculty.employmentStatus.toUpperCase()}
+                                </span>
+                            </div>
 
-                                <div className="flex-1 space-y-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div className="flex items-start gap-3">
-                                            <Mail className="w-5 h-5 text-indigo-600 mt-1" />
-                                            <div>
-                                                <p className="text-sm text-gray-600">Email</p>
-                                                <p className="font-medium">{selectedFaculty.email}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <Phone className="w-5 h-5 text-indigo-600 mt-1" />
-                                            <div>
-                                                <p className="text-sm text-gray-600">Phone</p>
-                                                <p className="font-medium">{selectedFaculty.phone}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <Building2 className="w-5 h-5 text-indigo-600 mt-1" />
-                                            <div>
-                                                <p className="text-sm text-gray-600">Address</p>
-                                                <p className="font-medium">{selectedFaculty.address}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-3">
-                                            <GraduationCap className="w-5 h-5 text-indigo-600 mt-1" />
-                                            <div>
-                                                <p className="text-sm text-gray-600">Qualification</p>
-                                                <p className="font-medium">{selectedFaculty.qualification}</p>
-                                            </div>
+                            <div className="md:col-span-2 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex items-start gap-3">
+                                        <Mail className="w-5 h-5 text-[#1e40af] mt-1" />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Email</p>
+                                            <p className="font-medium">{selectedFaculty.email}</p>
                                         </div>
                                     </div>
-
-                                    <div className="pt-6 border-t border-gray-200">
-                                        <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                            <LinkIcon className="w-5 h-5" /> Social Links
-                                        </h4>
-                                        <div className="flex gap-4">
-                                            {selectedFaculty.linkedin && (
-                                                <a href={selectedFaculty.linkedin} target="_blank" rel="noopener noreferrer"
-                                                    className="px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2">
-                                                    <span>LinkedIn</span>
-                                                </a>
-                                            )}
-                                            {selectedFaculty.instagram && (
-                                                <a href={selectedFaculty.instagram} target="_blank" rel="noopener noreferrer"
-                                                    className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 flex items-center gap-2">
-                                                    <span>Instagram</span>
-                                                </a>
-                                            )}
-                                            {selectedFaculty.facebook && (
-                                                <a href={selectedFaculty.facebook} target="_blank" rel="noopener noreferrer"
-                                                    className="px-5 py-3 bg-blue-800 text-white rounded-xl hover:bg-blue-900 flex items-center gap-2">
-                                                    <span>Facebook</span>
-                                                </a>
-                                            )}
+                                    <div className="flex items-start gap-3">
+                                        <Phone className="w-5 h-5 text-[#1e40af] mt-1" />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Phone</p>
+                                            <p className="font-medium">{selectedFaculty.phone}</p>
                                         </div>
                                     </div>
-
-                                    <div className="pt-6 border-t border-gray-200">
-                                        <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                            <FileText className="w-5 h-5" /> Experience & Education (CV Summary)
-                                        </h4>
-                                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200">
-                                            <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed">
-                                                {selectedFaculty.cvDescription}
-                                            </pre>
+                                    <div className="flex items-start gap-3">
+                                        <MapPin className="w-5 h-5 text-[#1e40af] mt-1" />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Location</p>
+                                            <p className="font-medium">{selectedFaculty.district}, {selectedFaculty.state}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <GraduationCap className="w-5 h-5 text-[#1e40af] mt-1" />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Qualification</p>
+                                            <p className="font-medium">{selectedFaculty.qualification}</p>
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    {selectedFaculty.linkedin && (
+                                        <a
+                                            href={selectedFaculty.linkedin}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-5 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition flex items-center gap-2"
+                                        >
+                                            <LinkIcon className="w-4 h-4" /> LinkedIn
+                                        </a>
+                                    )}
+                                    {selectedFaculty.instagram && (
+                                        <a
+                                            href={selectedFaculty.instagram}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md flex items-center gap-2"
+                                        >
+                                            Instagram
+                                        </a>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h4 className="text-lg font-semibold mb-2">CV Description</h4>
+                                    <p className="text-gray-700 whitespace-pre-line">{selectedFaculty.cvDescription || "N/A"}</p>
+                                </div>
+                                
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Change Password Modal */}
+            {/* Change Password Modal - same style */}
             {isChangePasswordOpen && selectedFaculty && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold">Change Password - {selectedFaculty.name}</h3>
-                            <button onClick={() => { setIsChangePasswordOpen(false); setNewPassword(""); }} className="p-2 hover:bg-gray-100 rounded-xl">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+                        <h3 className="text-xl font-bold mb-6">Change Password – {selectedFaculty.name}</h3>
                         <input
                             type="password"
                             value={newPassword}
                             onChange={e => setNewPassword(e.target.value)}
-                            placeholder="Enter new password"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none mb-4"
+                            placeholder="Enter new password (min 6 characters)"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] mb-6"
                         />
-                        <div className="flex justify-end gap-3">
-                            <button onClick={() => setIsChangePasswordOpen(false)} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => { setIsChangePasswordOpen(false); setNewPassword(""); }}
+                                className="px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition cursor-pointer"
+                            >
                                 Cancel
                             </button>
-                            <button onClick={changePassword} className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <button
+                                onClick={changePassword}
+                                className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition cursor-pointer"
+                            >
                                 Update Password
                             </button>
                         </div>

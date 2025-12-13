@@ -30,7 +30,7 @@ const Home = () => {
       <header className="bg-[#1e3a8a] text-white shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="text-3xl font-bold tracking-tight">CodeKart LMS</div>
+            <div className="text-3xl font-bold tracking-tight">Kristellar's LMS</div>
           </div>
           <nav className="flex items-center gap-8">
             <Link to="/login" className="text-sm font-medium hover:text-green-300 transition">Login</Link>
@@ -94,7 +94,7 @@ const Home = () => {
                   <Clock className="w-4 h-4" /> {batch.time}
                 </p>
                 <p className="text-sm text-gray-700">Instructor: <strong>{batch.instructor}</strong></p>
-                <Link to="/all-courses" className="mt-5 inline-block text-[#1e40af] font-medium hover:underline">
+                <Link to="/signup" className="mt-5 inline-block text-[#1e40af] font-medium hover:underline">
                   Enroll Now →
                 </Link>
               </div>

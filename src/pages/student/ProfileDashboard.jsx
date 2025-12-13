@@ -28,15 +28,15 @@ export default function ProfileDashboard() {
 
   const registeredCourses = [
     { id: 'react-101', title: 'React Masterclass', progress: 80, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop', 
-      exams: { completed: 1, total: 3, next: { name: 'Midterm Quiz', date: '2025-11-25', link: 'https://exam.codekart.com/react-midterm' } } },
+      exams: { completed: 1, total: 3, next: { name: 'Midterm Quiz', date: '2025-11-25', link: 'https://exam.kristellar.com/react-midterm' } } },
     { id: 'vue-301', title: 'Vue.js Essentials', progress: 100, thumbnail: 'https://images.unsplash.com/photo-1619410283995-43d9134e7656?w=200&h=200&fit=crop', 
       exams: { completed: 3, total: 3, next: null } },
     { id: 'node-201', title: 'Node.js Advanced', progress: 45, thumbnail: 'https://images.unsplash.com/photo-1610986603166-f78428624e76?w=200&h=200&fit=crop', 
-      exams: { completed: 0, total: 4, next: { name: 'API Project Review', date: '2025-12-01', link: 'https://exam.codekart.com/node-review' } } },
+      exams: { completed: 0, total: 4, next: { name: 'API Project Review', date: '2025-12-01', link: 'https://exam.kristellar.com/node-review' } } },
     { id: 'python-401', title: 'Python Basics', progress: 60, thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f65d4af39a5?w=200&h=200&fit=crop', 
-      exams: { completed: 2, total: 5, next: { name: 'Data Structures Exam', date: '2025-11-28', link: 'https://exam.codekart.com/python-ds' } } },
+      exams: { completed: 2, total: 5, next: { name: 'Data Structures Exam', date: '2025-11-28', link: 'https://exam.kristellar.com/python-ds' } } },
     { id: 'java-501', title: 'Java Enterprise', progress: 30, thumbnail: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=200&h=200&fit=crop', 
-      exams: { completed: 1, total: 4, next: { name: 'Spring Boot Test', date: '2025-12-10', link: 'https://exam.codekart.com/java-spring' } } }
+      exams: { completed: 1, total: 4, next: { name: 'Spring Boot Test', date: '2025-12-10', link: 'https://exam.kristellar.com/java-spring' } } }
   ];
 
   // Calculate overall progress from registered courses

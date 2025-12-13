@@ -1,6 +1,6 @@
 // src/pages/CoursesManagement.jsx
 import React, { useState } from 'react';
-import { ArrowLeft, Search, Edit2, Calendar, Users, Clock, IndianRupee, X, BookOpen, Upload } from 'lucide-react';
+import { ArrowLeft, Search, Edit2, Calendar, Users, Clock, IndianRupee, X, BookOpen, Upload, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CourseDetails from './CourseDetails';
 
@@ -24,6 +24,8 @@ const availableTeachers = [
 const TotalCourses = ({ onBack }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [priceFilter, setPriceFilter] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -40,9 +42,15 @@ const TotalCourses = ({ onBack }) => {
     }
   };
 
-  const filteredCourses = coursesData.filter(course =>
-    course.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCourses = coursesData.filter(course => {
+    const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === "all" || course.type === typeFilter;
+    const matchesPrice = priceFilter === "all" ||
+      (priceFilter === "under25" && course.price < 25000) ||
+      (priceFilter === "25to30" && course.price >= 25000 && course.price <= 30000) ||
+      (priceFilter === "above30" && course.price > 30000);
+    return matchesSearch && matchesType && matchesPrice;
+  });
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -91,91 +99,120 @@ const TotalCourses = ({ onBack }) => {
         onBack={() => setSelectedCourseForDetails(null)} 
       />
     ) : (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="px-8 py-5 flex items-center justify-between max-w-[1600px] mx-auto">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gray-50">
+      {/* Professional Header */}
+      <div className="bg-[#1e3a8a] text-white py-12">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
             <button
               onClick={handleBackClick}
-              className="p-2.5 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
+              className="p-2.5 hover:bg-white/10 rounded-xl transition-all cursor-pointer"
             >
-              <ArrowLeft className="w-6 h-6 text-gray-700" />
+              <ArrowLeft className="w-6 h-6" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                All Courses
-              </h1>
-              <p className="text-xs text-gray-500 font-medium">Manage and monitor all active courses</p>
+              <h1 className="text-3xl font-semibold">All Courses</h1>
+              <p className="mt-2 text-blue-100">Manage and monitor all active courses</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-xl font-bold text-gray-900">{totalCount}</p>
-              <p className="text-sm text-gray-600">Total Courses</p>
+          <div className="flex items-center gap-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+              <p className="text-3xl font-bold text-gray-800">{totalCount}</p>
+              <p className="text-sm text-gray-600 mt-1">Total Courses</p>
             </div>
-            <div className="text-right">
-              <p className="text-xl font-bold text-green-600">+{todayCount}</p>
-              <p className="text-sm text-gray-600">Added Today</p>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+              <p className="text-3xl font-bold text-green-400">+{todayCount}</p>
+              <p className="text-sm text-gray-600 mt-1">Added Today</p>
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Search Bar */}
-      <div className="px-8 py-6 max-w-[1600px] mx-auto">
-        <div className="relative max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search courses by name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-6 py-4 bg-white border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none text-gray-800 placeholder-gray-400 text-lg"
-          />
         </div>
       </div>
 
-      {/* Courses Grid */}
-      <div className="px-8 pb-12 max-w-[1600px] mx-auto">
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search courses by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition"
+              />
+            </div>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition cursor-pointer"
+            >
+              <option value="all">All Types</option>
+              <option value="full-time">Full Time</option>
+              <option value="part-time">Part Time</option>
+              <option value="weekend">Weekend</option>
+              <option value="self-paced">Self-Paced</option>
+            </select>
+
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value)}
+              className="px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition cursor-pointer"
+            >
+              <option value="all">All Prices</option>
+              <option value="under25">Under ₹25,000</option>
+              <option value="25to30">₹25,000 - ₹30,000</option>
+              <option value="above30">Above ₹30,000</option>
+            </select>
+
+            <button className="bg-[#1e40af] text-white px-6 py-3 rounded-md hover:bg-[#1e3a8a] transition flex items-center justify-center gap-2 font-medium cursor-pointer hover:shadow-lg hover:scale-105">
+              <Filter className="w-4 h-4" /> Apply Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
             <div
               key={course.id}
-              className={`bg-white rounded-2xl shadow-lg border-2 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
-                course.today ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'
-              }`}
+              className={`bg-white rounded-lg shadow-sm border ${course.today ? 'border-green-500' : 'border-gray-200'} hover:shadow-md transition`}
             >
-              <div className="p-6">
-                <div className="flex flex-row items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{course.name}</h3>
-                    {course.today && (
-                        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full mb-3">
-                            NEW TODAY
-                        </span>
-                        )}
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center gap-2 text-gray-600">
+              <div className="h-48 bg-gray-200 border-b border-gray-200 relative">
+                {course.today && (
+                  <div className="absolute top-3 left-3 bg-green-600 text-white text-xs font-medium px-3 py-1 rounded">
+                    NEW TODAY
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5">
+                <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">{course.name}</h3>
+
+                <div className="flex items-center gap-4 text-xs text-gray-500 mt-4">
+                  <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     <span>Added: {course.addedOn}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    <span>{course.students} students enrolled</span>
+                    <span>{course.students}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
+                </div>
+
+                <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                  <div className="flex items-center gap-1">
                     <IndianRupee className="w-4 h-4" />
                     <span className="font-semibold">₹{course.price.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     <span className="capitalize">{course.type.replace('-', ' ')}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="mt-4">
                   <p className="text-xs text-gray-500 mb-2">Assigned Teachers:</p>
                   <div className="flex flex-wrap gap-2">
                     {course.teachers.map((teacher, i) => (
@@ -186,21 +223,21 @@ const TotalCourses = ({ onBack }) => {
                   </div>
                 </div>
 
-                <div className='flex flex-row gap-4'>
-                <button
-                onClick={() => setSelectedCourseForDetails(course)}
-                  className="mt-5 w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  View Course
-                </button>
-                <button
-                  onClick={() => openEditModal(course)}
-                  className="mt-5 w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit Course
-                </button>
+                <div className="mt-5 flex gap-2">
+                  <button
+                    onClick={() => setSelectedCourseForDetails(course)}
+                    className="flex-1 bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => openEditModal(course)}
+                    className="flex-1 bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
                 </div>
               </div>
             </div>
@@ -209,7 +246,7 @@ const TotalCourses = ({ onBack }) => {
 
         {filteredCourses.length === 0 && (
           <div className="text-center py-20">
-            <p className="text-xl text-gray-500">No courses found matching "{searchTerm}"</p>
+            <p className="text-gray-500 text-lg">No courses found matching "{searchTerm}"</p>
           </div>
         )}
       </div>      
@@ -223,7 +260,7 @@ const TotalCourses = ({ onBack }) => {
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Edit Course</h2>
-              <button onClick={() => { setEditForm(null); setImagePreview(null); }} className="p-2 hover:bg-gray-100 rounded-xl">
+              <button onClick={() => { setEditForm(null); setImagePreview(null); }} className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer">
                 <X className="w-6 h-6 text-gray-500" />
               </button>
             </div>
@@ -260,7 +297,7 @@ const TotalCourses = ({ onBack }) => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Course Type</label>
                   <select value={editForm.type} onChange={e => setEditForm({...editForm, type: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
                     <option value="full-time">Full Time</option>
                     <option value="part-time">Part Time</option>
                     <option value="weekend">Weekend Batch</option>
@@ -304,10 +341,10 @@ const TotalCourses = ({ onBack }) => {
                   <Calendar className="w-5 h-5 text-indigo-600" /> Batch Schedule
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div><label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label><input type="date" required value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                  <div><label className="block text-xs font-medium text-gray-600 mb-1">End Date</label><input type="date" required value={editForm.endDate} onChange={e => setEditForm({...editForm, endDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                  <div><label className="block text-xs font-medium text-gray-600 mb-1">Start Time</label><input type="time" required value={editForm.startTime} onChange={e => setEditForm({...editForm, startTime: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                  <div><label className="block text-xs font-medium text-gray-600 mb-1">End Time</label><input type="time" required value={editForm.endTime} onChange={e => setEditForm({...editForm, endTime: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label><input type="date" required value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg cursor-pointer" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">End Date</label><input type="date" required value={editForm.endDate} onChange={e => setEditForm({...editForm, endDate: e.target.value})} className="w-full px-3 py-2 border rounded-lg cursor-pointer" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">Start Time</label><input type="time" required value={editForm.startTime} onChange={e => setEditForm({...editForm, startTime: e.target.value})} className="w-full px-3 py-2 border rounded-lg cursor-pointer" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">End Time</label><input type="time" required value={editForm.endTime} onChange={e => setEditForm({...editForm, endTime: e.target.value})} className="w-full px-3 py-2 border rounded-lg cursor-pointer" /></div>
                 </div>
               </div>
 
@@ -320,11 +357,11 @@ const TotalCourses = ({ onBack }) => {
 
               <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
                 <button type="button" onClick={() => { setEditForm(null); setImagePreview(null); }}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold">
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
                   Cancel
                 </button>
                 <button type="submit"
-                  className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all">
+                  className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
                   Update Course
                 </button>
               </div>

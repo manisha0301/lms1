@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
     ArrowLeft, CheckCircle, XCircle, Mail, Phone, MapPin, Briefcase,
-    GraduationCap, FileText, Link, UserCheck, Clock, Building2, X
+    GraduationCap, FileText, Link, Clock, X
 } from 'lucide-react';
 
 const PendingApprovals = () => {
@@ -44,7 +44,6 @@ const PendingApprovals = () => {
         }
     ];
 
-    // Mock data for pending exam link approvals
     const pendingExamRequests = [
         {
             id: 101,
@@ -86,124 +85,157 @@ const PendingApprovals = () => {
         }
     };
 
+    const totalPending = pendingFacultyRequests.length + pendingExamRequests.length;
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-            {/* Header */}
-            <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-                <div className="px-8 py-5 flex items-center justify-between max-w-[1600px] mx-auto">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => window.history.back()}
-                            className="p-2.5 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
-                        >
-                            <ArrowLeft className="w-6 h-6 text-gray-700" />
-                        </button>
-                        <div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                Pending Approvals
-                            </h1>
-                            <p className="text-sm text-gray-500">Review and approve faculty applications & exam links</p>
+        <div className="min-h-screen bg-gray-50">
+
+            {/* Blue Header - Same as FacultiesManagement */}
+            <div className="bg-[#1e3a8a] text-white py-12">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-6">
+                            <button onClick={() => window.history.back()} className="text-white hover:bg-white/10 p-2 rounded-lg transition cursor-pointer">
+                                <ArrowLeft className="w-8 h-8" />
+                            </button>
+                            <div>
+                                <h1 className="text-3xl font-semibold">Pending Approvals</h1>
+                                <p className="mt-2 text-blue-100">Review and approve faculty applications & exam links</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="text-right">
-                            <p className="text-3xl font-bold text-orange-600">{pendingFacultyRequests.length + pendingExamRequests.length}</p>
-                            <p className="text-sm text-gray-600">Total Pending</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+                                <p className="text-3xl font-bold text-orange-600">{totalPending}</p>
+                                <p className="text-sm text-gray-600 mt-1">Total Pending</p>
+                            </div>
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+                                <p className="text-3xl font-bold text-purple-600">{pendingFacultyRequests.length}</p>
+                                <p className="text-sm text-gray-600 mt-1">Faculty Requests</p>
+                            </div>
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+                                <p className="text-3xl font-bold text-indigo-600">{pendingExamRequests.length}</p>
+                                <p className="text-sm text-gray-600 mt-1">Exam Links</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </header>
+            </div>
 
-            {/* Tabs */}
-            <div className="px-8 py-6 max-w-[1600px] mx-auto">
-                <div className="bg-white rounded-2xl shadow-lg p-2 inline-flex border border-gray-200">
+            {/* Tabs - Clean style matching other pages */}
+            <div className="max-w-7xl mx-auto px-6 py-10">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 inline-flex mb-8">
                     <button
                         onClick={() => setActiveTab('faculty')}
-                        className={`px-8 py-3 rounded-xl font-semibold transition-all ${activeTab === 'faculty'
-                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                                : 'text-gray-600 hover:bg-gray-100'
+                        className={`px-8 py-3 rounded-md font-semibold transition-all cursor-pointer ${activeTab === 'faculty'
+                            ? 'bg-[#1e40af] text-white shadow-md'
+                            : 'text-gray-600 hover:bg-gray-100'
                             }`}
                     >
                         Faculty Applications ({pendingFacultyRequests.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('exam')}
-                        className={`px-8 py-3 rounded-xl font-semibold transition-all ${activeTab === 'exam'
-                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                                : 'text-gray-600 hover:bg-gray-100'
+                        className={`px-8 py-3 rounded-md font-semibold transition-all ml-2 cursor-pointer ${activeTab === 'exam'
+                            ? 'bg-[#1e40af] text-white shadow-md'
+                            : 'text-gray-600 hover:bg-gray-100'
                             }`}
                     >
                         Exam Link Requests ({pendingExamRequests.length})
                     </button>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="px-8 pb-12 max-w-[1600px] mx-auto">
+                {/* Content */}
                 {activeTab === 'faculty' ? (
                     <div className="space-y-6">
                         {pendingFacultyRequests.map(faculty => (
-                            <div key={faculty.id} className="bg-white rounded-2xl shadow=xl border-2 border-orange-200 p-8 hover:shadow-2xl transition-all">
-                                <div className="flex gap-8">
-                                    <div className="text-center">
-                                        <img src={faculty.profilePic} alt={faculty.name} className="w-32 h-32 rounded-full object-cover ring-8 ring-orange-100 shadow-xl" />
-                                        <p className="mt-4 text-sm font-medium text-orange-600">Applied {faculty.appliedOn}</p>
-                                    </div>
-
-                                    <div className="flex-1 space-y-5">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h3 className="text-2xl font-bold text-gray-900">{faculty.name}</h3>
-                                                <p className="text-lg text-indigo-600 font-medium">{faculty.designation}</p>
-                                            </div>
-                                            <span className={`px-4 py-2 rounded-full text-sm font-bold ${faculty.employmentStatus === 'employed' ? 'bg-green-100 text-green-700' :
-                                                    'bg-purple-100 text-purple-700'
-                                                }`}>
-                                                {faculty.employmentStatus.toUpperCase()}
-                                            </span>
+                            <div key={faculty.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                                <div className="p-6">
+                                    <div className="flex gap-8">
+                                        <div className="text-center">
+                                            <img
+                                                src={faculty.profilePic}
+                                                alt={faculty.name}
+                                                className="w-32 h-32 rounded-full object-cover ring-8 ring-blue-100 shadow-lg"
+                                            />
+                                            <p className="mt-4 text-sm font-medium text-orange-600 flex items-center gap-1 justify-center">
+                                                <Clock className="w-4 h-4" /> {faculty.appliedOn}
+                                            </p>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-6 text-sm">
-                                            <div className="flex items-center gap-3"><Mail className="w-5 h-5 text-gray-500" /> <span>{faculty.email}</span></div>
-                                            <div className="flex items-center gap-3"><Phone className="w-5 h-5 text-gray-500" /> <span>{faculty.phone}</span></div>
-                                            <div className="flex items-center gap-3"><MapPin className="w-5 h-5 text-gray-500" /> <span>{faculty.address}</span></div>
-                                            <div className="flex items-center gap-3"><GraduationCap className="w-5 h-5 text-gray-500" /> <span>{faculty.qualification}</span>
+                                        <div className="flex-1 space-y-5">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="text-2xl font-bold text-gray-900">{faculty.name}</h3>
+                                                    <p className="text-lg text-[#1e40af] font-medium">{faculty.designation}</p>
+                                                </div>
+                                                <span className={`px-4 py-2 rounded-full text-sm font-bold ${faculty.employmentStatus === 'employed'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-purple-100 text-purple-700'
+                                                    }`}>
+                                                    {faculty.employmentStatus.toUpperCase()}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <Mail className="w-5 h-5 text-[#1e40af]" />
+                                                    <span>{faculty.email}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <Phone className="w-5 h-5 text-[#1e40af]" />
+                                                    <span>{faculty.phone}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <MapPin className="w-5 h-5 text-[#1e40af]" />
+                                                    <span>{faculty.address}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <GraduationCap className="w-5 h-5 text-[#1e40af]" />
+                                                    <span>{faculty.qualification}</span>
+                                                </div>
                                             </div>
 
                                             <div className="pt-4 border-t border-gray-200">
-                                                <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                                    <FileText className="w-5 h-5" /> Short CV (Summary)
+                                                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                                    <FileText className="w-5 h-5" /> Short CV Summary
                                                 </h4>
-                                                <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl">
+                                                <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
                                                     {faculty.cv}
                                                 </p>
                                             </div>
 
-                                            <div className="flex gap-3 height-10 items-center">
+                                            <div className="flex gap-3">
                                                 {faculty.linkedin && (
-                                                    <a href={faculty.linkedin} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">LinkedIn</a>
+                                                    <a href={faculty.linkedin} target="_blank" rel="noopener noreferrer"
+                                                        className="px-5 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition flex items-center gap-2 cursor-pointer">
+                                                        <Link className="w-4 h-4" /> LinkedIn
+                                                    </a>
                                                 )}
                                                 {faculty.instagram && (
-                                                    <a href={faculty.instagram} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm">Instagram</a>
+                                                    <a href={faculty.instagram} target="_blank" rel="noopener noreferrer"
+                                                        className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md flex items-center gap-2 cursor-pointer">
+                                                        Instagram
+                                                    </a>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="mt-8 flex justify-end gap-4">
-                                    <button
-                                        onClick={() => rejectFaculty(faculty.id)}
-                                        className="px-8 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 font-semibold flex items-center gap-2 shadow-lg"
-                                    >
-                                        <XCircle className="w-5 h-5" /> Reject
-                                    </button>
-                                    <button
-                                        onClick={() => approveFaculty(faculty.id)}
-                                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 font-semibold flex items-center gap-2 shadow-lg"
-                                    >
-                                        <CheckCircle className="w-5 h-5" /> Approve & Send Welcome
-                                    </button>
+                                    <div className="mt-6 flex justify-end gap-4 pt-6 border-t border-gray-200">
+                                        <button
+                                            onClick={() => rejectFaculty(faculty.id)}
+                                            className="px-6 py-3 border border-red-300 text-red-700 rounded-md hover:bg-red-50 font-medium transition cursor-pointer"
+                                        >
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => approveFaculty(faculty.id)}
+                                            className="px-8 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] font-semibold shadow-md transition cursor-pointer"
+                                        >
+                                            Approve & Send Welcome
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -211,50 +243,61 @@ const PendingApprovals = () => {
                 ) : (
                     <div className="space-y-6">
                         {pendingExamRequests.map(req => (
-                            <div key={req.id} className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-gray-900">{req.examName}</h3>
-                                        <p className="text-gray-600">by <span className="font-medium">{req.facultyName}</span> • Course: {req.course}</p>
+                            <div key={req.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                                <div className="p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-gray-900">{req.examName}</h3>
+                                            <p className="text-gray-600">
+                                                by <span className="font-medium">{req.facultyName}</span> • Course: {req.course}
+                                            </p>
+                                        </div>
+                                        <span className="text-sm text-orange-600 flex items-center gap-2">
+                                            <Clock className="w-4 h-4" /> {req.requestedOn}
+                                        </span>
                                     </div>
-                                    <span className="text-sm text-orange-600 flex items-center gap-2">
-                                        <Clock className="w-4 h-4" /> {req.requestedOn}
-                                    </span>
-                                </div>
 
-                                <div className="bg-gray-50 p-4 rounded-xl mb-4">
-                                    <p className="text-gray-700 italic">"{req.message}"</p>
-                                </div>
+                                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                                        <p className="text-gray-700 italic">"{req.message}"</p>
+                                    </div>
 
-                                <div className="flex items-center gap-4 text-sm">
-                                    <span className="font-medium">Requested Link:</span>
-                                    <a href={req.requestedLink} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all">
-                                        {req.requestedLink}
-                                    </a>
-                                </div>
+                                    <div className="flex items-center gap-4 text-sm mb-6">
+                                        <span className="font-medium">Requested Link:</span>
+                                        <a href={req.requestedLink} target="_blank" rel="noopener noreferrer"
+                                            className="text-[#1e40af] hover:underline break-all">
+                                            {req.requestedLink}
+                                        </a>
+                                    </div>
 
-                                <div className="mt-6 flex justify-end gap-4">
-                                    <button
-                                        onClick={() => rejectExam(req.id)}
-                                        className="px-6 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium"
-                                    >
-                                        Reject
-                                    </button>
-                                    <button
-                                        onClick={() => approveExam(req.id)}
-                                        className="px-8 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 font-medium shadow-lg"
-                                    >
-                                        Approve Link
-                                    </button>
+                                    <div className="flex justify-end gap-4">
+                                        <button
+                                            onClick={() => rejectExam(req.id)}
+                                            className="px-6 py-3 border border-red-300 text-red-700 rounded-md hover:bg-red-50 font-medium transition cursor-pointer"
+                                        >
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => approveExam(req.id)}
+                                            className="px-8 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] font-semibold shadow-md transition cursor-pointer"
+                                        >
+                                            Approve Link
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
 
+                {(activeTab === 'faculty' && pendingFacultyRequests.length === 0) ||
+                    (activeTab === 'exam' && pendingExamRequests.length === 0) ? (
+                    <div className="text-center py-20">
+                        <p className="text-gray-500 text-lg">No pending requests in this category.</p>
+                    </div>
+                ) : null}
             </div>
         </div>
-    )
+    );
 };
 
 export default PendingApprovals;
