@@ -152,14 +152,15 @@ export default function CoursesDashboard() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <button onClick={() => navigate('/student/profile')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition">
+                    <button onClick={() => navigate('/profile')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition">
                       <User className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">My Profile</span>
                     </button>
                     <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition">
                       <Settings className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">Settings</span>
                     </button>
                     <hr className="my-3 border-gray-200" />
-                    <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition">
+                    <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition"
+                      onClick={() => navigate('/login')}>
                       <LogOut className="w-5 h-5" /> <span className="font-medium">Logout</span>
                     </button>
                   </div>
@@ -171,7 +172,7 @@ export default function CoursesDashboard() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-8 py-10">
+      <div className="mx-auto px-8 py-10">
 
         {/* Search Section */}
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-2 mb-8">
@@ -207,10 +208,10 @@ export default function CoursesDashboard() {
 
         {/* My Enrolled Courses */}
         <h2 className="text-3xl font-bold text-gray-900 mb-8">My Enrolled Courses</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-12">
           {coursesToShow.map((course) => (
-            <div key={course.id} onClick={() => navigate(`/student/course/${course.id}`)} className="bg-white rounded-md shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:-translate-y-3 transition-all cursor-pointer">
-              <div className="h-56 relative">
+            <div key={course.id} onClick={() => navigate(`/course/${course.id}`)} className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:-translate-y-3 transition-all cursor-pointer">
+              <div className="h-40 relative">
                 <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                 {course.progress === 100 && (
                   <div className="absolute top-4 right-4 bg-emerald-600 text-white px-5 py-2 rounded-full font-bold shadow-lg">

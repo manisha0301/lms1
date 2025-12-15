@@ -204,7 +204,7 @@ const Login = () => {
         sessionStorage.setItem("user", JSON.stringify(data.user));
 
         // alert("Login successful! Welcome back to CodeKart");
-        navigate("/student/dash");
+        navigate("/dash");
       } else {
         alert("Error: " + data.error);
       }

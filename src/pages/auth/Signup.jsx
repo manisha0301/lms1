@@ -262,9 +262,9 @@ import { Mail, Lock, User, Phone, School, Check } from "lucide-react";
 import axios from "axios";
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -325,7 +325,7 @@ const Signup = () => {
   const handleTempLogin = (e) => {
     e.preventDefault();
     alert("Demo login successful!");
-    navigate("/student/dash");
+    navigate("/dash");
   };
 
   return (

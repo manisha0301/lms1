@@ -113,10 +113,10 @@ const AcademicDashboard = () => {
     setProfilePreview(null);
   };
 
-  const handleCourseClick = () => navigate('/academic/totalcourses');
-  const handleCenterClick = () => navigate('/academic/centers');
-  const handleFacultyClick = () => navigate('/academic/faculties');
-  const handleApprovalsClick = () => navigate('/academic/approvals');
+  const handleCourseClick = () => navigate('/totalcourses');
+  const handleCenterClick = () => navigate('/centers');
+  const handleFacultyClick = () => navigate('/faculties');
+  const handleApprovalsClick = () => navigate('/approvals');
 
   return (
     <>
@@ -130,7 +130,7 @@ const AcademicDashboard = () => {
                 <span className="text-3xl font-black">K</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">iLMS Admin</h1>
+                <h1 className="text-2xl font-bold">Kristellar iLMS Academic Panel</h1>
                 <p className="text-xs opacity-90 -mt-1">Academic Management Portal</p>
               </div>
             </div>
@@ -183,7 +183,7 @@ const AcademicDashboard = () => {
           </div>
         </header>
 
-        <div className="max-w-7xl mx-auto px-8 py-10">
+        <div className=" mx-auto px-8 py-10">
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
@@ -308,13 +308,13 @@ const AcademicDashboard = () => {
             <div className="space-y-8">
 
               {/* Quick Actions */}
-              <div className="bg-white rounded-md shadow-xl border border-gray-100 p-8">
+              <div className="bg-white rounded-md shadow-xl border border-gray-100 p-8 ">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h3>
                 <div className="space-y-4">
-                  <button onClick={() => setIsCourseModalOpen(true)} className="w-full bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold py-5 rounded-2xl shadow-xl transition flex items-center justify-center gap-3 text-md cursor-pointer">
+                  <button onClick={() => setIsCourseModalOpen(true)} className="w-52 bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold py-3 rounded-2xl shadow-xl transition flex items-center justify-center gap-3 text-md cursor-pointer">
                     <PlusCircle className="w-6 h-6" /> Create New Course
                   </button>
-                  <button onClick={() => setIsFacultyModalOpen(true)} className="w-full border-2 border-gray-300 text-gray-800 font-bold py-5 rounded-2xl hover:bg-gray-50 transition flex items-center justify-center gap-3 text-md cursor-pointer">
+                  <button onClick={() => setIsFacultyModalOpen(true)} className="w-52 border-2 border-gray-300 text-gray-800 font-bold py-3 rounded-2xl hover:bg-gray-50 transition flex items-center justify-center gap-3 text-md cursor-pointer">
                     <Users className="w-6 h-6" /> Add New Faculty
                   </button>
                 </div>
