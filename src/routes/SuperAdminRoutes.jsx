@@ -3,9 +3,9 @@ import SuperAdminDashboard from "../pages/superAdmin/SuperAdminDashboard";
 import AcademicAdminsPage from "../pages/superAdmin/AcademicAdminsPage";
 import FinanceDashboard from "../pages/superAdmin/FinanceDashboard";
 import CoursesManagementPage from "../pages/superAdmin/CourseManagementPage";
-import SuperAdminLogin from "../pages/superAdmin/SuperAdminLogin";
 import AllCourses from "../pages/superAdmin/AllCourses";
 import CourseDetail from "../pages/superAdmin/CourseDetails";
+import SuperAdminLogin from "../pages/auth/superAdminLogin";
 
 export default function SuperAdminRoutes() {
   return (

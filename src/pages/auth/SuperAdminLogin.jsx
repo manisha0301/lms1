@@ -113,7 +113,7 @@ const SuperAdminLogin = () => {
 
               <button
                 type="submit"
-                onClick={()=> navigate('/superadmin/dash')}
+                onClick={()=> navigate('/dash')}
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
               >
