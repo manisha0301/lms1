@@ -1,5 +1,5 @@
 // src/pages/student/AllCourses.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Clock, Users, Calendar, IndianRupee, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 
