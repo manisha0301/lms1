@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone, School, Calendar, Check, ArrowRight } from "lucide-react";
 
-const Login = () => {
+const FacultyLogin = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(false);
 
@@ -123,7 +123,7 @@ const Login = () => {
               </div>
 
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/home")}
                 className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition cursor-pointer">
                 Login to Dashboard
               </button>
@@ -151,7 +151,7 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default FacultyLogin;
 
 
 

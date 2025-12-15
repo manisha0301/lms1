@@ -31,7 +31,7 @@ const AllCourses = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Professional Header */}
-      <div className="bg-[#1e3a8a] text-white py-12">
+      <div className="bg-[#1e3a8a] text-white py-6">
         <div className="mx-auto px-6">
           <h1 className="text-3xl font-semibold">All Courses</h1>
           <p className="mt-2 text-blue-100">Explore job-oriented technical programs with live training and placement support</p>
@@ -39,48 +39,6 @@ const AllCourses = () => {
       </div>
 
       <div className="mx-auto px-6 py-10">
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by course or instructor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition"
-              />
-            </div>
-
-            <select
-              value={durationFilter}
-              onChange={(e) => setDurationFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
-            >
-              <option value="all">All Durations</option>
-              <option value="3">3 Months</option>
-              <option value="4">4 Months</option>
-              <option value="5">5 Months</option>
-              <option value="6">6+ Months</option>
-            </select>
-
-            <select
-              value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
-            >
-              <option value="all">All Prices</option>
-              <option value="under20">Under ₹20,000</option>
-              <option value="20to30">₹20,000 - ₹30,000</option>
-              <option value="above30">Above ₹30,000</option>
-            </select>
-
-            <button className="bg-[#1e40af] text-white px-6 py-3 rounded-md hover:bg-[#1e3a8a] transition flex items-center justify-center gap-2 font-medium">
-              <Filter className="w-4 h-4" /> Apply Filters
-            </button>
-          </div>
-        </div>
 
         {/* Course Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -94,16 +52,11 @@ const AllCourses = () => {
 
               <div className="p-5">
                 <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">{course.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">by {course.instructor}</p>
 
                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-4">
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     <span>{course.duration}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{course.batch}</span>
                   </div>
                 </div>
 

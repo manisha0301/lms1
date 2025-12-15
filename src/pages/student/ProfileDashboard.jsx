@@ -1,12 +1,14 @@
 // src/pages/student/ProfileDashboard.jsx
-import { useState } from 'react';
+import { use, useState } from 'react';
 import {
   User, Mail, Phone, Calendar, Clock, BookOpen,
   CheckCircle, AlertCircle, Edit2, LogOut, Award,
   FileText, Users, ChevronRight
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function ProfileDashboard() {
+  const navigate = useNavigate();
   const [user, setUser] = useState({
     firstName: 'Rahul',
     lastName: 'Sharma',
@@ -65,6 +67,7 @@ export default function ProfileDashboard() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     alert('Logged out successfully');
+    navigate('/login');
     // In real app: navigate('/login')
   };
 
@@ -74,30 +77,31 @@ export default function ProfileDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
-      <header className="max-w-7xl mx-auto mb-8">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 flex flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Cybernetics LMS
-            </h1>
-            <p className="text-lg text-gray-600 mt-1">
-              Welcome back, <span className="font-semibold text-gray-800">{user.firstName}</span>! 👋
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2.5 rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <LogOut className="w-5 h-5" /> Logout
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white ">
+      <header className="mb-10">
+  <div className="bg-[#1e3a8a] border border-gray-200 shadow-sm p-8">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+      <div>
+        <h1 className="text-3xl font-bold text-white">
+          {user.firstName} {user.lastName}
+        </h1>
+        <p className="mt-2 text-lg text-white">
+          Hello, <span className="font-semibold text-green-400">{user.firstName}</span>
+        </p>
+      </div>
+      
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-2 px-6 py-3 text-white hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
+      >
+        <LogOut className="w-5 h-5" />
+        Logout
+      </button>
+    </div>
+  </div>
+</header>
 
-      <div className="max-w-7xl mx-auto grid gap-8 
-                      grid-cols-1
-                      md:grid-cols-2
-                      lg:grid-cols-3">
+      <div className="mx-auto gap-8 p-4">
         {/* ==== LEFT COLUMN ==== */}
         <div className="space-y-6">
           {/* Profile */}

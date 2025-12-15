@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import {
   Building2,
+  Mail,
+  Phone,
+  Calendar,
+  ChevronRight,
 } from 'lucide-react';
 import AdminDetailView from './AdminDetailView';
-import { Link } from 'react-router-dom';
 
 const AcademicAdminsPage = () => {
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
-  
   useEffect(() => {
     window.scrollTo(0, 0);
-    }, []);
+  }, []);
 
   const academicAdmins = [
     {
@@ -106,78 +108,95 @@ const AcademicAdminsPage = () => {
     },
   ];
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Active': return 'text-green-600 bg-green-50';
-      case 'Inactive': return 'text-amber-600 bg-amber-50';
-      case 'Suspended': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
   if (selectedAdmin) {
     return <AdminDetailView admin={selectedAdmin} onBack={() => setSelectedAdmin(null)} />;
   }
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50">
-            <div className="px-8 py-4 flex justify-between items-center max-w-[1600px] mx-auto">
-                <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Academic Admins Management</h1>
-                    <p className="text-xs text-gray-500 font-medium">Overview of all academic administrators</p>
-                </div>
-                <div>
-                    <button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition shadow-md">
-                        + Add New Academic Admin
-                    </button>
-                </div>
-            </div>
-      </header>
-        
-      
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-[#1e3a8a] text-white shadow-lg">
+        <div className="max-w-[1600px] mx-auto px-8 py-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Admin Management</h1>
+            <p className="opacity-90 mt-1">Overview of all academic administrators</p>
+          </div>
+          <button className="bg-white text-[#1e3a8a] px-8 py-3 rounded-2xl font-bold hover:shadow-lg transition shadow-md mt-2">
+            + Add New Academic Admin
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-[1600px] mx-auto px-8 py-8">
+        {/* Admins List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {academicAdmins.map((admin) => (
-            <Link
+            <div
               key={admin.id}
-              onClick={() => setSelectedAdmin(admin)}
-              className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 text-left hover:-translate-y-1"
+              // onClick={() => setSelectedAdmin(admin)}
+              className="bg-white rounded-xl shadow-xl border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-md">
+              <div className="flex items-start justify-between mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                   {admin.profilePic}
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(admin.status)}`}>
+                <span
+                  className={`px-4 py-2 rounded-full text-sm font-bold ${
+                    admin.status === "Active"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : admin.status === "Inactive"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
                   {admin.status}
                 </span>
               </div>
 
-              <h3 className="text-lg font-bold text-gray-900">{admin.fullName}</h3>
-              <p className="text-sm text-gray-600 mt-1">{admin.role}</p>
+              <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#1e3a8a] transition">
+                {admin.fullName}
+              </h3>
+              <p className="text-sm text-gray-600 mt-2">{admin.role}</p>
 
-              <div className="mt-4 space-y-2">
-                <p className="text-sm text-gray-700 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-gray-400" />
-                  {admin.branch}
-                </p>
-                <p className="text-sm text-gray-700">{admin.email}</p>
+              <div className="mt-6 space-y-3 text-sm">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Mail className="w-4 h-4" />
+                  <span className="truncate">{admin.email}</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Phone className="w-4 h-4" />
+                  <span>{admin.mobile}</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Building2 className="w-4 h-4" />
+                  <span>{admin.branch}</span>
+                </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Students</span>
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-600">Students Managed</span>
                   <span className="font-bold text-gray-900">{admin.stats.studentsManaged}</span>
                 </div>
-                <div className="flex justify-between text-sm mt-2">
-                  <span className="text-gray-600">Courses</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Courses Administered</span>
                   <span className="font-bold text-gray-900">{admin.stats.coursesAdministered}</span>
                 </div>
               </div>
-            </Link>
+
+              {/* <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-[#1e3a8a] font-bold">
+                <span>View Full Profile</span>
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition" />
+              </div> */}
+            </div>
           ))}
         </div>
+
+        {academicAdmins.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-xl text-gray-500">No admins found.</p>
+          </div>
+        )}
       </div>
     </div>
   );

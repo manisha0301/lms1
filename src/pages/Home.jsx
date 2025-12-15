@@ -51,7 +51,7 @@ const Home = () => {
             India's Most Trusted Platform for Job-Oriented Technical Courses with Live Training & 100% Placement Support
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/student/courses" className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2">
+            <Link to="/courses" className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2">
               Explore All Courses <ArrowRight className="w-5 h-5" />
             </Link>
             <Link to="/about" className="border-2 border-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-[#1e3a8a] transition">

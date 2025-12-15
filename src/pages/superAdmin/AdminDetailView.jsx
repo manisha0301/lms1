@@ -38,39 +38,33 @@ const getStatusIcon = (status) => {
 };
 
 const AdminDetailView = ({ admin, onBack }) => {
-    useEffect(() => {
-        window.scrollTo(0, 0);  
-    }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md top-0 z-50">
-        <div className="px-8 py-4 flex justify-between items-center gap-4 max-w-[1600px] mx-auto">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
-          >
-            <ChevronLeft className="w-5 h-5" /> Back to List
-          </button>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Admin Profile Details
-          </h1>
-          <div className="w-5 h-5 mr-8" />
+      <div className="mb-8 bg-[#1e3a8a] border border-gray-200 shadow-sm p-8">
+        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="text-center sm:text-left">
+            <h1 className="text-3xl font-bold text-white">Admin Profile Details</h1>
+            <p className="text-white mt-1">View and manage administrator information</p>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+      <div className="max-w-[1600px] mx-auto px-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Profile Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="bg-white rounded-2xl shadow-lg p-8 sticky top-6">
               <div className="text-center">
-                <div className="w-32 h-32 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center text-white text-5xl font-bold shadow-lg">
+                <div className="w-32 h-32 mx-auto bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-xl">
                   {admin.profilePic}
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mt-6">{admin.fullName}</h2>
-                <p className="text-gray-600">{admin.role}</p>
+                <h2 className="text-2xl font-bold text-gray-800 mt-6">{admin.fullName}</h2>
+                <p className="text-[#1e3a8a] font-medium">{admin.role}</p>
                 <div className={`inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(admin.status)}`}>
                   {getStatusIcon(admin.status)} {admin.status}
                 </div>
@@ -96,10 +90,10 @@ const AdminDetailView = ({ admin, onBack }) => {
 
               {/* Action Buttons */}
               <div className="mt-8 space-y-3">
-                <button className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                <button className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl font-medium hover:bg-[#162c6a] transition flex items-center justify-center gap-2">
                   <Edit3 className="w-4 h-4" /> Edit Admin Details
                 </button>
-                <button className="w-full  bg-amber-600 text-white py-3 rounded-xl font-medium hover:bg-amber-700 transition flex items-center justify-center gap-2">
+                <button className="w-full bg-amber-600 text-white py-3 rounded-xl font-medium hover:bg-amber-700 transition flex items-center justify-center gap-2">
                   <Key className="w-4 h-4" /> Reset Password
                 </button>
                 <button className="w-full bg-gray-800 text-white py-3 rounded-xl font-medium hover:bg-gray-900 transition flex items-center justify-center gap-2">
@@ -121,34 +115,34 @@ const AdminDetailView = ({ admin, onBack }) => {
           {/* Right Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Account Information */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Account Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Account Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <p className="text-sm text-gray-600">Username</p>
-                  <p className="font-medium">{admin.username}</p>
+                  <p className="font-medium text-gray-800">{admin.username}</p>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <p className="text-sm text-gray-600">Created On</p>
-                  <p className="font-medium">{new Date(admin.createdAt).toLocaleDateString('en-IN')}</p>
+                  <p className="font-medium text-gray-800">{new Date(admin.createdAt).toLocaleDateString('en-IN')}</p>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <p className="text-sm text-gray-600">Last Login</p>
-                  <p className="font-medium">{admin.lastLogin}</p>
+                  <p className="font-medium text-gray-800">{admin.lastLogin}</p>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <p className="text-sm text-gray-600">Access Type</p>
-                  <p className="font-medium">{admin.roleType}</p>
+                  <p className="font-medium text-gray-800">{admin.roleType}</p>
                 </div>
               </div>
             </div>
 
             {/* Privileges */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Assigned Privileges</h3>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Assigned Privileges</h3>
               <div className="flex flex-wrap gap-3">
                 {admin.privileges.map((priv, i) => (
-                  <span key={i} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium">
+                  <span key={i} className="px-4 py-2 bg-[#1e3a8a]/10 text-[#1e3a8a] rounded-lg text-sm font-medium">
                     {priv}
                   </span>
                 ))}
@@ -156,69 +150,69 @@ const AdminDetailView = ({ admin, onBack }) => {
             </div>
 
             {/* Activity Overview */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Activity Overview</h3>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Activity Overview</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
-                  <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{admin.stats.facultiesManaged}</p>
+                  <Users className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-800">{admin.stats.facultiesManaged}</p>
                   <p className="text-sm text-gray-600">Faculties</p>
                 </div>
                 <div className="text-center">
                   <Users className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{admin.stats.studentsManaged}</p>
+                  <p className="text-2xl font-bold text-gray-800">{admin.stats.studentsManaged}</p>
                   <p className="text-sm text-gray-600">Students</p>
                 </div>
                 <div className="text-center">
                   <BookOpen className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{admin.stats.coursesAdministered}</p>
+                  <p className="text-2xl font-bold text-gray-800">{admin.stats.coursesAdministered}</p>
                   <p className="text-sm text-gray-600">Courses</p>
                 </div>
                 <div className="text-center">
                   <BellRing className="w-8 h-8 text-amber-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{admin.stats.notificationsSent}</p>
+                  <p className="text-2xl font-bold text-gray-800">{admin.stats.notificationsSent}</p>
                   <p className="text-sm text-gray-600">Notifications</p>
                 </div>
               </div>
             </div>
 
             {/* Recent Activities */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Activities</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Recent Activities</h3>
+              <div className="space-y-4">
                 {admin.recentActivities.map((act, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm">
-                    <Activity className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div key={i} className="flex items-start gap-3 text-sm p-4 bg-[#1e3a8a]/5 rounded-xl">
+                    <Activity className="w-4 h-4 text-[#1e3a8a] mt-0.5" />
                     <p className="text-gray-700">{act}</p>
                   </div>
                 ))}
               </div>
-            </div>
+              </div>
 
             {/* Security Settings */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Security Configuration</h3>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Security Configuration</h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-gray-500" />
-                    <span>Email Verified</span>
+                    <span className="font-medium">Email Verified</span>
                   </div>
                   {admin.emailVerified ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <CheckCircle2 className="w-6 h-6 text-green-600" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-red-600" />
+                    <XCircle className="w-6 h-6 text-red-600" />
                   )}
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
                     <Lock className="w-5 h-5 text-gray-500" />
-                    <span>Two-Factor Auth</span>
+                    <span className="font-medium">Two-Factor Auth</span>
                   </div>
                   {admin.twoFactor ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <CheckCircle2 className="w-6 h-6 text-green-600" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-red-600" />
+                    <XCircle className="w-6 h-6 text-red-600" />
                   )}
                 </div>
               </div>
@@ -226,6 +220,10 @@ const AdminDetailView = ({ admin, onBack }) => {
           </div>
         </div>
       </div>
+
+      <footer className="mt-12 py-6 text-center text-sm text-gray-500 border-t border-gray-200">
+        © 2025 Kristellar • Admin Portal
+      </footer>
     </div>
   );
 };

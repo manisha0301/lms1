@@ -219,14 +219,14 @@ const CoursesManagementPage = () => {
     const academic = selectedCourse.academic;
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-8 rounded-t-3xl">
+          <div className="bg-[#1e3a8a] text-white p-8">
             <div className="flex justify-between items-start">
               <div>
                 <h2 className="text-3xl font-bold">{course.title}</h2>
-                <p className="text-indigo-100 mt-2 text-lg">Course Code: {course.code}</p>
+                <p className="opacity-90 mt-1">Course Code: {course.code}</p>
                 <div className="flex items-center gap-4 mt-3">
                   <span className="bg-white/20 px-4 py-2 rounded-full text-sm font-medium">
                     {academic.academicName}
@@ -238,7 +238,7 @@ const CoursesManagementPage = () => {
               </div>
               <button
                 onClick={() => setSelectedCourse(null)}
-                className="p-3 bg-white/20 hover:bg-white/30 rounded-xl transition"
+                className="p-2 hover:bg-white/20 rounded-lg transition"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -248,9 +248,9 @@ const CoursesManagementPage = () => {
           <div className="p-8 space-y-8">
             {/* Faculty & Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6">
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                     {course.faculty.split(' ').map(n => n[0]).join('')}
                   </div>
                   <div>
@@ -261,7 +261,7 @@ const CoursesManagementPage = () => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 text-center">
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
                 <IndianRupee className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
                 <p className="text-3xl font-bold text-emerald-900">
                   ₹{(course.revenue / 100000).toFixed(1)}L
@@ -269,75 +269,75 @@ const CoursesManagementPage = () => {
                 <p className="text-sm text-gray-600">Revenue Generated</p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 text-center">
-                <Target className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-                <p className="text-3xl font-bold text-purple-900">{course.completionRate}%</p>
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
+                <Target className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
+                <p className="text-3xl font-bold text-[#1e3a8a]">{course.completionRate}%</p>
                 <p className="text-sm text-gray-600">Completion Rate</p>
               </div>
             </div>
 
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-gray-50 rounded-2xl p-6 text-center">
-                <Users className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
+                <Users className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
                 <p className="text-3xl font-bold">{course.totalStudents}</p>
                 <p className="text-sm text-gray-600">Total Enrolled</p>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-6 text-center">
-                <UserCheck className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
-                <p className="text-3xl font-bold">{course.activeStudents}</p>
-                <p className="text-sm text-gray-600">Active Students</p>
-              </div>
-              <div className="bg-gray-50 rounded-2xl p-6 text-center">
-                <FileCheck className="w-10 h-10 text-purple-600 mx-auto mb-3" />
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
+                <FileCheck className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
                 <p className="text-3xl font-bold">
                   {course.examsConducted}/{course.totalExams}
                 </p>
-                <p className="text-sm text-gray-600">Exams Conducted</p>
+                <p className="text-sm text-gray-600">Exams</p>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-6 text-center">
-                <ClipboardList className="w-10 h-10 text-amber-600 mx-auto mb-3" />
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
+                <ClipboardList className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
                 <p className="text-3xl font-bold">
                   {course.completedAssignments}/{course.totalAssignments}
                 </p>
                 <p className="text-sm text-gray-600">Assignments</p>
               </div>
-            </div>
-
-            {/* Course Info Table */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Course Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-gray-600">Duration</p>
-                  <p className="font-bold text-lg">{course.duration}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Start Date</p>
-                  <p className="font-bold text-lg">
-                    {new Date(course.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Average Attendance</p>
-                  <p className="font-bold text-lg text-green-600">{course.avgAttendance}%</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Last Activity</p>
-                  <p className="font-bold text-lg flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-gray-500" /> {course.lastActivity}
-                  </p>
-                </div>
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
+                <GraduationCap className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
+                <p className="text-3xl font-bold">{course.activeStudents}</p>
+                <p className="text-sm text-gray-600">Active Students</p>
               </div>
             </div>
 
-            {/* Performance Highlights */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6">
-              <div className="flex items-center gap-4">
-                <Award className="w-12 h-12 text-amber-600" />
-                <div>
-                  <p className="text-lg font-bold text-gray-900">Top Performer</p>
-                  <p className="text-2xl font-bold text-amber-700">{course.topPerformer}</p>
+            {/* Additional Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6">
+                <h3 className="text-xl font-bold mb-4">Course Timeline</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Calendar className="w-4 h-4" />
+                    <span>Start: {course.startDate}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Clock className="w-4 h-4" />
+                    <span>Duration: {course.duration}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Users className="w-4 h-4" />
+                    <span>Batch Size: {course.batchSize}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <UserCheck className="w-4 h-4" />
+                    <span>Avg Attendance: {course.avgAttendance}%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6">
+                <h3 className="text-xl font-bold mb-4">Performance Insights</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Award className="w-4 h-4" />
+                    <span>Top Performer: {course.topPerformer}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Clock className="w-4 h-4" />
+                    <span>Last Activity: {course.lastActivity}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -346,7 +346,7 @@ const CoursesManagementPage = () => {
             <div className="text-center pt-4">
               <button
                 onClick={() => setSelectedCourse(null)}
-                className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-xl transition transform hover:scale-105"
+                className="px-10 py-4 bg-[#1e3a8a] text-white rounded-xl font-semibold hover:shadow-xl transition"
               >
                 Close Detailed View
               </button>
@@ -358,49 +358,43 @@ const CoursesManagementPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50">
-          <div className="px-8 py-4 flex justify-between items-center max-w-[1600px] mx-auto">
-            <div >
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Courses by Academic Admin</h1>
-              <p className="text-xs text-gray-500 font-medium mt-2">
-                Monitor all courses organized by each Academic Admin, including faculty assignments and performance metrics
-              </p>
-            </div>
-          </div>
-        </header>
+      <header className="bg-[#1e3a8a] text-white shadow-lg">
+        <div className="max-w-[1600px] mx-auto px-8 py-6">
+          <h1 className="text-3xl font-bold">Courses by Academic Admin</h1>
+          <p className="opacity-90 mt-1">Monitor all courses organized by each Academic Admin, including faculty assignments and performance metrics</p>
+        </div>
+      </header>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+      <div className="max-w-[1600px] mx-auto px-8 py-4">
         {/* Search Bar */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 mb-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by Academic, Course, Faculty, Code or Center..."
-              className="w-full pl-12 pr-6 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <div className="relative flex-1 max-w-lg mb-8">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by Academic, Course, Faculty, Code or Center..."
+            className="w-full pl-14 pr-6 py-2 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#1e3a8a]/20 focus:border-[#1e3a8a] transition text-lg"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
         {/* Academics List */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {filteredAcademics.map((academic) => (
-            <div key={academic.academicId} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            <div key={academic.academicId} className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Academic Header */}
               <button
                 onClick={() => toggleAcademic(academic.academicId)}
                 className="w-full px-8 py-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                     {academic.academicName.split(' ').map(n => n[0]).join('')}
                   </div>
                   <div className="text-left">
-                    <h3 className="text-xl font-bold text-gray-900">{academic.academicName}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#1e3a8a] transition">{academic.academicName}</h3>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                       <span className="flex items-center gap-1">
                         <Building2 className="w-4 h-4" /> {academic.center}
@@ -429,25 +423,25 @@ const CoursesManagementPage = () => {
 
               {/* Courses List - Collapsible */}
               {expandedAcademics[academic.academicId] && (
-                <div className="border-t border-gray-200 px-8 py-6 space-y-5">
+                <div className="border-t border-gray-100 px-8 py-6 space-y-5">
                   {academic.courses.map((course) => (
                     <div
                       key={course.id}
-                      className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100 hover:shadow-lg transition-all"
+                      className="bg-white rounded-xl shadow-xl border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
                     >
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start justify-between mb-6">
                         <div>
-                          <h4 className="text-lg font-bold text-gray-900">{course.title}</h4>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <h4 className="text-xl font-bold text-gray-900 group-hover:text-[#1e3a8a] transition">{course.title}</h4>
+                          <p className="text-sm text-gray-600 mt-2">
                             <span className="font-mono bg-gray-200 px-2 py-1 rounded">{course.code}</span>
                             {' • '}
                             <UserCheck className="inline w-4 h-4" /> {course.faculty}
                           </p>
                         </div>
                         <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-                          course.status === 'Ongoing' ? 'bg-green-100 text-green-700' :
+                          course.status === 'Ongoing' ? 'bg-emerald-100 text-emerald-700' :
                           course.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                          'bg-amber-100 text-amber-700'
+                          'bg-yellow-100 text-yellow-700'
                         }`}>
                           {course.status}
                         </span>
@@ -455,39 +449,37 @@ const CoursesManagementPage = () => {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div className="text-center">
-                          <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-blue-900">{course.totalStudents}</p>
+                          <Users className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">{course.totalStudents}</p>
                           <p className="text-xs text-gray-600">Enrolled</p>
                         </div>
                         <div className="text-center">
-                          <FileCheck className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-purple-900">
+                          <FileCheck className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">
                             {course.examsConducted}/{course.totalExams}
                           </p>
                           <p className="text-xs text-gray-600">Exams</p>
                         </div>
                         <div className="text-center">
-                          <ClipboardList className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-emerald-900">
+                          <ClipboardList className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">
                             {course.completedAssignments}/{course.totalAssignments}</p>
                           <p className="text-xs text-gray-600">Assignments</p>
                         </div>
                         <div className="text-center">
-                          <IndianRupee className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-green-900">
+                          <IndianRupee className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">
                             ₹{(course.revenue / 100000).toFixed(1)}L
                           </p>
                           <p className="text-xs text-gray-600">Revenue</p>
                         </div>
                       </div>
 
-                      <div className="mt-4 flex justify-end">
-                        <button 
-                        onClick={() => setSelectedCourse({ course, academic })} 
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm">
-                          <Eye className="w-4 h-4" />
-                          View Detailed Report
-                        </button>
+                      <div 
+                      className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-[#1e3a8a] font-bold"
+                      onClick={() => setSelectedCourse({ course, academic })}>
+                        <span >View Detailed Report</span>
+                        <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition" />
                       </div>
                     </div>
                   ))}
@@ -498,28 +490,28 @@ const CoursesManagementPage = () => {
         </div>
 
         {/* Summary Footer */}
-        <div className="mt-12 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-2xl p-8 shadow-xl">
+        <div className="mt-12 bg-[#1e3a8a] text-white rounded-xl shadow-xl p-8">
           <h3 className="text-2xl font-bold mb-6">Platform-Wide Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
               <p className="text-4xl font-bold">{academicsData.reduce((a, c) => a + c.totalCourses, 0)}</p>
-              <p className="text-indigo-100 mt-2">Total Courses</p>
+              <p className="opacity-90 mt-2">Total Courses</p>
             </div>
             <div>
               <p className="text-4xl font-bold">{academicsData.length}</p>
-              <p className="text-indigo-100 mt-2">Academic Admins</p>
+              <p className="opacity-90 mt-2">Academic Admins</p>
             </div>
             <div>
               <p className="text-4xl font-bold">
                 {academicsData.reduce((a, c) => a + c.totalStudents, 0).toLocaleString()}
               </p>
-              <p className="text-indigo-100 mt-2">Total Students</p>
+              <p className="opacity-90 mt-2">Total Students</p>
             </div>
             <div>
               <p className="text-4xl font-bold">
                 ₹{(academicsData.reduce((a, c) => a + c.totalRevenue, 0) / 100000).toFixed(1)}L
               </p>
-              <p className="text-indigo-100 mt-2">Total Revenue</p>
+              <p className="opacity-90 mt-2">Total Revenue</p>
             </div>
           </div>
         </div>

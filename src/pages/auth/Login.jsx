@@ -123,7 +123,7 @@ const Signup = () => {
               </div>
 
               <button
-                onClick={() => navigate("/student/dash")}
+                onClick={() => navigate("/dash")}
                 className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition cursor-pointer">
                 Login to Dashboard
               </button>

@@ -16,8 +16,10 @@ import {
   Award,
   Clock
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function FacultyProfile() {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
@@ -51,24 +53,26 @@ export default function FacultyProfile() {
   const handleLogout = () => {
     // Clear session and redirect
     alert("Logged out successfully!");
-    // navigate('/faculty/login');
+    navigate('/login');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 md:p-6">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-8 bg-[#1e3a8a] border border-gray-200 shadow-sm p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
-          <p className="text-gray-600 mt-1">Manage your personal information and settings</p>
+          <h1 className="text-3xl font-bold text-white">My Profile</h1>
+          <p className="text-white mt-1">Manage your personal information and settings</p>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 px-5 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition font-medium"
+          className="flex items-center gap-2 px-6 py-3 text-white hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
         >
           <LogOut className="w-5 h-5" />
           Logout
         </button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -85,12 +89,12 @@ export default function FacultyProfile() {
               
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-indigo-50 rounded-xl p-4">
+                  <div className="bg-[#1e3a8a]/5 rounded-xl p-4">
                     <BookOpen className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
                     <p className="text-2xl font-bold text-gray-800">{faculty.coursesTeaching.length}</p>
                     <p className="text-xs text-gray-600">Courses</p>
                   </div>
-                  <div className="bg-purple-50 rounded-xl p-4">
+                  <div className="bg-[#1e3a8a]/5 rounded-xl p-4">
                     <User className="w-8 h-8 text-purple-600 mx-auto mb-2" />
                     <p className="text-2xl font-bold text-gray-800">{faculty.totalStudents}</p>
                     <p className="text-xs text-gray-600">Students</p>
@@ -103,7 +107,7 @@ export default function FacultyProfile() {
             <div className="mt-6 space-y-3">
               <button
                 onClick={() => setIsEditing(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-medium"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-indigo-700 transition font-medium"
               >
                 <Edit3 className="w-5 h-5" />
                 Edit Profile
@@ -180,7 +184,7 @@ export default function FacultyProfile() {
             </h3>
             <div className="space-y-4">
               {faculty.coursesTeaching.map((course, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl hover:shadow-md transition">
+                <div key={i} className="flex items-center justify-between p-4 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-xl hover:shadow-md transition">
                   <div>
                     <p className="font-semibold text-gray-800">{course}</p>
                     <p className="text-sm text-gray-600 mt-1">Semester: Fall 2025</p>
@@ -189,6 +193,23 @@ export default function FacultyProfile() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-row gap-10">
+            <button
+              onClick={() => navigate('/exams')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-[#162c6a] transition font-medium"
+            >
+              <Clock className="w-5 h-5" />
+              Exams
+            </button>
+            <button 
+              onClick={() => navigate('/assignments')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-[#162c6a] transition font-medium"
+            >
+              <BookOpen className="w-5 h-5" />
+              Assignments
+            </button>
           </div>
         </div>
       </div>
