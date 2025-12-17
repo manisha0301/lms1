@@ -59,19 +59,12 @@ export default function FacultyProfile() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="mb-8 bg-[#1e3a8a] border border-gray-200 shadow-sm p-8">
+      <div className="mb-8 bg-[#1e3a8a] border border-gray-200 shadow-sm px-8 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-white">My Profile</h1>
           <p className="text-white mt-1">Manage your personal information and settings</p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-6 py-3 text-white hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </button>
         </div>
       </div>
 

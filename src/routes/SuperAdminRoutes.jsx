@@ -6,6 +6,8 @@ import CoursesManagementPage from "../pages/superAdmin/CourseManagementPage";
 import AllCourses from "../pages/superAdmin/AllCourses";
 import CourseDetail from "../pages/superAdmin/CourseDetails";
 import SuperAdminLogin from "../pages/auth/superAdminLogin";
+import MyProfile from "../pages/superAdmin/MyProfile";
+import Settings from "../pages/superAdmin/SuperAdminSettings";
 
 export default function SuperAdminRoutes() {
   return (
@@ -18,7 +20,8 @@ export default function SuperAdminRoutes() {
       <Route path="/finance" element={<FinanceDashboard />} />
       <Route path="/allcourses" element={<AllCourses />} />
       <Route path="/course/:id" element={<CourseDetail />} />
-      //Settings Route Needed
+      <Route path="/profile" element={<MyProfile />} />
+      <Route path="/settings" element={<Settings />} />
     </Routes>
   );
 }

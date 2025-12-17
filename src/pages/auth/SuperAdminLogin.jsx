@@ -89,7 +89,7 @@ const SuperAdminLogin = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="email"
+                    placeholder="Email"
                     className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
                   />
                 </div>
@@ -105,7 +105,7 @@ const SuperAdminLogin = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder=""
+                    placeholder="Password"
                     className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
                   />
                 </div>
@@ -120,12 +120,6 @@ const SuperAdminLogin = () => {
                 {loading ? "Logging in..." : "Login as Super Admin"}
               </button>
             </form>
-
-            <div className="mt-10 text-center">
-              {/* <p className="text-sm text-gray-500"> */}
-                {/* For assistance, contact: <a href="mailto:info@theKristellar Aerospace.com" className="text-[#1e40af]">info@theKristellar Aerospace.com</a> | +91-9178518343 */}
-              {/* </p> */}
-            </div>
           </div>
         </div>
       </div>

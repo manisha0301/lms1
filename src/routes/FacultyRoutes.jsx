@@ -7,6 +7,7 @@ import FacultyProfile from "../pages/faculty/FacultyProfile";
 import FacultySignup from "../pages/auth/FacultySignup";
 import FacultyLogin from "../pages/faculty/FacultyLogin";
 import TotalCourses from "../pages/faculty/TotalCourses";
+import FacultySettings from "../pages/faculty/FacultySettings";
 
 export default function FacultyRoutes() {
   return (
@@ -20,8 +21,8 @@ export default function FacultyRoutes() {
       <Route path="/assignments" element={<AssignmentManagement />} /> 
       <Route path="/profile" element={<FacultyProfile />} />
       <Route path="/totalcourses" element={<TotalCourses />} />
-      //Settings Route Needed
-      //Total STudents Enrolled Route Needed
+      <Route path="/settings" element={<FacultySettings />} />
+      //Total Students Enrolled Route Needed
     </Routes>
   );
 }

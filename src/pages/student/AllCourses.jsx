@@ -76,7 +76,7 @@ const AllCourses = () => {
               <option value="above30">Above ₹30,000</option>
             </select>
 
-            <button className="bg-[#1e40af] text-white px-6 py-3 rounded-md hover:bg-[#1e3a8a] transition flex items-center justify-center gap-2 font-medium">
+            <button className="bg-[#1e40af] text-white px-6 py-3 rounded-md hover:bg-[#1e3a8a] transition flex items-center justify-center gap-2 font-medium cursor-pointer">
               <Filter className="w-4 h-4" /> Apply Filters
             </button>
           </div>

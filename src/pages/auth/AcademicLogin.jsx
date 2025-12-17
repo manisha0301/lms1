@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone, School, Calendar, Check, ArrowRight } from "lucide-react";
 
-const Login = () => {
+const AcademicLogin = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(false);
 
@@ -38,7 +38,7 @@ const Login = () => {
               <div className="relative z-10">
                 <div className="text-4xl font-black tracking-tighter mb-10">Kristellar Aerospace</div>
                 <h1 className="text-5xl font-bold leading-tight mb-6">
-                  Admin <span className="text-green-400">Portal</span>
+                  Academic <span className="text-green-400">Portal</span>
                 </h1>
                 <p className="text-xl opacity-90 mb-10">
                   Manage organizations, courses, faculty, and the entire LMS ecosystem.
@@ -57,7 +57,7 @@ const Login = () => {
             <div className="p-10 lg:p-16 flex flex-col justify-center">
               <div className="max-w-md mx-auto w-full">
                 <div className="text-center mb-10">
-                  <h2 className="text-3xl font-bold text-gray-900">Admin Login</h2>
+                  <h2 className="text-3xl font-bold text-gray-900">Academic Login</h2>
                   <p className="mt-3 text-gray-600">Restricted access for Kristellar Aerospace management only</p>
                 </div>
     
@@ -100,7 +100,7 @@ const Login = () => {
                     disabled={loading}
                     className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {loading ? "Logging in..." : "Login as Admin"}
+                    {loading ? "Logging in..." : "Login as Academic"}
                   </button>
                 </form>
     
@@ -113,7 +113,7 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default AcademicLogin;
 
 
 

@@ -23,6 +23,7 @@ import {
   X,
   CheckCircle,
   Bell,
+  User,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -30,6 +31,8 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
 
   const stats = {
     totalStudents: 2847,
@@ -44,6 +47,10 @@ const SuperAdminDashboard = () => {
   };
 
   const recentNotifications = [
+    { id: 1, message: "New admin 'Rakesh Kumar' was created", time: "2 mins ago", type: "admin" },
+    { id: 2, message: "Backup completed successfully", time: "1 hour ago", type: "success" },
+    { id: 3, message: "Revenue milestone: ₹28,47,500 crossed!", time: "3 hours ago", type: "revenue" },
+    { id: 4, message: "High server load detected (87%)", time: "5 hours ago", type: "warning" },
     { id: 1, message: "New admin 'Rakesh Kumar' was created", time: "2 mins ago", type: "admin" },
     { id: 2, message: "Backup completed successfully", time: "1 hour ago", type: "success" },
     { id: 3, message: "Revenue milestone: ₹28,47,500 crossed!", time: "3 hours ago", type: "revenue" },
@@ -87,7 +94,7 @@ const SuperAdminDashboard = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-6">
-            <button className="p-2.5 hover:bg-white/10 rounded-xl transition">
+            <button className="p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer" onClick={() => navigate('/settings')}>
               <Settings className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-3 pl-6 border-l border-white/20">
@@ -95,9 +102,37 @@ const SuperAdminDashboard = () => {
                 <p className="font-semibold">Super Admin</p>
                 <p className="text-xs opacity-90">superadmin@kristellar.com</p>
               </div>
-              <div className="w-11 h-11 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl font-bold">
+              <div 
+              className="w-11 h-11 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl font-bold cursor-pointer relative"
+              onClick={() => setProfileOpen(!profileOpen)}>
                 SA
               </div>
+              {profileOpen && (
+              <div className="absolute top-20 right-8 bg-white text-gray-900 rounded-xl shadow-xl border border-gray-200 w-80">
+                <div className="bg-[#1e3a8a] text-white p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 bg-white/25 rounded-full flex items-center justify-center text-3xl font-bold">
+                        SA
+                      </div>
+                      <div>
+                        <p className="text-xl font-bold">Super Admin</p>
+                        <p className="text-sm opacity-90">superadmin@kristellar.com</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <button onClick={() => navigate('/profile')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer">
+                      <User className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">My Profile</span>
+                    </button>
+                    <hr className="my-3 border-gray-200" />
+                    <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
+                      onClick={() => navigate('/login')}>
+                      <LogOut className="w-5 h-5" /> <span className="font-medium">Logout</span>
+                    </button>
+                  </div>
+              </div>
+              )}
+              
             </div>
           </div>
 
@@ -221,8 +256,8 @@ const SuperAdminDashboard = () => {
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-8">
                 <div>
-                  <p className="text-white/80 font-medium text-lg mb-2">Total Platform Revenue</p>
-                  <p className="text-5xl font-black mb-3">₹28.5L</p>
+                  <p className="text-white/80 font-medium text-lg mb-2 text-left">Total Platform Revenue</p>
+                  <p className="text-5xl font-black mb-3 text-left">₹28.5L</p>
                   <div className="flex items-center gap-2 text-white/90">
                     <TrendingUp className="w-5 h-5" />
                     <span className="font-bold">+₹3.2L this month (+12.5%)</span>
@@ -246,38 +281,48 @@ const SuperAdminDashboard = () => {
 
           {/* Recent Notifications */}
           <div className="bg-white rounded-md shadow-xl border border-gray-100 p-8">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1e3a8a] rounded-2xl shadow-lg flex items-center justify-center">
-                  <BellRing className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">Recent Notifications</h3>
-              </div>
-              <button 
-                onClick={() => setShowAllNotifications(true)}
-                className="text-[#1e3a8a] font-bold flex items-center gap-1 hover:underline cursor-pointer"
-              >
-                View all <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-5">
-              {recentNotifications.map((notif) => (
-                <div key={notif.id} className="p-5 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-2xl border border-[#1e3a8a]/10 hover:shadow-md transition">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-3 h-3 mt-1.5 rounded-full flex-shrink-0 ${
-                      notif.type === 'warning' ? 'bg-orange-500' : 
-                      notif.type === 'success' ? 'bg-emerald-500' : 
-                      notif.type === 'revenue' ? 'bg-emerald-500' : 'bg-[#1e3a8a]'
-                    }`} />
-                    <div>
-                      <p className="font-bold text-gray-900">{notif.message}</p>
-                      <p className="text-sm text-gray-500 mt-1">{notif.time}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+  <div className="flex justify-between items-center mb-8">
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 bg-[#1e3a8a] rounded-2xl shadow-lg flex items-center justify-center">
+        <BellRing className="w-7 h-7 text-white" />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900">Recent Notifications</h3>
+    </div>
+    {/* <button
+      onClick={() => setShowAllNotifications(true)}
+      className="text-[#1e3a8a] font-bold flex items-center gap-1 hover:underline cursor-pointer"
+    >
+      View all <ChevronRight className="w-4 h-4" />
+    </button> */}
+  </div>
+
+  {/* Scrollable Notification List */}
+  <div className="space-y-5 max-h-[230px] overflow-y-auto pr-2">
+    {recentNotifications.map((notif) => (
+      <div
+        key={notif.id}
+        className="p-5 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-2xl border border-[#1e3a8a]/10 hover:shadow-md transition"
+      >
+        <div className="flex items-start gap-4">
+          <div
+            className={`w-3 h-3 mt-1.5 rounded-full flex-shrink-0 ${
+              notif.type === 'warning'
+                ? 'bg-orange-500'
+                : notif.type === 'success' || notif.type === 'revenue'
+                ? 'bg-emerald-500'
+                : 'bg-[#1e3a8a]'
+            }`}
+          />
+          <div>
+            <p className="font-bold text-gray-900">{notif.message}</p>
+            <p className="text-sm text-gray-500 mt-1">{notif.time}</p>
           </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
         </div>
 
         {/* Footer */}
@@ -290,7 +335,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       {/* All Notifications Modal - Matching AcademicDashboard style */}
-      {showAllNotifications && (
+      {/* {showAllNotifications && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-md shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="sticky top-0 bg-[#1e3a8a] text-white px-8 py-6 flex justify-between items-center">
@@ -350,7 +395,7 @@ const SuperAdminDashboard = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

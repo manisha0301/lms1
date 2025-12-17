@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { 
   BookOpen, Users, Building2, Bell, PlusCircle, TrendingUp, Calendar,
   CheckCircle, XCircle, Clock, Award, BarChart3, X, Upload, Mail,
-  Phone, MapPin, Briefcase, GraduationCap, Lock, Activity, Megaphone
+  Phone, MapPin, Briefcase, GraduationCap, Lock, Activity, Megaphone,
+  User,
+  Settings,
+  LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +16,7 @@ const AcademicDashboard = () => {
   const [isFacultyModalOpen, setIsFacultyModalOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const [courseFormData, setCourseFormData] = useState({
     courseImage: null, courseName: '', courseType: 'full-time', coursePrice: '',
@@ -175,8 +179,58 @@ const AcademicDashboard = () => {
                   <p className="font-semibold">Academic Admin</p>
                   <p className="text-xs opacity-90">admin@kristellar.com</p>
                 </div>
-                <div className="w-11 h-11 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl font-bold">
+                <div onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="w-11 h-11 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl font-bold cursor-pointer">
                   AA
+                </div>
+
+                <div>
+                  {isProfileOpen && (
+                    <div className="absolute right-8 mt-9 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                      
+                    {/* Header */}
+                    <div className="bg-[#1e3a8a] text-white p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
+                          A
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold">Academic Admin</p>
+                          <p className="text-sm opacity-90">admin@kristellar.com</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="p-3">
+                      <button
+                        onClick={() => navigate('/profile')}
+                        className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
+                      >
+                        <User className="w-5 h-5 text-[#1e3a8a]" />
+                        <span className="font-medium text-gray-800">My Profile</span>
+                      </button>
+
+                      <button
+                        onClick={() => navigate('/settings')}
+                        className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
+                      >
+                        <Settings className="w-5 h-5 text-[#1e3a8a]" />
+                        <span className="font-medium text-gray-800">Settings</span>
+                      </button>
+
+                      <hr className="my-2 border-gray-200" />
+
+                      <button
+                        onClick={() => navigate('/login')}
+                        className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-medium">Logout</span>
+                      </button>
+                    </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
