@@ -6,6 +6,7 @@ import CourseDetail from "../pages/student/CourseDetail";
 import Login from "../pages/auth/Login";
 import Home from "../pages/Home";
 import Signup from "../pages/auth/Signup";
+import StudentSettings from "../pages/student/StudentSettings";
 
 export default function StudentRoutes() {
   return (
@@ -17,7 +18,7 @@ export default function StudentRoutes() {
       <Route path="/dash" element={<CoursesDashboard />} />
       <Route path="/profile" element={<ProfileDashboard />} />
       <Route path="/course/:id" element={<CourseDetail />} />
-        //Settings Route Needed
+      <Route path="/settings" element={<StudentSettings />} />
         //Assignment Route Needed
     </Routes>
   );

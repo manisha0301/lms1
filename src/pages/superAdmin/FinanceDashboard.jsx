@@ -53,7 +53,7 @@ const FinanceDashboard = () => {
 
   // Course-wise Revenue
   const courseRevenueData = [
-    { name: 'Full Stack Web Dev', value: 892000, color: '#8b5cf6' },
+    { name: 'Full Stack Web Dev', value: 892000, color: '#1e3a8a' },
     { name: 'Data Science Pro', value: 678000, color: '#3b82f6' },
     { name: 'Digital Marketing', value: 512000, color: '#10b981' },
     { name: 'UI/UX Mastery', value: 398000, color: '#f59e0b' },
@@ -83,82 +83,81 @@ const FinanceDashboard = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    }, []);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200">
-        <div className="px-8 py-5 flex items-center justify-between max-w-[1600px] mx-auto">
+      <header className="bg-[#1e3a8a] text-white shadow-lg">
+        <div className="max-w-[1600px] mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Finance Dashboard
-              </h1>
-              <p className="text-sm text-gray-500">Revenue Analytics & Reports</p>
+              <h1 className="text-3xl font-bold">Finance Dashboard</h1>
+              <p className="opacity-90 mt-1">Revenue Analytics & Financial Reports</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="w-4 h-4" />
-              <span className="text-sm font-medium">Filter</span>
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 rounded-2xl font-medium transition">
+              <Filter className="w-5 h-5" />
+              Filter
             </button>
             <button
               onClick={handleDownloadCSV}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-bold transition shadow-lg"
             >
-              <Download className="w-4 h-4" />
-              <span className="text-sm font-medium">CSV</span>
+              <Download className="w-5 h-5" />
+              CSV
             </button>
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-2xl font-bold transition shadow-lg"
             >
-              <FileText className="w-4 h-4" />
-              <span className="text-sm font-medium">PDF</span>
+              <FileText className="w-5 h-5" />
+              PDF
             </button>
           </div>
         </div>
       </header>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
-        {/* Total Revenue Hero */}
-        <div className="bg-gradient-to-br from-green-600 via-emerald-600 to-teal-700 text-white rounded-3xl p-10 shadow-xl mb-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white opacity-10 rounded-full -mr-40 -mt-40"></div>
+      <div className="max-w-[1600px] mx-auto px-8 py-8">
+        {/* Total Revenue Hero Card */}
+        <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-10 mb-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a]/10 to-transparent"></div>
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <IndianRupee className="w-10 h-10" />
-              <p className="text-green-100 text-lg font-medium">Total Platform Revenue</p>
-            </div>
-            <p className="text-6xl font-extrabold mb-4">₹{totalRevenue.toLocaleString('en-IN')}</p>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-green-100">
-                <TrendingUp className="w-6 h-6" />
-                <span className="text-2xl font-bold">{monthlyGrowth}</span>
-                <span className="text-sm opacity-90">vs last month</span>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center shadow-lg">
+                <IndianRupee className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 font-medium">Total Platform Revenue</p>
+                <p className="text-5xl font-bold text-gray-900">₹{totalRevenue.toLocaleString('en-IN')}</p>
               </div>
             </div>
-            <p className="text-green-100 mt-4 text-sm">Next payout scheduled: <strong>5 Dec 2025</strong></p>
+            <div className="flex items-center gap-6 justify-between">
+              <div className="flex items-center gap-3 text-emerald-600">
+                <TrendingUp className="w-8 h-8" />
+                <span className="text-3xl font-bold">{monthlyGrowth}</span>
+                <span className="text-lg">vs last month</span>
+              </div>
+              <div className="text-gray-600">
+                <p className="text-sm">Next payout scheduled</p>
+                <p className="font-bold text-[#1e3a8a]">5 Dec 2025</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Monthly Revenue Trend */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-900">Revenue Trend</h3>
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-2"
+                className="px-6 py-2 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#1e3a8a]/20 focus:border-[#1e3a8a] transition"
               >
                 <option value="last12months">Last 12 Months</option>
                 <option value="2025">Year 2025</option>
@@ -174,18 +173,18 @@ const FinanceDashboard = () => {
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#10b981"
-                  strokeWidth={4}
-                  dot={{ fill: '#10b981', r: 6 }}
-                  activeDot={{ r: 8 }}
+                  stroke="#1e3a8a"
+                  strokeWidth={5}
+                  dot={{ fill: '#1e3a8a', r: 8 }}
+                  activeDot={{ r: 10 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Course-wise Revenue Pie */}
-          <div className="bg-white rounded-2xl shadow-sm  border border-gray-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-6 p-6">Revenue by Course</h3>
+          <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Revenue by Course</h3>
             <ResponsiveContainer width="100%" height={320}>
               <RechartsPieChart>
                 <Pie
@@ -194,7 +193,7 @@ const FinanceDashboard = () => {
                   cy="50%"
                   labelLine={false}
                   label={({ name, value }) => `${name}: ₹${(value / 1000).toFixed(0)}K`}
-                  outerRadius={100}
+                  outerRadius={110}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -209,23 +208,23 @@ const FinanceDashboard = () => {
         </div>
 
         {/* Centre-wise Bar Chart */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 mb-8">
+        <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-8 mb-12">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Revenue by Academic Centre</h3>
-          <ResponsiveContainer width="100%" height={350}>
+          <ResponsiveContainer width="100%" height={380}>
             <BarChart data={centreRevenueData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="centre" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-              <Bar dataKey="revenue" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="revenue" fill="#1e3a8a" radius={[12, 12, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Footer */}
-        <div className="text-center text-sm text-gray-500">
-          <p>© 2025 Kristellar Solutions Pvt. Ltd. • All financial data is updated as of 27 Nov 2025</p>
-        </div>
+        <footer className="text-center py-6 text-sm text-gray-500 border-t border-gray-200">
+          © 2025 Kristellar Solutions Pvt. Ltd. • All financial data is updated as of 27 Nov 2025
+        </footer>
       </div>
     </div>
   );

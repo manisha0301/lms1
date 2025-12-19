@@ -92,7 +92,7 @@ export default function ProfileDashboard() {
       
       <button
         onClick={handleLogout}
-        className="flex items-center gap-2 px-6 py-3 text-white hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
+        className="flex items-center gap-2 px-6 py-3 text-white hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium cursor-pointer"
       >
         <LogOut className="w-5 h-5" />
         Logout
@@ -115,7 +115,7 @@ export default function ProfileDashboard() {
               </h2>
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
               >
                 <Edit2 className="w-5 h-5 text-blue-600" />
               </button>
@@ -322,13 +322,13 @@ export default function ProfileDashboard() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSave}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg cursor-pointer"
               >
                 Save Changes
               </button>
               <button
                 onClick={() => setIsEditing(false)}
-                className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-all"
+                className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
               >
                 Cancel
               </button>

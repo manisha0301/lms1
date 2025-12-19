@@ -87,7 +87,7 @@ export default function CoursesDashboard() {
             <div className="relative">
               <button
                 onClick={() => setNotificationOpen(!notificationOpen)}
-                className="relative p-2.5 hover:bg-white/10 rounded-xl transition"
+                className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
               >
                 <Bell className="w-6 h-6" />
                 {notifications.filter(n => n.unread).length > 0 && (
@@ -101,7 +101,7 @@ export default function CoursesDashboard() {
                 <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                   <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
                     <h3 className="font-bold text-lg">Notifications</h3>
-                    <button onClick={() => setNotificationOpen(false)} className="hover:bg-white/20 p-1 rounded">
+                    <button onClick={() => setNotificationOpen(false)} className="hover:bg-white/20 p-1 rounded cursor-pointer">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
@@ -120,7 +120,7 @@ export default function CoursesDashboard() {
                     ))}
                   </div>
                   <div className="p-3 bg-gray-50 text-center">
-                    <button className="text-[#1e3a8a] font-medium text-sm hover:underline">View all notifications</button>
+                    <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">View all notifications</button>
                   </div>
                 </div>
               )}
@@ -130,7 +130,7 @@ export default function CoursesDashboard() {
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-3 hover:bg-white/10 px-4 py-2.5 rounded-xl transition"
+                className="flex items-center gap-3 hover:bg-white/10 px-4 py-2.5 rounded-xl transition cursor-pointer"
               >
                 <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center font-bold text-lg">
                   {user.firstName[0]}
@@ -152,14 +152,15 @@ export default function CoursesDashboard() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <button onClick={() => navigate('/profile')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition">
+                    <button onClick={() => navigate('/profile')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer">
                       <User className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">My Profile</span>
                     </button>
-                    <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition">
+                    <button onClick={() => navigate('/settings')}
+                    className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer">
                       <Settings className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">Settings</span>
                     </button>
                     <hr className="my-3 border-gray-200" />
-                    <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition"
+                    <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
                       onClick={() => navigate('/login')}>
                       <LogOut className="w-5 h-5" /> <span className="font-medium">Logout</span>
                     </button>
@@ -190,7 +191,7 @@ export default function CoursesDashboard() {
             <select
               value={selectedDuration}
               onChange={(e) => setSelectedDuration(e.target.value)}
-              className="px-8 py-2 bg-gray-50 rounded-full text-lg focus:ring-4 focus:ring-[#1e3a8a]/20"
+              className="px-8 py-2 bg-gray-50 rounded-full text-lg focus:ring-4 focus:ring-[#1e3a8a]/20 cursor-pointer focus:outline-none transition"
             >
               <option value="all">All Durations</option>
               <option value="1">1 Month</option>
@@ -199,7 +200,7 @@ export default function CoursesDashboard() {
             </select>
             <button
               onClick={() => setShowAllCourses(!showAllCourses)}
-              className="bg-[#1e3a8a] hover:bg-blue-800 text-white px-10 py-2 rounded-full font-semibold text-lg shadow-xl transition"
+              className="bg-[#1e3a8a] hover:bg-blue-800 text-white px-10 py-2 rounded-full font-semibold text-lg shadow-xl transition cursor-pointer"
             >
               {showAllCourses ? 'Show Less' : 'View All'}
             </button>
@@ -235,7 +236,7 @@ export default function CoursesDashboard() {
                     <div className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-600 rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} />
                   </div>
                 </div>
-                <button className="w-full bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-xl transition">
+                <button className="w-full bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-xl transition cursor-pointer">
                   {course.progress === 100 ? 'Review Course' : 'Continue Learning'}
                 </button>
               </div>

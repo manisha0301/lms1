@@ -174,7 +174,7 @@ export default function CourseDetail() {
             <h2 className="text-2xl font-bold text-amber-900 mb-4">Complete Registration to Unlock Full Access</h2>
             <button
               onClick={handleRegister}
-              className="w-full max-w-sm mx-auto bg-[#1e40af] hover:bg-[#1e3a8a] text-white py-4 rounded-lg font-semibold text-lg transition flex items-center justify-center gap-3 shadow-lg"
+              className="w-full max-w-sm mx-auto bg-[#1e40af] hover:bg-[#1e3a8a] text-white py-4 rounded-lg font-semibold text-lg transition flex items-center justify-center gap-3 shadow-lg cursor-pointer"
             >
               Register Now — {course.price}
             </button>
@@ -241,7 +241,7 @@ export default function CourseDetail() {
                       <p className="font-medium">{cls.date}</p>
                       <p className="text-sm text-gray-600">{cls.time}</p>
                     </div>
-                    <button className="ml-6 px-5 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition text-sm font-medium">
+                    <button className="ml-6 px-5 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition text-sm font-medium cursor-pointer">
                       Join Live
                     </button>
                   </div>
@@ -312,7 +312,7 @@ export default function CourseDetail() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
                 <FileText className="w-12 h-12 text-orange-600 mx-auto mb-4" />
                 <h3 className="font-bold text-gray-900 mb-4">Assignments</h3>
-                <button className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium transition">
+                <button className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium transition cursor-pointer">
                   View Assignments
                 </button>
               </div>
@@ -340,7 +340,7 @@ export default function CourseDetail() {
                 <button
                   key={i}
                   onClick={() => handleSlotSelect(slot)}
-                  className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
+                  className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left cursor-pointer"
                 >
                   <p className="font-medium">{slot.date}</p>
                   <p className="text-sm text-gray-600">{slot.time}</p>
@@ -349,7 +349,7 @@ export default function CourseDetail() {
             </div>
             <button
               onClick={() => setShowSlotModal(false)}
-              className="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              className="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
             >
               Cancel
             </button>
@@ -369,13 +369,13 @@ export default function CourseDetail() {
             </div>
             <button
               onClick={handlePayment}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-medium hover:from-green-700 transition"
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-medium hover:from-green-700 transition cursor-pointer"
             >
               Pay Now
             </button>
             <button
               onClick={() => setShowPayment(false)}
-              className="w-full mt-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              className="w-full mt-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
             >
               Cancel
             </button>
