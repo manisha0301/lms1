@@ -1,0 +1,310 @@
+erDiagram
+    %% ========================================
+    %% USER & ROLES
+    %% ========================================
+    USERS ||--o{ STUDENTS : "is"
+    USERS ||--o{ FACULTY : "is"
+    USERS ||--o{ ACADEMIC_ADMINS : "is"
+    USERS ||--o{ NOTIFICATIONS : "receives"
+    USERS ||--o{ ENROLLMENTS : "enrolls in"
+    USERS ||--o{ ASSIGNMENT_SUBMISSIONS : "submits"
+    USERS ||--o{ EXAM_RESULTS : "takes"
+    USERS ||--o{ STUDENT_PROGRESS : "tracks"
+
+    USERS {
+        uuid id PK
+        string email UK
+        string phone UK
+        text password_hash
+        enum role "student, faculty, academic, admin"
+        boolean is_verified
+        boolean is_approved
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    STUDENTS {
+        uuid user_id PK, FK
+        string first_name
+        string last_name
+        string graduation_university
+        text profile_picture_url
+        boolean terms_accepted
+        timestamptz email_verified_at
+        timestamptz phone_verified_at
+    }
+
+    FACULTY {
+        uuid user_id PK, FK
+        string name
+        text address
+        boolean employed
+        string current_designation
+        string highest_qualification
+        text short_cv
+        text profile_picture_url
+        text linkedin_url
+        text instagram_url
+        text facebook_url
+        string state
+        string district
+    }
+
+    ACADEMIC_ADMINS {
+        uuid user_id PK, FK
+        string name
+        date dob
+        string username UK
+        text address
+        string city
+        string postal_code
+        string country
+    }
+
+    %% ========================================
+    %% COURSES & BATCHES
+    %% ========================================
+    COURSES ||--o{ COURSE_BATCHES : "has"
+    COURSES ||--o{ COURSE_SECTIONS : "contains"
+    COURSES ||--o{ ENROLLMENTS : "enrolled via"
+    COURSES ||--o{ ASSIGNMENTS : "has"
+    COURSES ||--o{ EXAMS : "has"
+    COURSES ||--o{ COURSE_FACULTY : "assigned to"
+
+    COURSES {
+        uuid id PK
+        string title
+        string type
+        decimal price
+        text image_url
+        text description
+        text class_meeting_link
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    COURSE_BATCHES {
+        uuid id PK
+        uuid course_id FK
+        date start_date
+        date end_date
+        time start_time
+        time end_time
+        int max_students
+        timestamptz created_at
+    }
+
+    %% ========================================
+    %% COURSE CONTENT HIERARCHY
+    %% ========================================
+    COURSE_SECTIONS ||--o{ COURSE_MODULES : "contains"
+    COURSE_SECTIONS {
+        uuid id PK
+        uuid course_id FK
+        string section_name
+        int position
+    }
+
+    COURSE_MODULES ||--o{ COURSE_CHAPTERS : "contains"
+    COURSE_MODULES {
+        uuid id PK
+        uuid section_id FK
+        string module_name
+        int position
+    }
+
+    COURSE_CHAPTERS {
+        uuid id PK
+        uuid module_id FK
+        string chapter_name
+        text video_url
+        text notes_url
+        int position
+    }
+
+    %% ========================================
+    %% ENROLLMENTS & PAYMENTS
+    %% ========================================
+    ENROLLMENTS {
+        uuid id PK
+        uuid student_id FK
+        uuid course_batch_id FK
+        timestamptz enrolled_at
+        enum payment_status "pending, completed, failed, refunded"
+        string razorpay_order_id
+        string razorpay_payment_id
+        decimal amount_paid
+        timestamptz slot_date_time
+    }
+
+    %% ========================================
+    %% ASSIGNMENTS
+    %% ========================================
+    ASSIGNMENTS ||--o{ ASSIGNMENT_SUBMISSIONS : "receives"
+    ASSIGNMENTS {
+        uuid id PK
+        uuid course_id FK
+        uuid faculty_id FK
+        string title
+        text description
+        text file_url
+        timestamptz uploaded_at
+        timestamptz due_date
+    }
+
+    ASSIGNMENT_SUBMISSIONS {
+        uuid id PK
+        uuid assignment_id FK
+        uuid student_id FK
+        text submitted_file_url
+        timestamptz submitted_at
+        decimal marks
+        text remarks
+        uuid graded_by FK
+        timestamptz graded_at
+    }
+
+    %% ========================================
+    %% EXAMS
+    %% ========================================
+    EXAMS ||--o{ EXAM_SLOTS : "has"
+    EXAMS ||--o{ EXAM_RESULTS : "has"
+    EXAMS {
+        uuid id PK
+        uuid course_id FK
+        uuid faculty_id FK
+        string topic
+        text exam_link
+        boolean is_approved
+        uuid approved_by FK
+        timestamptz approved_at
+        timestamptz created_at
+    }
+
+    EXAM_SLOTS {
+        uuid id PK
+        uuid exam_id FK
+        timestamptz slot_date_time
+    }
+
+    EXAM_RESULTS {
+        uuid id PK
+        uuid exam_id FK
+        uuid student_id FK
+        decimal marks
+        text remarks
+        uuid graded_by FK
+        timestamptz graded_at
+    }
+
+    %% ========================================
+    %% FACULTY - COURSE (Many-to-Many)
+    %% ========================================
+    COURSE_FACULTY {
+        uuid course_id PK, FK
+        uuid faculty_id PK, FK
+        timestamptz assigned_at
+    }
+
+    %% ========================================
+    %% CENTERS
+    %% ========================================
+    CENTERS {
+        uuid id PK
+        string name
+        string state
+        string district
+        timestamptz created_at
+    }
+
+    %% ========================================
+    %% NOTIFICATIONS
+    %% ========================================
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        string title
+        text message
+        string type
+        boolean is_read
+        timestamptz created_at
+    }
+
+    %% ========================================
+    %% COUPONS
+    %% ========================================
+    COUPONS {
+        uuid id PK
+        string code UK
+        decimal percentage
+        date expiry_date
+        enum status "active, expired"
+        timestamptz created_at
+    }
+
+    %% ========================================
+    %% BANNERS & STATIC PAGES
+    %% ========================================
+    BANNERS {
+        uuid id PK
+        text image_url
+        string title
+        text link_url
+        boolean is_active
+        int position
+        timestamptz created_at
+    }
+
+    STATIC_PAGES {
+        uuid id PK
+        string slug UK
+        string title
+        text content
+        timestamptz updated_at
+    }
+
+    %% ========================================
+    %% LIVE CLASSES & ATTENDANCE
+    %% ========================================
+    COURSE_BATCHES ||--o{ LIVE_CLASSES : "has"
+    LIVE_CLASSES ||--o{ ATTENDANCE : "records"
+    LIVE_CLASSES ||--o{ FACULTY_ATTENDANCE : "records"
+
+    LIVE_CLASSES {
+        uuid id PK
+        uuid course_batch_id FK
+        string title
+        text meeting_link
+        timestamptz scheduled_at
+        int duration_minutes
+    }
+
+    ATTENDANCE {
+        uuid id PK
+        uuid live_class_id FK
+        uuid student_id FK
+        boolean attended
+        timestamptz joined_at
+        timestamptz left_at
+    }
+
+    FACULTY_ATTENDANCE {
+        uuid id PK
+        uuid faculty_id FK
+        uuid live_class_id FK
+        enum status "present, absent, late"
+        timestamptz marked_at
+    }
+
+    %% ========================================
+    %% STUDENT PROGRESS
+    %% ========================================
+    STUDENT_PROGRESS {
+        uuid id PK
+        uuid student_id FK
+        uuid course_id FK
+        uuid chapter_id FK
+        boolean completed
+        timestamptz completed_at
+    }
