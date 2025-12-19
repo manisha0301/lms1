@@ -70,6 +70,11 @@ const SuperAdminDashboard = () => {
     { label: "Exams Conducted", value: stats.totalExams.toLocaleString(), icon: FileCheck },
   ];
 
+  const handleLogOut = () => {
+    sessionStorage.clear();
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Header - Matching AcademicDashboard style */}
@@ -124,7 +129,8 @@ const SuperAdminDashboard = () => {
             </div>
             <div className="space-y-3">
               <button className="w-full text-left py-3 px-4 hover:bg-white/10 rounded-xl">Settings</button>
-              <button className="w-full text-left py-3 px-4 text-red-400 hover:bg-red-500/20 rounded-xl">Logout</button>
+              <button onClick={handleLogOut}
+              className="w-full text-left py-3 px-4 text-red-400 hover:bg-red-500/20 rounded-xl">Logout</button>
             </div>
           </div>
         )}
@@ -174,7 +180,7 @@ const SuperAdminDashboard = () => {
           </button>
 
           <button
-            onClick={() => navigate('/allcourses')}
+            onClick={() => navigate('/superadmincourses')}
             className="group bg-white rounded-md shadow-xl border border-gray-100 p-8 text-left hover:-translate-y-4 hover:shadow-2xl transition-all duration-300 cursor-pointer"
           >
             <div className="flex items-center justify-between mb-8">

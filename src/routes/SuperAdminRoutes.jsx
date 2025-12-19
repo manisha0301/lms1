@@ -3,9 +3,9 @@ import SuperAdminDashboard from "../pages/superAdmin/SuperAdminDashboard";
 import AcademicAdminsPage from "../pages/superAdmin/AcademicAdminsPage";
 import FinanceDashboard from "../pages/superAdmin/FinanceDashboard";
 import CoursesManagementPage from "../pages/superAdmin/CourseManagementPage";
-import AllCourses from "../pages/superAdmin/AllCourses";
+import SuperAdminCourses from "../pages/superAdmin/superAdminCourses";
 import CourseDetail from "../pages/superAdmin/CourseDetails";
-import SuperAdminLogin from "../pages/auth/superAdminLogin";
+import SuperAdminLogin from "../pages/auth/SuperAdminLogin";
 
 export default function SuperAdminRoutes() {
   return (
@@ -16,7 +16,7 @@ export default function SuperAdminRoutes() {
       <Route path="/academic-admins" element={<AcademicAdminsPage />} />
       <Route path="/courses" element={<CoursesManagementPage />} />
       <Route path="/finance" element={<FinanceDashboard />} />
-      <Route path="/allcourses" element={<AllCourses />} />
+      <Route path="/superadmincourses" element={<SuperAdminCourses />} />
       <Route path="/course/:id" element={<CourseDetail />} />
       //Settings Route Needed
     </Routes>
