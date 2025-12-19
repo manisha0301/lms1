@@ -83,8 +83,29 @@ export default function CourseDetail() {
         examLink: isRegistered ? 'https://exam.kristellar.com/react-final' : null,
         notes: isRegistered ? ['Module1.pdf', 'Hooks-Cheatsheet.pdf'] : []
     };
+    // Add these new states near your existing useState declarations
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingModule, setEditingModule] = useState(null);
+
+    // New state for form inputs in modals
+    const [newModuleTitle, setNewModuleTitle] = useState('');
+
+    // For editing
+    const [editModuleTitle, setEditModuleTitle] = useState('');
+    const [newChapters, setNewChapters] = useState([]); // Array of { title, duration, type }
+    const [editChapters, setEditChapters] = useState([]); // Array of { title, duration, type }
+
+    // Since course.modules is currently static, we'll make it mutable
+    // Replace the static modules with useState
+    const [modules, setModules] = useState(course.modules);
 
 
+    // Update the course object to use state
+    const courseData = {
+        ...course,
+        modules // use state version
+    };
 
     // Mock list of Educational Organizations
     const educationalOrganizations = [
@@ -122,6 +143,85 @@ export default function CourseDetail() {
         setIsSubmitting(false);
         setIsAssignModalOpen(false);
         setSelectedOrgs([]);
+    };
+
+    // Handlers
+    const handleAddModule = () => {
+        if (!newModuleTitle.trim()) {
+            alert("Module title is required.");
+            return;
+        }
+        if (newChapters.some(ch => !ch.title.trim())) {
+            alert("All chapters must have a title.");
+            return;
+        }
+
+        const newModule = {
+            id: Date.now(),
+            title: newModuleTitle,
+            chapters: newChapters.length > 0
+                ? newChapters.map((ch, idx) => ({
+                    id: Date.now() + idx,
+                    title: ch.title,
+                    duration: ch.duration,
+                    type: ch.type,
+                    locked: !isRegistered
+                }))
+                : [{ id: Date.now(), title: 'Introduction', duration: '30 min', type: 'video', locked: !isRegistered }]
+        };
+
+        setModules(prev => [...prev, newModule]);
+        setIsAddModalOpen(false);
+        setNewModuleTitle('');
+        setNewChapters([]);
+    };
+
+    const handleEditModule = () => {
+        if (!editModuleTitle.trim()) {
+            alert("Module title is required.");
+            return;
+        }
+        if (editChapters.some(ch => !ch.title.trim())) {
+            alert("All chapters must have a title.");
+            return;
+        }
+
+        const updatedChapters = editChapters.map((ch, idx) => ({
+            id: editingModule.chapters[idx]?.id || Date.now() + idx,
+            title: ch.title,
+            duration: ch.duration,
+            type: ch.type,
+            locked: !isRegistered
+        }));
+
+        setModules(prev => prev.map(m =>
+            m.id === editingModule.id
+                ? { ...m, title: editModuleTitle, chapters: updatedChapters }
+                : m
+        ));
+
+        setIsEditModalOpen(false);
+        setEditingModule(null);
+        setEditModuleTitle('');
+        setEditChapters([]);
+    };
+
+    const openEditModal = (module) => {
+        setEditingModule(module);
+        setEditModuleTitle(module.title);
+        setEditChapters(module.chapters.map(ch => ({
+            title: ch.title,
+            duration: ch.duration || '45 min',
+            type: ch.type || 'video'
+        })));
+        setIsEditModalOpen(true);
+    };
+
+
+    const handleDeleteModule = (moduleId) => {
+        if (window.confirm("Are you sure you want to delete this module?")) {
+            setModules(prev => prev.filter(m => m.id !== moduleId));
+        }
     };
 
     return (
@@ -184,21 +284,48 @@ export default function CourseDetail() {
                     {/* Main Column */}
                     <div className="lg:col-span-3 space-y-8">
                         {/* Course Content */}
+                        {/* Course Content */}
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <BookOpen className="w-6 h-6 text-[#1e40af]" /> Course Content
-                            </h2>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    <BookOpen className="w-6 h-6 text-[#1e40af]" /> Course Content
+                                </h2>
+
+                                {/* Add Content Button */}
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition shadow-md cursor-pointer"
+                                >
+                                    <Play className="w-5 h-5" />
+                                    Add Content
+                                </button>
+                            </div>
+
                             <div className="space-y-5">
-                                {course.modules.map((module) => (
+                                {modules.map((module) => (
                                     <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
-                                        <div className="bg-gray-50 px-5 py-3 font-semibold text-gray-800">
-                                            {module.title}
+                                        <div className="bg-gray-50 px-5 py-3 font-semibold text-gray-800 flex justify-between items-center">
+                                            <span>{module.title}</span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => openEditModal(module)}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-[#1e40af]/10 px-3 py-1 rounded-md cursor-pointer"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteModule(module.id)}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium bg-[#1e40af]/10 px-3 py-1 rounded-md cursor-pointer"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="divide-y divide-gray-200">
                                             {module.chapters.map((chapter) => (
                                                 <div
                                                     key={chapter.id}
-                                                    className={`px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition `}
+                                                    className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition"
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         {chapter.type === 'video' && <Video className="w-5 h-5 text-[#1e40af]" />}
@@ -209,6 +336,7 @@ export default function CourseDetail() {
                                                             {chapter.duration && <p className="text-sm text-gray-500">{chapter.duration}</p>}
                                                         </div>
                                                     </div>
+                                                    {chapter.locked && <Lock className="w-5 h-5 text-gray-400" />}
                                                 </div>
                                             ))}
                                         </div>
@@ -238,7 +366,7 @@ export default function CourseDetail() {
                             <button
                                 onClick={() => setIsAssignModalOpen(false)}
                                 disabled={isSubmitting}
-                                className="text-gray-400 hover:text-gray-600 transition"
+                                className="text-gray-400 hover:text-gray-600 transition cursor-pointer"
                             >
                                 <X className="w-6 h-6" />
                             </button>
@@ -270,16 +398,16 @@ export default function CourseDetail() {
                             <button
                                 onClick={() => setIsAssignModalOpen(false)}
                                 disabled={isSubmitting}
-                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleAssignSubmit}
                                 disabled={isSubmitting || selectedOrgs.length === 0}
-                                className={`px-6 py-2.5 rounded-lg font-medium text-white flex items-center gap-2 transition ${isSubmitting || selectedOrgs.length === 0
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-md'
+                                className={`px-6 py-2.5 rounded-lg font-medium text-white flex items-center gap-2 transition cursor-pointer ${isSubmitting || selectedOrgs.length === 0
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-md'
                                     }`}
                             >
                                 {isSubmitting ? (
@@ -293,6 +421,245 @@ export default function CourseDetail() {
                                 ) : (
                                     `Assign to ${selectedOrgs.length} Selected`
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ADD CONTENT MODAL */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-8 overflow-y-auto max-h-[90vh]">
+                        <h2 className="text-2xl font-bold mb-6">Add New Module</h2>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Module Title</label>
+                                <input
+                                    type="text"
+                                    value={newModuleTitle}
+                                    onChange={(e) => setNewModuleTitle(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e40af] focus:border-transparent"
+                                    placeholder="e.g., Advanced React Patterns"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-sm font-medium text-gray-700">Chapters</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewChapters(prev => [...prev, { title: '', duration: '45 min', type: 'video' }])}
+                                        className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <Play className="w-4 h-4" /> Add Chapter
+                                    </button>
+                                </div>
+
+                                {newChapters.length === 0 && (
+                                    <p className="text-gray-500 text-sm italic">No chapters added yet. Click "Add Chapter" to start.</p>
+                                )}
+
+                                <div className="space-y-4">
+                                    {newChapters.map((chapter, index) => (
+                                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                            <div className="grid md:grid-cols-3 gap-4">
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-xs font-medium text-gray-600 mb-1">Chapter Title</label>
+                                                    <input
+                                                        type="text"
+                                                        value={chapter.title}
+                                                        onChange={(e) => {
+                                                            const updated = [...newChapters];
+                                                            updated[index].title = e.target.value;
+                                                            setNewChapters(updated);
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                                                        placeholder="e.g., Custom Hooks"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                                                    <input
+                                                        type="text"
+                                                        value={chapter.duration}
+                                                        onChange={(e) => {
+                                                            const updated = [...newChapters];
+                                                            updated[index].duration = e.target.value;
+                                                            setNewChapters(updated);
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                                                        placeholder="45 min"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 flex items-center justify-between">
+                                                <select
+                                                    value={chapter.type}
+                                                    onChange={(e) => {
+                                                        const updated = [...newChapters];
+                                                        updated[index].type = e.target.value;
+                                                        setNewChapters(updated);
+                                                    }}
+                                                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                >
+                                                    <option value="video">Video Lesson</option>
+                                                    <option value="quiz">Quiz</option>
+                                                    <option value="assignment">Assignment</option>
+                                                </select>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewChapters(prev => prev.filter((_, i) => i !== index))}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end mt-8">
+                            <button
+                                onClick={() => {
+                                    setIsAddModalOpen(false);
+                                    setNewModuleTitle('');
+                                    setNewChapters([]);
+                                }}
+                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAddModule}
+                                disabled={!newModuleTitle.trim() || newChapters.some(ch => !ch.title.trim())}
+                                className={`px-6 py-2.5 rounded-lg font-medium text-white transition cursor-pointer ${!newModuleTitle.trim() || newChapters.some(ch => !ch.title.trim())
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-md'
+                                    }`}
+                            >
+                                Add Module
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT CONTENT MODAL */}
+            {isEditModalOpen && editingModule && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-8 overflow-y-auto max-h-[90vh]">
+                        <h2 className="text-2xl font-bold mb-6">Edit Module</h2>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Module Title</label>
+                                <input
+                                    type="text"
+                                    value={editModuleTitle}
+                                    onChange={(e) => setEditModuleTitle(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e40af]"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-sm font-medium text-gray-700">Chapters</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditChapters(prev => [...prev, { title: '', duration: '45 min', type: 'video' }])}
+                                        className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <Play className="w-4 h-4" /> Add Chapter
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {editChapters.map((chapter, index) => (
+                                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                            <div className="grid md:grid-cols-3 gap-4">
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-xs font-medium text-gray-600 mb-1">Chapter Title</label>
+                                                    <input
+                                                        type="text"
+                                                        value={chapter.title}
+                                                        onChange={(e) => {
+                                                            const updated = [...editChapters];
+                                                            updated[index].title = e.target.value;
+                                                            setEditChapters(updated);
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                                                    <input
+                                                        type="text"
+                                                        value={chapter.duration}
+                                                        onChange={(e) => {
+                                                            const updated = [...editChapters];
+                                                            updated[index].duration = e.target.value;
+                                                            setEditChapters(updated);
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 flex items-center justify-between">
+                                                <select
+                                                    value={chapter.type}
+                                                    onChange={(e) => {
+                                                        const updated = [...editChapters];
+                                                        updated[index].type = e.target.value;
+                                                        setEditChapters(updated);
+                                                    }}
+                                                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                                >
+                                                    <option value="video">Video Lesson</option>
+                                                    <option value="quiz">Quiz</option>
+                                                    <option value="assignment">Assignment</option>
+                                                </select>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditChapters(prev => prev.filter((_, i) => i !== index))}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end mt-8">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleEditModule}
+                                disabled={!editModuleTitle.trim() || editChapters.some(ch => !ch.title.trim())}
+                                className={`px-6 py-2.5 rounded-lg font-medium text-white transition cursor-pointer ${!editModuleTitle.trim() || editChapters.some(ch => !ch.title.trim())
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-md'
+                                    }`}
+                            >
+                                Save Changes
                             </button>
                         </div>
                     </div>
