@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Search, Clock, Users, Calendar, IndianRupee, Filter, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const AllCourses = () => {
+const SuperAdminCourses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [durationFilter, setDurationFilter] = useState("all");
   const [priceFilter, setPriceFilter] = useState("all");
@@ -153,4 +153,4 @@ const AllCourses = () => {
   );
 };
 
-export default AllCourses;
+export default SuperAdminCourses;
