@@ -1,0 +1,119 @@
+FINAL PAGE COUNT: 87 Unique Pages
+Now, here’s the breakdown panel-wise with exact page names:
+
+COMMON PAGES (Shared Across Panels)
+
+Login Page
+Forgot Password
+Reset Password
+Verify Email OTP
+Verify Phone OTP
+404 Not Found
+Unauthorized Access
+Loading / Splash Screen
+
+Total Common: 8
+
+
+No.,Page Name
+1,Student Signup
+2,Student Login
+3,Student Home / Dashboard
+4,All Courses List
+5,Course Details (Unenrolled View)
+6,Course Details (Enrolled View)
+7,Course Content / Modules / Chapters
+8,Video Player Page
+9,Notes / Material Download
+10,Live Class Join Page
+11,Assignment List
+12,Assignment Details & Submit
+13,Exam List
+14,Exam Instructions
+15,Take Exam (Quiz Interface)
+16,Exam Submitted Success
+17,Exam Results
+18,Student Profile Dashboard
+19,Edit Profile
+20,Upcoming Classes
+21,Registered Courses
+22,Payment Gateway (Razorpay)
+23,Payment Success
+24,Payment Failed
+25,Invoice / Receipt
+26,About Us (Student View)
+27,Services Page
+28,Contact Us
+
+2. FACULTY PANEL (18 Pages)
+
+No.,Page Name
+1,Faculty Signup
+2,Faculty Login
+3,Faculty Dashboard
+4,My Courses
+5,Course Details (Faculty View)
+6,Add Class Link
+7,Exam Management
+8,Add New Exam
+9,View Exam Requests (Pending/Approved)
+10,Exam Student List
+11,Add Results & Remarks
+12,Assignment Management
+13,Create Assignment
+14,Assign to Students
+15,View Submitted Assignments
+16,Grade Assignment
+17,Faculty Profile
+18,Edit Faculty Profile
+
+
+
+3. ACADEMIC ADMIN PANEL (22 Pages)
+No.,Page Name
+1,Academic Login
+2,Academic Dashboard
+3,All Courses
+4,Add New Course
+5,Edit Course
+6,Course Details (Academic View)
+7,Add/Edit Course Batch
+8,Edit Meeting Link
+9,Course Content Management
+10,Add Section / Module / Chapter
+11,Student List in Course
+12,View Student Assignments
+13,View Student Exams
+14,Centers Management
+15,Add New Center
+16,Faculty Requests (Approve/Reject)
+17,Add New Faculty
+18,All Faculty List
+19,Faculty Attendance
+20,Notifications
+21,Academic Profile
+22,Edit Academic Profile
+
+
+4.ADMIN PANEL (19 Pages)
+
+No.,Page Name
+1,Admin Login
+2,Admin Dashboard
+3,View All Students
+4,View All Faculty
+5,Approve Faculty Requests
+6,Add New Faculty
+7,Add New Academic Admin
+8,All Academic Admins List
+9,All Courses (Admin View)
+10,Course Details (Admin View)
+11,Settings
+12,Edit Admin Profile
+13,Manage Course Admins (Privileges)
+14,About Us Management (Add/Edit/Remove)
+15,Banners & Carousel Management
+16,Coupon Management
+17,Contact Us Settings
+18,"Policies (Privacy, Terms, Refund, etc.)"
+19,Finance / Payments Overview
