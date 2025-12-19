@@ -1,0 +1,483 @@
+// src/pages/admin/FacultyManagement.jsx
+import React, { useState, useEffect } from "react";
+import {
+  Users, UserPlus, Search, Calendar, CheckCircle, XCircle,
+  Eye, Trash2, Edit, Key, BookOpen, Camera, X, Loader2,
+  Mail, Phone, Home, Briefcase, GraduationCap, Lock, UserCheck,
+  MapPin, Shield, AlertCircle, ArrowLeft
+} from "lucide-react";
+
+const FacultyManagement = () => {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedFaculty, setSelectedFaculty] = useState(null);
+  const [modalType, setModalType] = useState(""); // view, edit, password, courses, delete
+
+  const [faculties, setFaculties] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setFaculties([
+        { id: 1, code: "FAC001", name: "Dr. Rajesh Kumar", email: "rajesh@faculty.com", phone: "+91 98765 12345", state: "Maharashtra", district: "Mumbai", status: "Active", courses: 5 },
+        { id: 2, code: "FAC002", name: "Prof. Anjali Mehta", email: "anjali@faculty.com", phone: "+91 87654 32109", state: "Karnataka", district: "Bangalore", status: "Active", courses: 8 },
+        { id: 3, code: "FAC003", name: "Mr. Vikram Singh", email: "vikram@faculty.com", phone: "+91 76543 21098", state: "Delhi", district: "New Delhi", status: "Active", courses: 3 },
+      ]);
+      setPendingRequests([
+        { id: 4, code: "FAC004", name: "Dr. Sneha Patel", email: "sneha.new@faculty.com", phone: "+91 91234 56789", qualification: "PhD Computer Science", designation: "Associate Professor" },
+        { id: 5, code: "FAC005", name: "Prof. Amit Sharma", email: "amit@faculty.com", phone: "+91 82345 67890", qualification: "M.Tech", designation: "Assistant Professor" },
+      ]);
+      setLoading(false);
+    }, 800);
+  }, []);
+
+  const filteredFaculties = faculties.filter(f =>
+    f.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    f.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const openModal = (type, faculty) => {
+    setSelectedFaculty(faculty);
+    setModalType(type);
+  };
+
+  const closeModal = () => {
+    setSelectedFaculty(null);
+    setModalType("");
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-[#1e3a8a] text-white py-12">
+        <div className="mx-auto px-6 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            {/* <button
+              onClick={() => window.history.back()}
+              className="p-2.5 hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button> */}
+            <div>
+              <h1 className="text-3xl font-semibold">Faculty Management</h1>
+              <p className="mt-2 text-blue-100">Manage, approve, and monitor all faculty members</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+              <p className="text-3xl font-bold text-[#1e3a8a]">{faculties.length}</p>
+              <p className="text-sm text-gray-600 mt-1">Total Faculties</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+              <p className="text-3xl font-bold text-[#1e3a8a]">{pendingRequests.length}</p>
+              <p className="text-sm text-gray-600 mt-1">Pending Requests</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
+              <p className="text-3xl font-bold text-[#1e3a8a]">
+                {faculties.filter(f => f.status === "Active").length}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">Active Faculties</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto px-8 pb-10">
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-6 py-3 font-semibold transition cursor-pointer ${activeTab === "overview" ? "border-b-4 border-[#1e3a8a] text-[#1e3a8a]" : "text-gray-600 hover:text-[#1e3a8a]"}`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab("faculties")}
+            className={`px-6 py-3 font-semibold transition cursor-pointer ${activeTab === "faculties" ? "border-b-4 border-[#1e3a8a] text-[#1e3a8a]" : "text-gray-600 hover:text-[#1e3a8a]"}`}
+          >
+            Faculties
+          </button>
+          <button
+            onClick={() => setActiveTab("pending")}
+            className={`px-6 py-3 font-semibold transition cursor-pointer ${activeTab === "pending" ? "border-b-4 border-[#1e3a8a] text-[#1e3a8a]" : "text-gray-600 hover:text-[#1e3a8a]"}`}
+          >
+            Pending Requests ({pendingRequests.length})
+          </button>
+        </div>
+
+        {/* Search + Add Button */}
+        <div className="flex flex-col lg:flex-row gap-6 items-center justify-between mb-8">
+          <div className="relative flex-1 max-w-lg">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search faculties..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#1e3a8a]/20 focus:border-[#1e3a8a] transition text-lg"
+            />
+          </div>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center gap-3 cursor-pointer"
+          >
+            <UserPlus className="w-6 h-6" />
+            Add New Faculty
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32">
+            <Loader2 className="w-16 h-16 text-[#1e3a8a] animate-spin mb-6" />
+            <p className="text-xl text-gray-600">Loading faculty data...</p>
+          </div>
+        ) : (
+          <>
+            {activeTab === "overview" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Faculties Overview Card */}
+                <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                  <div className="bg-[#1e3a8a] text-white p-6">
+                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                      <Users className="w-7 h-7" />
+                      Faculties Overview
+                    </h2>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {faculties.map((faculty) => (
+                      <div
+                        key={faculty.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-indigo-50 transition cursor-pointer"
+                        onClick={() => openModal("view", faculty)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-[#1e3a8a] rounded-xl flex items-center justify-center text-white font-bold">
+                            {faculty.name.split(" ").map(n => n[0]).join("")}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-800">{faculty.name}</h3>
+                            <p className="text-sm text-gray-600">{faculty.code} • {faculty.state}</p>
+                          </div>
+                        </div>
+                        <span className="px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm">
+                          {faculty.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pending Requests Card */}
+                <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                  <div className="bg-[#1e3a8a] text-white p-6">
+                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                      <AlertCircle className="w-7 h-7" />
+                      Pending Requests
+                    </h2>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {pendingRequests.map((request) => (
+                      <div key={request.id} className="p-4 bg-gray-50 rounded-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-bold text-gray-800">{request.name}</h3>
+                            <p className="text-sm text-gray-600">{request.designation}</p>
+                          </div>
+                          <span className="px-4 py-2 bg-yellow-100 text-yellow-700 font-bold rounded-full text-sm">
+                            Pending
+                          </span>
+                        </div>
+                        <div className="flex justify-end gap-4">
+                          <button className="px-6 py-2 bg-[#1e3a8a] text-white rounded-xl font-semibold transition cursor-pointer hover:scale-105">
+                            Approve
+                          </button>
+                          <button className="px-6 py-2 bg-white text-black rounded-xl font-semibold transition cursor-pointer hover:scale-105 border border-gray-300">
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "faculties" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredFaculties.map((faculty) => (
+                  <div
+                    key={faculty.id}
+                    className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                  >
+                    <div className="bg-[#1e3a8a] text-white p-6">
+                      <h2 className="text-xl font-bold">{faculty.name}</h2>
+                      <p className="text-sm opacity-90 mt-1">{faculty.code}</p>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {faculty.email}</p>
+                      <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {faculty.phone}</p>
+                      <p className="text-gray-600 flex items-center gap-2"><MapPin className="w-4 h-4" /> {faculty.district}, {faculty.state}</p>
+                      <p className="text-gray-600 flex items-center gap-2"><BookOpen className="w-4 h-4" /> {faculty.courses} Courses</p>
+                    </div>
+                    <div className="flex justify-end gap-4 px-6 pb-6">
+                      <button onClick={() => openModal("view", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
+                        <Eye className="w-5 h-5 text-[#1e3a8a]" />
+                      </button>
+                      <button onClick={() => openModal("edit", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
+                        <Edit className="w-5 h-5 text-emerald-600" />
+                      </button>
+                      <button onClick={() => openModal("delete", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
+                        <Trash2 className="w-5 h-5 text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === "pending" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pendingRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                  >
+                    <div className="bg-[#1e3a8a] text-white p-6">
+                      <h2 className="text-xl font-bold">{request.name}</h2>
+                      <p className="text-sm opacity-90 mt-1">{request.code}</p>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {request.email}</p>
+                      <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {request.phone}</p>
+                      <p className="text-gray-600 flex items-center gap-2"><GraduationCap className="w-4 h-4" /> {request.qualification}</p>
+                      <p className="text-gray-600 flex items-center gap-2"><Briefcase className="w-4 h-4" /> {request.designation}</p>
+                    </div>
+                    <div className="flex justify-end gap-4 px-6 pb-6">
+                      <button className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition cursor-pointer">
+                        Approve
+                      </button>
+                      <button className="px-6 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition cursor-pointer">
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* View Modal */}
+        {modalType === "view" && selectedFaculty && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Faculty Details</h2>
+                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded cursor-pointer">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                <h3 className="text-2xl font-bold text-gray-900">{selectedFaculty.name}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <p className="flex items-center gap-3"><Mail className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.email}</p>
+                  <p className="flex items-center gap-3"><Phone className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.phone}</p>
+                  <p className="flex items-center gap-3"><MapPin className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.address}</p>
+                  <p className="flex items-center gap-3"><Briefcase className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.designation}</p>
+                  <p className="flex items-center gap-3"><GraduationCap className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.qualification}</p>
+                  <p className="flex items-center gap-3"><Shield className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.employment}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {modalType === "edit" && selectedFaculty && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Edit Faculty</h2>
+                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded cursor-pointer">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form className="p-6 space-y-6">
+                {/* Form fields similar to add modal */}
+                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                  <button type="button" onClick={closeModal} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
+                    Cancel
+                  </button>
+                  <button type="submit" className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Password Modal */}
+        {modalType === "password" && selectedFaculty && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Reset Password</h2>
+                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                <p className="text-gray-600">Reset password for {selectedFaculty.name}</p>
+                <input type="password" placeholder="New Password" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <div className="flex justify-end gap-4">
+                  <button onClick={closeModal} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
+                    Cancel
+                  </button>
+                  <button className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
+                    Reset Password
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Courses Modal */}
+        {modalType === "courses" && selectedFaculty && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Assigned Courses</h2>
+                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                {/* List of courses */}
+                <p className="text-center text-gray-500">Courses list goes here</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {modalType === "delete" && selectedFaculty && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Remove Faculty</h2>
+                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 text-center space-y-6">
+                <div className="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-14 h-14 text-red-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">Remove Faculty?</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  You are about to remove <span className="font-bold text-red-600">"{selectedFaculty.name}"</span>.<br />
+                  This action cannot be undone.
+                </p>
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                  <p className="text-sm font-medium text-red-700">
+                    All associated data will be deleted.
+                  </p>
+                </div>
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={closeModal}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-8 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                  >
+                    Yes, Remove Faculty
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add New Faculty Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Add New Faculty</h2>
+                <button onClick={() => setShowAddModal(false)} className="hover:bg-white/20 p-1 rounded">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Dr. Sarah Johnson" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="sarah@faculty.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+91 98765 43210" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="123 Academic Street, Mumbai" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Designation</label>
+                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Professor" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Highest Qualification</label>
+                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="PhD in Physics" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
+                    <select className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                      <option>Employed</option>
+                      <option>Unemployed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-indigo-400 transition cursor-pointer group">
+                    <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4 group-hover:text-indigo-400 transition" />
+                    <p className="text-gray-500 group-hover:text-indigo-600 transition">Click to upload or drag and drop</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                  <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
+                    Cancel
+                  </button>
+                  <button type="submit" className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
+                    Add Faculty
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default FacultyManagement;
