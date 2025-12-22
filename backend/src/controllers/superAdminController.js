@@ -1,7 +1,7 @@
 // src/controllers/superAdminController.js
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { findSuperAdminByEmail } from '../models/superAdminModel.js';
+import { findSuperAdminByEmail, updateSuperAdminPassword } from '../models/superAdminModel.js';
 import pool from '../config/db.js';
 
 // Simple email validation regex
@@ -76,4 +76,73 @@ const superAdminLogin = async (req, res) => {
   }
 };
 
-export { superAdminLogin };
+const superAdminChangePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const userId = req.user.id; // From JWT via middleware
+
+    // VALIDATION
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "All password fields are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password and confirm password do not match"
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must be at least 8 characters long"
+      });
+    }
+
+    // Get current super admin
+    const superAdmin = await findSuperAdminByEmail(pool, req.user.email);
+    if (!superAdmin) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found"
+      });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, superAdmin.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: "Current password is incorrect"
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    const updatedUser = await updateSuperAdminPassword(pool, userId, newPasswordHash);
+    if (!updatedUser) {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to update password"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Password changed successfully"
+    });
+
+  } catch (error) {
+    console.error("Super Admin Change Password Error →", error.message);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+export { superAdminLogin, superAdminChangePassword };

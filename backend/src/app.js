@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors';
 
 import pool from './config/db.js';
-import { createSuperAdminTable } from './models/superAdminModel.js';
+import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
 
 import superAdminRoutes from './routes/superAdminRoutes.js';
 
@@ -29,6 +29,7 @@ app.use(express.json({ limit: '20mb' }));
 const initDatabase = async () => {
   try {
     await createSuperAdminTable(pool);
+    await createDefaultSuperAdmin(pool);
     console.log('All database tables initialized');
   } catch (error) {
     console.error('Database initialization failed:', error.message);

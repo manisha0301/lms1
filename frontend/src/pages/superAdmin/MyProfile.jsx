@@ -1,33 +1,29 @@
 // src/pages/superadmin/MyProfile.jsx
 import { useState } from 'react';
 import { 
-  User, 
   Mail, 
-  Phone, 
-  Calendar,
-  Building,
   Edit3,
   Save,
   X,
-  LogOut,
-  ChevronRight,
-  BookOpen,
-  Award,
   Clock,
   Activity,
-  Shield,
   Key,
   Lock,
   CheckCircle2,
   XCircle,
-  Users
+  Users,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function MyProfile() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   // Mock Super Admin Data
   const [profile, setProfile] = useState({
     name: "Admin User",
@@ -58,9 +54,69 @@ export default function MyProfile() {
     setIsEditing(false);
   };
 
-  const handleLogout = () => {
-    alert("Logged out successfully!");
-    navigate('/login');
+  const handlePasswordChange = (e) => {
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // NEW: Handle password submit (mock for now)
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert("New password and confirm password do not match!");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      alert("New password must be at least 8 characters long.");
+      return;
+    }
+
+    try {
+    const token = sessionStorage.getItem('token'); // Assuming token is stored in sessionStorage
+    const response = await fetch('http://localhost:5000/api/auth/superadmin/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      })
+    });
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      alert(data.error);
+      return;
+    }
+
+    alert("Password changed successfully!");
+    setIsPasswordModalOpen(false);
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+  } catch (error) {
+    alert("Failed to change password. Please try again.");
+  }
+  };
+
+  // NEW: Close modal and reset form
+  const closePasswordModal = () => {
+    setIsPasswordModalOpen(false);
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
   };
 
   return (
@@ -106,7 +162,7 @@ export default function MyProfile() {
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 ">
             {/* Personal Information */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
@@ -114,7 +170,7 @@ export default function MyProfile() {
                 {!isEditing ? (
                   <button 
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#1e3a8a] text-white rounded-xl hover:bg-[#162c6a] transition font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#1e3a8a] text-white rounded-xl hover:bg-[#162c6a] transition font-medium cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" /> Edit
                   </button>
@@ -122,13 +178,13 @@ export default function MyProfile() {
                   <div className="flex gap-3">
                     <button 
                       onClick={handleCancel}
-                      className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+                      className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button 
                       onClick={handleSave}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium cursor-pointer"
                     >
                       <Save className="w-4 h-4" /> Save
                     </button>
@@ -187,7 +243,7 @@ export default function MyProfile() {
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-xl font-bold text-gray-800 mb-6">Security Settings</h3>
               <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                {/* <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-gray-500" />
                     <span className="font-medium">Email Verified</span>
@@ -208,8 +264,8 @@ export default function MyProfile() {
                   ) : (
                     <XCircle className="w-6 h-6 text-red-600" />
                   )}
-                </div>
-                <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-[#162c6a] transition font-medium">
+                </div> */}
+                <button onClick={() => setIsPasswordModalOpen(true)} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-[#162c6a] transition font-medium cursor-pointer">
                   <Key className="w-5 h-5" />
                   Change Password
                 </button>
@@ -228,6 +284,87 @@ export default function MyProfile() {
                 ))}
               </div>
             </div>
+
+            {isPasswordModalOpen && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-2xl font-bold text-gray-800">Change Password</h3>
+                    <button
+                      onClick={closePasswordModal}
+                      className="text-gray-500 hover:text-gray-700 transition cursor-pointer"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handlePasswordSubmit}>
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          name="currentPassword"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordChange}
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordChange}
+                          required
+                          minLength="8"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          required
+                          minLength="8"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-8">
+                      <button
+                        type="button"
+                        onClick={closePasswordModal}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Save className="w-5 h-5" />
+                        Update Password
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
