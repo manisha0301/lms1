@@ -1,4 +1,7 @@
+// src/routes/SuperAdminRoutes.jsx (or wherever it is)
 import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute"; // Adjust path if needed
+
 import SuperAdminDashboard from "../pages/superAdmin/SuperAdminDashboard";
 import AcademicAdminsPage from "../pages/superAdmin/AcademicAdminsPage";
 import FinanceDashboard from "../pages/superAdmin/FinanceDashboard";
@@ -12,16 +15,78 @@ import Settings from "../pages/superAdmin/SuperAdminSettings";
 export default function SuperAdminRoutes() {
   return (
     <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<SuperAdminLogin />} />
-      <Route path="/dash" element={<SuperAdminDashboard />} />
-      <Route path="/academic-admins" element={<AcademicAdminsPage />} />
-      <Route path="/courses" element={<CoursesManagementPage />} />
-      <Route path="/finance" element={<FinanceDashboard />} />
-      <Route path="/superadmincourses" element={<SuperAdminCourses />} />
-      <Route path="/course/:id" element={<CourseDetail />} />
-      <Route path="/profile" element={<MyProfile />} />
-      <Route path="/settings" element={<Settings />} />
+      {/* Public routes - accessible without login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<SuperAdminLogin />} />
+
+      {/* Protected routes - require login */}
+      <Route
+        path="/dash"
+        element={
+          <ProtectedRoute>
+            <SuperAdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/academic-admins"
+        element={
+          <ProtectedRoute>
+            <AcademicAdminsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses"
+        element={
+          <ProtectedRoute>
+            <CoursesManagementPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/finance"
+        element={
+          <ProtectedRoute>
+            <FinanceDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/superadmincourses"
+        element={
+          <ProtectedRoute>
+            <SuperAdminCourses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/course/:id"
+        element={
+          <ProtectedRoute>
+            <CourseDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <MyProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Optional: Catch-all for unknown routes under super admin */}
+      <Route path="*" element={<Navigate to="/dash" replace />} />
     </Routes>
   );
 }

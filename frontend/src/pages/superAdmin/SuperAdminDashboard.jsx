@@ -171,7 +171,7 @@ const SuperAdminDashboard = () => {
         )}
       </header>
 
-      <div className="mx-auto px-8 py-10 ">
+      <div className="mx-auto px-8 pt-10 pb-5">
         {/* Clickable Action Cards - Academic Admins & Courses */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
           {/* Academic Admins Card */}
@@ -332,7 +332,7 @@ const SuperAdminDashboard = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-12 pt-8 border-t border-gray-200 text-center">
+        <div className="pt-4 border-t border-gray-200 text-center">
           <p className="text-sm text-gray-600 font-medium">© 2025 Kristellar Solutions Pvt. Ltd.</p>
           <p className="text-xs text-gray-500 mt-2">
             CIN: U72900OR2021PTC036225 | Plot No 504/2382/2701, Bhubaneswar, Odisha, India
