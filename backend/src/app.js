@@ -7,6 +7,7 @@ import pool from './config/db.js';
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
 
 import superAdminRoutes from './routes/superAdminRoutes.js';
+import { createAcademicAdminsTable } from './models/academicAdminModel.js';
 
 const app = express();
 
@@ -30,6 +31,7 @@ const initDatabase = async () => {
   try {
     await createSuperAdminTable(pool);
     await createDefaultSuperAdmin(pool);
+    await createAcademicAdminsTable(pool);
     console.log('All database tables initialized');
   } catch (error) {
     console.error('Database initialization failed:', error.message);
