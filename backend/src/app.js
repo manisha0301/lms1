@@ -8,7 +8,7 @@ import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAd
 
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable } from './models/academicAdminModel.js';
-
+import adminRoutes from './routes/adminRoutes.js';
 const app = express();
 
 // Middleware
@@ -42,6 +42,7 @@ initDatabase();
 
 // Routes
 app.use('/api/auth/superadmin', superAdminRoutes);
+app.use('/api/auth/admin', adminRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

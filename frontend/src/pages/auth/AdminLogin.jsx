@@ -17,16 +17,34 @@ const Login = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simulate login process
-    setTimeout(() => {
-      setLoading(false);
-      // Navigate to dashboard after login
-      navigate('/dash');
-    }, 2000);
-  };
+  const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    const response = await fetch("http://localhost:5000/api/auth/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
+
+      navigate("/dash");          // or /academic-dashboard if you have separate
+    } else {
+      alert("Login failed: " + data.error);
+    }
+  } catch (error) {
+    alert("Login error. Check server connection.");
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a]/5 via-white to-green-50/30 flex items-center justify-center px-4 py-12">
@@ -96,7 +114,6 @@ const Login = () => {
     
                   <button
                     type="submit"
-                    onClick={()=> navigate('/dash')}
                     disabled={loading}
                     className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
                   >

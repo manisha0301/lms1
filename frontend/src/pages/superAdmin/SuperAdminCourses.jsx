@@ -14,6 +14,7 @@ const SuperAdminCourses = () => {
   
   const [newCourse, setNewCourse] = useState({
     title: "",
+    description: "",
     duration: "",
     price: "",
     originalPrice: "",
@@ -45,7 +46,7 @@ const SuperAdminCourses = () => {
 
   const handleAddCourse = async () => {
     // Validation
-    if (!newCourse.title || !newCourse.duration || !newCourse.price) {
+    if (!newCourse.title || !newCourse.duration || !newCourse.price || !newCourse.description) {
       alert("Please fill in all required fields marked with *");
       return;
     }
@@ -64,8 +65,7 @@ const SuperAdminCourses = () => {
     const courseToAdd = {
       id: Date.now(),
       title: newCourse.title,
-      instructor: "",
-      description: "Comprehensive course with hands-on projects and live training.",
+      description: newCourse.description,
       duration: newCourse.duration,
       students: 0,
       price,
@@ -79,6 +79,7 @@ const SuperAdminCourses = () => {
     // Reset form and close modal
     setNewCourse({
       title: "",
+      description: "",
       duration: "",
       price: "",
       originalPrice: "",
@@ -230,11 +231,21 @@ const SuperAdminCourses = () => {
                     placeholder="e.g., Full Stack Web Development with React & Node.js"
                   />
                 </div>
-
-
               </div>
 
-
+              {/* Description */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course Description
+                </label>
+                <textarea
+                  value={newCourse.description}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, description: e.target.value }))}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                  placeholder="Enter a detailed description of the course"
+                />
+              </div>
 
               {/* Duration & Pricing */}
               <div className="grid md:grid-cols-2 gap-6">
@@ -365,10 +376,10 @@ const SuperAdminCourses = () => {
               <button
                 onClick={handleAddCourse}
                 disabled={!isFormValid || isSubmitting}
-                className={`px-8 py-2.5 rounded-xl font-semibold text-white flex items-center gap-2 transition-all cursor-pointer ${
+                className={`px-8 py-2.5 rounded-xl font-semibold text-white flex items-center gap-2 transition-all ${
                   !isFormValid || isSubmitting
                     ? 'bg-gray-400 cursor-not-allowed shadow-none'
-                    : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-lg hover:shadow-xl hover:-translate-y-0.5'
+                    : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer'
                 }`}
               >
                 {isSubmitting ? (

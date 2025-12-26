@@ -17,6 +17,8 @@ import {
   Globe,
   Lock,
   Shield,
+  Eye, 
+  EyeOff
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,6 +28,16 @@ const MyProfile = () => {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     // Simulate fetching admin data
@@ -62,6 +74,72 @@ const MyProfile = () => {
     setAdmin(formData);
     setEditMode(false);
     alert("Profile updated successfully!");
+  };
+
+  const handlePasswordChange = (e) => {
+  const { name, value } = e.target;
+  setPasswordData((prev) => ({ ...prev, [name]: value }));
+  
+  // Clear error when user starts typing
+  if (passwordErrors[name]) {
+    setPasswordErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+};
+
+  const handlePasswordSubmit = async () => {
+    const errors = {};
+
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = "Current password is required";
+    }
+
+    if (!passwordData.newPassword) {
+      errors.newPassword = "New password is required";
+    } else if (passwordData.newPassword.length < 8) {
+      errors.newPassword = "Password must be at least 8 characters";
+    }
+
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = "Please confirm the new password";
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPasswordErrors(errors);
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('token');
+      const response = await fetch("http://localhost:5000/api/auth/admin/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(passwordData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Password changed successfully!");
+        setShowChangePasswordModal(false);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setPasswordErrors({});
+      } else {
+        setPasswordErrors({ general: data.error }); // Or specific field errors
+        alert("Error: " + data.error);
+      }
+    } catch (error) {
+      alert("Password change failed. Please check your connection.");
+      console.error(error);
+    }
   };
 
   if (loading) {
@@ -287,17 +365,18 @@ const MyProfile = () => {
                 {/* Action Buttons (if not in edit mode) */}
                 {!editMode && (
                   <div className="flex justify-end gap-5 pt-8 border-t-2 border-gray-200">
-                    <button className="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition">
+                    <button onClick={() => setShowChangePasswordModal(true)} 
+                    className="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition cursor-pointer">
                       Change Password
                     </button>
-                    <button className="px-10 py-4 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 font-bold shadow-lg flex items-center gap-3 transition hover:scale-105">
+                    {/* <button className="px-10 py-4 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 font-bold shadow-lg flex items-center gap-3 transition hover:scale-105">
                       <Lock className="w-6 h-6" />
                       Update Security
                     </button>
                     <button className="px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold shadow-lg flex items-center gap-3 transition hover:scale-105">
                       <Download className="w-6 h-6" />
                       Download Data
-                    </button>
+                    </button> */}
                   </div>
                 )}
               </div>
@@ -305,6 +384,131 @@ const MyProfile = () => {
           </div>
         </div>
       </div>
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* Header */}
+            <div className="bg-[#1e3a8a] text-white px-6 py-5">
+              <h3 className="text-xl font-bold">Change Password</h3>
+              <p className="text-blue-100 mt-1 text-sm">Update your account password</p>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6">
+              {/* Current Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 border ${
+                      passwordErrors.currentPassword ? "border-red-500" : "border-gray-300"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {passwordErrors.currentPassword && (
+                  <p className="mt-1 text-sm text-red-600">{passwordErrors.currentPassword}</p>
+                )}
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 border ${
+                      passwordErrors.newPassword ? "border-red-500" : "border-gray-300"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {passwordErrors.newPassword && (
+                  <p className="mt-1 text-sm text-red-600">{passwordErrors.newPassword}</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 border ${
+                      passwordErrors.confirmPassword ? "border-red-500" : "border-gray-300"
+                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {passwordErrors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">{passwordErrors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-5 bg-gray-50 flex justify-end gap-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false);
+                  setPasswordData({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  });
+                  setPasswordErrors({});
+                }}
+                className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 font-medium cursor-pointer"
+              >
+                Update Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,8 +1,7 @@
 // src/routes/superAdminRoutes.js
 import express from 'express';
 import { superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
-// import { protectSuperAdmin } from '../middleware/authMiddleware.js';
-import protectSuperAdmin from '../middleware/authMiddleware.js';
+import {protectSuperAdmin} from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
 
 const router = express.Router();
