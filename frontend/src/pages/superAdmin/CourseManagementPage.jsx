@@ -361,13 +361,13 @@ const CoursesManagementPage = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6">
+        <div className="  mx-auto px-8 py-6">
           <h1 className="text-3xl font-bold">Courses by Academic Admin</h1>
           <p className="opacity-90 mt-1">Monitor all courses organized by each Academic Admin, including faculty assignments and performance metrics</p>
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-4">
+      <div className="  mx-auto px-8 py-4">
         {/* Search Bar */}
         <div className="relative flex-1 max-w-lg mb-8">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />

@@ -79,7 +79,7 @@ const TotalStudents = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6">
+        <div className="  mx-auto px-8 py-6">
           <h1 className="text-3xl font-bold">Total Students</h1>
           <p className="opacity-90 mt-1">
             Manage and view all enrolled students across centers
@@ -87,7 +87,7 @@ const TotalStudents = () => {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-4">
+      <div className="  mx-auto px-8 py-4">
 
         {/* Search & Filters */}
         <div className="bg-white py-4">

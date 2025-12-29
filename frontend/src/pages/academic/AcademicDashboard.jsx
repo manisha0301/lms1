@@ -128,7 +128,7 @@ const AcademicDashboard = () => {
 
         {/* Official Navbar - #1e3a8a */}
         <header className="bg-[#1e3a8a] text-white sticky top-0 z-50 shadow-lg">
-          <div className="px-8 py-4 flex justify-between items-center max-w-[1600px] mx-auto">
+          <div className="px-8 py-4 flex justify-between items-center   mx-auto">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl shadow-xl flex items-center justify-center">
                 <span className="text-3xl font-black">K</span>

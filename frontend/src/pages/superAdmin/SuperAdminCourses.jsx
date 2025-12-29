@@ -139,11 +139,11 @@ const SuperAdminCourses = () => {
         <div className="mx-auto px-6 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-semibold">All Courses</h1>
-              <p className="mt-2 text-blue-100">Explore job-oriented technical programs with live training and placement support</p>
+            <p className="mt-2 text-blue-100">Explore job-oriented technical programs with live training and placement support</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-              className="bg-white text-[#1e40af] px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-100 transition shadow-md hover:-translate-y-0.5 cursor-pointer"
+            className="bg-white text-[#1e40af] px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-100 transition shadow-md hover:-translate-y-0.5 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
             Add New Course
@@ -229,52 +229,52 @@ const SuperAdminCourses = () => {
       {/* Add New Course Model */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => !isSubmitting && setIsAddModalOpen(false)}
-            />
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !isSubmitting && setIsAddModalOpen(false)}
+          />
 
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 z-10">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Add New Course</h2>
-                    <p className="text-gray-600 mt-1">Create a new course with all necessary details</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIsAddModalOpen(false);
-                      setNewCourse({
-                        title: "",
-                        duration: "",
-                        price: "",
-                        originalPrice: "",
-                        thumbnail: null,
-                        live: true,
-                      });
-                    }}
-                    disabled={isSubmitting}
-                    className="text-gray-400 hover:text-gray-600 p-2 rounded-lg transition disabled:opacity-50 cursor-pointer"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 z-10">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Add New Course</h2>
+                  <p className="text-gray-600 mt-1">Create a new course with all necessary details</p>
                 </div>
+                <button
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setNewCourse({
+                      title: "",
+                      duration: "",
+                      price: "",
+                      originalPrice: "",
+                      thumbnail: null,
+                      live: true,
+                    });
+                  }}
+                  disabled={isSubmitting}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-lg transition disabled:opacity-50 cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newCourse.title}
+                  onChange={(e) => setNewCourse(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                  placeholder="e.g., Full Stack Web Development with React & Node.js"
+                />
               </div>
 
-              <div className="p-8 space-y-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newCourse.title}
-                      onChange={(e) => setNewCourse(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
-                      placeholder="e.g., Full Stack Web Development with React & Node.js"
-                    />
-                </div>
-              </div>
 
               {/* Description */}
               <div className="md:col-span-2">
@@ -393,8 +393,7 @@ const SuperAdminCourses = () => {
                   )}
                 </div>
               </div>
-          </div>
-
+            </div>
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-8 py-6 flex gap-3 justify-end">
               <button
                 onClick={() => {
@@ -416,11 +415,10 @@ const SuperAdminCourses = () => {
               <button
                 onClick={handleAddCourse}
                 disabled={!isFormValid || isSubmitting}
-                className={`px-8 py-2.5 rounded-xl font-semibold text-white flex items-center gap-2 transition-all ${
-                  !isFormValid || isSubmitting
+                className={`px-8 py-2.5 rounded-xl font-semibold text-white flex items-center gap-2 transition-all ${!isFormValid || isSubmitting
                     ? 'bg-gray-400 cursor-not-allowed shadow-none'
                     : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer'
-                }`}
+                  }`}
               >
                 {isSubmitting ? (
                   <>
@@ -439,6 +437,8 @@ const SuperAdminCourses = () => {
               </button>
             </div>
           </div>
+
+        </div>
       )}
     </div>
   );

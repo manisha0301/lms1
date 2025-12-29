@@ -111,7 +111,7 @@ export default function StudentSettings() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-[#1e3a8a] shadow-sm p-8">
-        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="  mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-white">Settings</h1>
@@ -145,7 +145,7 @@ export default function StudentSettings() {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-8 pb-12">
+      <div className="  mx-auto px-8 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8">
           {/* Sidebar */}
           <aside className="lg:sticky lg:top-8 h-fit">

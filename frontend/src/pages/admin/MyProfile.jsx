@@ -157,7 +157,7 @@ const MyProfile = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6 flex items-center justify-between">
+        <div className="  mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div>
               <h1 className="text-3xl font-bold">My Profile</h1>
@@ -167,7 +167,7 @@ const MyProfile = () => {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-2">
+      <div className="  mx-auto px-8 py-2">
         {/* Main Profile Card - Inspired by ViewStudentDetails and SettingsAdmin */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           <div className="p-8 md:p-10">
