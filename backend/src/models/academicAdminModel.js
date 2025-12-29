@@ -10,7 +10,7 @@ export const createAcademicAdminsTable = async (pool) => {
       mobile VARCHAR(20),
       username VARCHAR(100) UNIQUE NOT NULL,
       role VARCHAR(50) NOT NULL,
-      branch VARCHAR(255),
+      academic_name VARCHAR(255),
       password_hash TEXT NOT NULL,
       two_factor_enabled BOOLEAN DEFAULT FALSE,
       status VARCHAR(20) DEFAULT 'Active',
@@ -36,7 +36,7 @@ export const findAllAcademicAdmins = async (pool) => {
       username, 
       role, 
       status, 
-      branch AS "academicAdmins"
+      academic_name AS "academicAdmins"
     FROM academic_admins
     ORDER BY created_at DESC
   `);
@@ -44,12 +44,12 @@ export const findAllAcademicAdmins = async (pool) => {
 };
 
 export const createAcademicAdmin = async (pool, adminData) => {
-  const { fullName, email, mobile, role, branch, passwordHash, twoFactor } = adminData;
+  const { fullName, email, mobile, role, academic_name, passwordHash, twoFactor } = adminData;
   const username = fullName.toLowerCase().replace(/\s+/g, '.');
 
   const { rows } = await pool.query(`
     INSERT INTO academic_admins (
-      full_name, email, mobile, username, role, branch, 
+      full_name, email, mobile, username, role, academic_name, 
       password_hash, two_factor_enabled
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING 
@@ -60,8 +60,8 @@ export const createAcademicAdmin = async (pool, adminData) => {
       username, 
       role, 
       status, 
-      branch AS "academicAdmins"
-  `, [fullName, email, mobile || null, username, role, branch, passwordHash, twoFactor]);
+      academic_name AS "academicAdmins"
+  `, [fullName, email, mobile || null, username, role, academic_name, passwordHash, twoFactor]);
 
   return rows[0];
 }; 
