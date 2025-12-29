@@ -88,7 +88,7 @@ const SuperAdminCourses = () => {
       formData.append("type", newCourse.live ? "Live" : "Self-Paced");
       formData.append("price", price);
       formData.append("duration", newCourse.duration);
-      formData.append("description", "Comprehensive course with hands-on projects and live training.");
+      formData.append("description", newCourse.description || "No description provided");
       formData.append("teachers", JSON.stringify([]));
       formData.append("batches", JSON.stringify([]));
       formData.append("originalPrice", newCourse.originalPrice || "");
