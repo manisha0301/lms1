@@ -31,9 +31,9 @@ const Login = () => {
     const data = await response.json();
 
     if (data.success) {
-      sessionStorage.setItem("token", data.token);
-      sessionStorage.setItem("user", JSON.stringify(data.user));
-
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      console.log("Login successful:", data);
       navigate("/dash");          // or /academic-dashboard if you have separate
     } else {
       alert("Login failed: " + data.error);

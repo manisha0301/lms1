@@ -1,6 +1,6 @@
 // src/routes/SuperAdminRoutes.jsx (or wherever it is)
 import { Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "./ProtectedRoute"; // Adjust path if needed
+import { SuperAdminProtectedRoute } from "./ProtectedRoute"; // SuperAdmin-protected route component
 
 import SuperAdminDashboard from "../pages/superAdmin/SuperAdminDashboard";
 import AcademicAdminsPage from "../pages/superAdmin/AcademicAdminsPage";
@@ -23,65 +23,65 @@ export default function SuperAdminRoutes() {
       <Route
         path="/dash"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <SuperAdminDashboard />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/academic-admins"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <AcademicAdminsPage />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/courses"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <CoursesManagementPage />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/finance"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <FinanceDashboard />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/superadmincourses"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <SuperAdminCourses />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/course/:id"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <CourseDetail />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <MyProfile />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <SuperAdminProtectedRoute>
             <Settings />
-          </ProtectedRoute>
+          </SuperAdminProtectedRoute>
         }
       />
 

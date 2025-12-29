@@ -78,7 +78,7 @@ const SuperAdminDashboard = () => {
   ];
 
   const handleLogOut = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     navigate('/login');
   };
 

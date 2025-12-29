@@ -200,8 +200,8 @@ const Login = () => {
       const data = await response.json();
 
       if (data.success) {
-        sessionStorage.setItem("token", data.token);
-        sessionStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
 
         // alert("Login successful! Welcome back to CodeKart");
         navigate("/dash");

@@ -76,7 +76,7 @@ export default function MyProfile() {
     }
 
     try {
-    const token = sessionStorage.getItem('token'); // Assuming token is stored in sessionStorage
+    const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
     const response = await fetch('http://localhost:5000/api/auth/superadmin/change-password', {
       method: 'POST',
       headers: {
