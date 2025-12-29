@@ -10,9 +10,25 @@ import VerifyOTP from "./pages/auth/VerifyOTP";
 import VerifyEmailOTP from "./pages/auth/VerifyEmailOTP";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
+import { useEffect } from "react";
 import Login from "./pages/auth/Login";
 import Home from "./pages/Home";
 import Signup from "./pages/auth/Login";
+
+function RedirectToStudent() {
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    if (!hostname || hostname.startsWith("student")) return;
+    const portPart = window.location.port ? `:${window.location.port}` : "";
+    const targetHostname =
+      hostname === "localhost" || hostname === "127.0.0.1"
+        ? `student.localhost`
+        : `student.${hostname}`;
+    const target = `${window.location.protocol}//${targetHostname}${portPart}/`;
+    window.location.replace(target);
+  }, []);
+  return null;
+}
 
 export default function App() {
   const subdomain = window.location.hostname.split(".")[0];
@@ -32,15 +48,8 @@ export default function App() {
         subdomain !== "academic" &&
         subdomain !== "superadmin") && (
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/facultysignup" element={<FacultySignup />} />
-        <Route path="/academicsignup" element={<AcademicSignup />} />
-        <Route path="/otp" element={<VerifyOTP />} />
-        <Route path="/verify-email-otp"element={<VerifyEmailOTP />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/" element={<RedirectToStudent />} />
+          <Route path="*" element={<RedirectToStudent />} />
         </Routes>
       )}
     </Router>

@@ -7,6 +7,7 @@ import {
   ChevronRight,
   X,
   Loader2,
+  User,
 } from 'lucide-react';
 import AdminDetailView from './AdminDetailView';
 import axios from 'axios';
@@ -200,7 +201,7 @@ const AcademicAdminsPage = () => {
                 </div>
 
                 <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#1e3a8a] transition">
-                  {admin.fullName}
+                  {admin.academicAdmins}
                 </h3>
                 <p className="text-sm text-gray-600 mt-2">{admin.role}</p>
 
@@ -216,8 +217,8 @@ const AcademicAdminsPage = () => {
                     </div>
                   )}
                   <div className="flex items-center gap-3 text-gray-600">
-                    <Building2 className="w-4 h-4" />
-                    <span>{admin.academicAdmins}</span>
+                    <User className="w-4 h-4" />
+                    <span>{admin.fullName}</span>
                   </div>
                 </div>
 

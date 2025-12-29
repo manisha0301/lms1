@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
+  const user = JSON.parse(sessionStorage.getItem("user"));
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -50,13 +51,19 @@ export default function AdminDashboard() {
     { id: 5, type: "achievement", message: "98% students passed React Masterclass!", time: "1 day ago", icon: Award }
   ];
 
+  const handlelogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    navigate('/login');
+  };
+
   return (
     <>
       <div className="min-h-screen bg-gray-50">
 
         {/* Official Navbar - Same as AcademicDashboard */}
         <header className="bg-[#1e3a8a] text-white sticky top-0 z-50 shadow-lg">
-          <div className="px-8 py-5 flex justify-between items-center max-w-[1600px] mx-auto">
+          <div className="px-8 py-5 flex justify-between items-center mx-auto">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl shadow-xl flex items-center justify-center">
                 <span className="text-3xl font-black">C</span>
@@ -118,12 +125,12 @@ export default function AdminDashboard() {
 
               <div className="flex items-center gap-4 pl-6 border-l border-white/20">
                 <div className="text-right">
-                  <p className="font-semibold">Admin</p>
-                  <p className="text-xs opacity-90">admin@cybernetics.com</p>
+                  <p className="font-semibold">{user.fullName}</p>
+                  <p className="text-xs opacity-90">{user.email}</p>
                 </div>
                 <div onClick={() => setProfileOpen(!profileOpen)}
                   className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl font-bold cursor-pointer select-none">
-                  A
+                  {user.fullName.charAt(0).toUpperCase()}
                 </div>
                 {profileOpen && (
                   <div className="absolute top-17 right-0 mt-4 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
@@ -131,11 +138,11 @@ export default function AdminDashboard() {
                     <div className="bg-[#1e3a8a] text-white p-5">
                       <div className="flex items-center gap-4">
                         <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
-                          A
+                          {user.fullName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-lg font-bold">Admin</p>
-                          <p className="text-sm opacity-90">admin@kristellar.com</p>
+                          <p className="text-lg font-bold">{user.fullName}</p>
+                          <p className="text-sm opacity-90">{user.email}</p>
                         </div>
                       </div>
                     </div>
@@ -161,7 +168,7 @@ export default function AdminDashboard() {
                       <hr className="my-2 border-gray-200" />
 
                       <button
-                        onClick={() => navigate('/login')}
+                        onClick={handlelogout}
                         className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
                       >
                         <LogOut className="w-5 h-5" />
@@ -175,14 +182,14 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="max-w-[1600px] mx-auto px-8 py-10 ">
+        <div className="mx-auto px-8 py-10 ">
           {/* Statistics Grid - Same Style */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {[
               { label: "Total Students", value: stats.totalStudents.toLocaleString(), icon: Users, growth: "+12%" },
               { label: "Active Courses", value: stats.totalCourses, icon: BookOpen, growth: "+3" },
               { label: "Faculty Members", value: stats.totalFaculty, icon: GraduationCap, growth: "+8" },
-              { label: "Revenue (Month)", value: stats.revenueThisMonth, icon: TrendingUp, growth: "+18%" },
+              // { label: "Revenue (Month)", value: stats.revenueThisMonth, icon: TrendingUp, growth: "+18%" },
             ].map((stat, i) => (
               <div
                 key={i}

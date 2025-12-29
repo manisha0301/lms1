@@ -65,3 +65,14 @@ export const createAcademicAdmin = async (pool, adminData) => {
 
   return rows[0];
 }; 
+
+export const updateAcademicAdminPassword = async (pool, id, newPasswordHash) => {
+  const { rows } = await pool.query(
+    `UPDATE academic_admins 
+     SET password_hash = $1 
+     WHERE id = $2 
+     RETURNING id, email, full_name`,
+    [newPasswordHash, id]
+  );
+  return rows[0] || null;
+};

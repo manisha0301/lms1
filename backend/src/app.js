@@ -10,7 +10,7 @@ import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAd
 import { createCoursesTable } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable } from './models/academicAdminModel.js';
-
+import adminRoutes from './routes/adminRoutes.js';
 const __filename = fileURLToPath(import.meta.url);  // NEW
 const __dirname = path.dirname(__filename);         // NEW
 
@@ -51,6 +51,7 @@ initDatabase();
 
 // Routes
 app.use('/api/auth/superadmin', superAdminRoutes);
+app.use('/api/auth/admin', adminRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
