@@ -24,7 +24,7 @@ const createNewAcademicAdmin = async (req, res) => {
       email, 
       mobile, 
       role, 
-      academicAdmins,  // this is branch
+      academicAdmins, 
       password, 
       confirmPassword, 
       twoFactor 
@@ -61,7 +61,7 @@ const createNewAcademicAdmin = async (req, res) => {
       email,
       mobile: mobile || null,
       role: role || 'Academic Admin',
-      branch: academicAdmins,
+      academic_name: academicAdmins,
       passwordHash,
       twoFactor: !!twoFactor
     };
@@ -125,7 +125,7 @@ const academicAdminLogin = async (req, res) => {
         id: admin.id,
         email: admin.email,
         role: "academicadmin",
-        branch: admin.branch,
+        academic_name: admin.academic_name,
         fullName: admin.full_name
       },
       process.env.JWT_SECRET,
@@ -141,7 +141,7 @@ const academicAdminLogin = async (req, res) => {
         email: admin.email,
         fullName: admin.full_name,
         role: "academicadmin",
-        branch: admin.branch
+        academic_name: admin.academic_name
       }
     });
 
