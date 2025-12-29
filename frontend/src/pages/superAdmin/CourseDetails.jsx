@@ -26,6 +26,7 @@ export default function CourseDetails() {
   // Assign Course modal 
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState([]);
+  const [academicAdmins, setAcademicAdmins] = useState([]);
 
   const educationalOrganizations = [
     { id: 1, name: "IIT Kharagpur" },
@@ -38,11 +39,11 @@ export default function CourseDetails() {
     { id: 8, name: "Brainware University" }
   ];
 
-  const handleOrgToggle = (orgId) => {
-    setSelectedOrgs(prev =>
-      prev.includes(orgId)
-        ? prev.filter(id => id !== orgId)
-        : [...prev, orgId]
+  const handleOrgToggle = (adminId) => {
+    setSelectedOrgs((prev) =>
+      prev.includes(adminId)
+        ? prev.filter((id) => id !== adminId)
+        : [...prev, adminId]
     );
   };
 
@@ -54,6 +55,28 @@ export default function CourseDetails() {
     alert(`Course assigned successfully to ${selectedOrgs.length} organization(s)!`);
     setIsAssignModalOpen(false);
     setSelectedOrgs([]);
+  };
+
+  const openAssignModal = async () => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      const res = await fetch("http://localhost:5000/api/auth/superadmin/academic-admins-assign", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAcademicAdmins(data.admins);
+        setSelectedOrgs([]); // reset selection
+        setIsAssignModalOpen(true);
+      } else {
+        alert("Failed to load academic admins");
+      }
+    } catch (err) {
+      console.error("Error fetching academic admins:", err);
+      alert("Network error");
+    }
   };
 
   useEffect(() => {
@@ -203,7 +226,7 @@ export default function CourseDetails() {
 
                 {/* Assign Course Button */}
                 <button
-                  onClick={() => setIsAssignModalOpen(true)}
+                  onClick={openAssignModal}
                                         className="bg-white hover:bg-gray-100 text-[#1e40af] px-8 py-3 rounded-md font-semibold transition-all hover:shadow-lg hover:-translate-y-1 flex items-center gap-2 cursor-pointer"
                 >
                   <Users className="w-5 h-5" />
@@ -313,20 +336,26 @@ export default function CourseDetails() {
             </p>
 
             <div className="space-y-3 max-h-96 overflow-y-auto mb-8">
-              {educationalOrganizations.map((org) => (
-                <label
-                  key={org.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedOrgs.includes(org.id)}
-                    onChange={() => handleOrgToggle(org.id)}
-                    className="w-5 h-5 text-[#1e40af] rounded focus:ring-[#1e40af]"
-                  />
-                  <span className="text-gray-800 font-medium">{org.name}</span>
-                </label>
-              ))}
+              {academicAdmins.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No institutions found</p>
+              ) : (
+                academicAdmins.map((admin) => (
+                  <label
+                    key={admin.id}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedOrgs.includes(admin.id)}
+                      onChange={() => handleOrgToggle(admin.id)}
+                      className="w-5 h-5 text-[#1e40af] rounded focus:ring-[#1e40af]"
+                    />
+                    <span className="text-gray-800 font-medium">
+                      {admin.institution || 'Unnamed Institution'}
+                    </span>
+                  </label>
+                ))
+              )}
             </div>
 
             <div className="flex gap-3 justify-end">

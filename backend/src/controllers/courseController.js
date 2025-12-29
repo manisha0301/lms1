@@ -1,4 +1,5 @@
 // backend/src/controllers/courseController.js
+import pool from '../config/db.js';
 import {
   addCourse,
   getAllCourses,
@@ -87,3 +88,17 @@ export const updateContents = async (req, res) => {
   }
 };
 
+export const getAcademicAdminsForAssign = async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, full_name, email, academic_name AS institution
+      FROM academic_admins 
+      WHERE status = 'Active' 
+      ORDER BY full_name ASC
+    `);
+    res.json({ success: true, admins: rows });
+  } catch (error) {
+    console.error('Error fetching academic admins for assign:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch academic admins' });
+  }
+};

@@ -9,7 +9,8 @@ import {
   createCourse, 
   getCourses, 
   getCourse, 
-  updateContents 
+  updateContents,
+  getAcademicAdminsForAssign
 } from '../controllers/courseController.js';
 
 // Multer setup for image upload
@@ -77,5 +78,8 @@ router.post('/courses', protectSuperAdmin, upload.single('image'), createCourse)
 router.get('/courses', protectSuperAdmin, getCourses);
 router.get('/courses/:id', protectSuperAdmin, getCourse);
 router.put('/courses/:id/contents', protectSuperAdmin, updateContents);
+
+// Get academic admins for assign modal
+router.get('/academic-admins-assign', protectSuperAdmin, getAcademicAdminsForAssign);
 
 export default router;
