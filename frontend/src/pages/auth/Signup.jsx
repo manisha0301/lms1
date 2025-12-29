@@ -305,9 +305,9 @@ const Signup = () => {
       });
 
       if (response.data.success) {
-        // Using sessionStorage as requested
-        sessionStorage.setItem("token", response.data.token);
-        sessionStorage.setItem("user", JSON.stringify(response.data.user));
+        // Using localStorage as requested
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
 
         alert("Account created successfully! Welcome to CodeKart");
 

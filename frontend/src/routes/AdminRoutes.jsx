@@ -1,6 +1,6 @@
 // src/routes/AdminRoutes.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "./ProtectedRoute"; // ← Import it (adjust path if needed)
+import { AdminProtectedRoute } from "./ProtectedRoute"; // Admin-protected route component
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import ViewStudentDetails from "../pages/admin/ViewStudentDetails";
@@ -24,81 +24,81 @@ export default function AdminRoutes() {
       <Route
         path="/dash"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <AdminDashboard />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/students"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <TotalStudents />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/students/:id"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <ViewStudentDetails />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/faculty"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <FacultyManagement />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/academics"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <AcademicManagement />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/courses"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <CoursesManagement />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/course/:id"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <CourseDetailsAdmin />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <SettingsAdmin />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <MyProfile />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       />
 

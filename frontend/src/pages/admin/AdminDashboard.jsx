@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -52,8 +52,8 @@ export default function AdminDashboard() {
   ];
 
   const handlelogout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate('/login');
   };
 
