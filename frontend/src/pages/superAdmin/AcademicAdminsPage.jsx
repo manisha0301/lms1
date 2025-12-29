@@ -141,7 +141,7 @@ const AcademicAdminsPage = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6 flex justify-between items-start">
+        <div className="  mx-auto px-8 py-6 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold">Admin Management</h1>
             <p className="opacity-90 mt-1">Overview of all academic administrators</p>
@@ -155,7 +155,7 @@ const AcademicAdminsPage = () => {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-8">
+      <div className="  mx-auto px-8 py-8">
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">

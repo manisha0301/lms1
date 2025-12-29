@@ -89,7 +89,7 @@ const FinanceDashboard = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6 flex items-center justify-between">
+        <div className="  mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold">Finance Dashboard</h1>
@@ -120,7 +120,7 @@ const FinanceDashboard = () => {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-8">
+      <div className="  mx-auto px-8 py-8">
         {/* Total Revenue Hero Card */}
         <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-10 mb-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a]/10 to-transparent"></div>

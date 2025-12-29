@@ -103,7 +103,7 @@ export default function SuperAdminSettings() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="mb-8 bg-[#1e3a8a] shadow-sm p-8">
-        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="  mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div>
             <h1 className="text-3xl font-bold text-white">System Settings</h1>
             <p className="text-white mt-1">Configure platform preferences and security</p>
@@ -134,7 +134,7 @@ export default function SuperAdminSettings() {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-8 pb-12">
+      <div className="  mx-auto px-8 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Sidebar */}
           <aside className="lg:sticky lg:top-8 h-fit">

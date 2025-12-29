@@ -60,7 +60,7 @@ const ViewStudentDetails = () => {
     <div className="min-h-screen bg-gray-50 ">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6 flex items-center justify-between">
+        <div className="  mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <button
               onClick={() => window.history.back()}
@@ -79,7 +79,7 @@ const ViewStudentDetails = () => {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-2">
+      <div className="  mx-auto px-8 py-2">
 
         {/* Main Profile Card - Same Design as Faculty Approval Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">

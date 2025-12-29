@@ -109,7 +109,7 @@ const AcademicManagement = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="max-w-[1600px] mx-auto px-8 py-6 flex items-center justify-between">
+        <div className="  mx-auto px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div>
               <h1 className="text-3xl font-bold">Academic Management</h1>
@@ -123,7 +123,7 @@ const AcademicManagement = () => {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-10">
+      <div className="  mx-auto px-8 py-10">
         {/* Search + Add Button */}
         <div className="flex flex-col lg:flex-row gap-6 items-center justify-between mb-8">
           <div className="relative flex-1 max-w-lg">

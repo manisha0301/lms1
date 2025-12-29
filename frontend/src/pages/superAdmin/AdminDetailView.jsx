@@ -46,7 +46,7 @@ const AdminDetailView = ({ admin, onBack }) => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="mb-8 bg-[#1e3a8a] border border-gray-200 shadow-sm p-8">
-        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="  mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div className="text-center sm:text-left">
             <h1 className="text-3xl font-bold text-white">Admin Profile Details</h1>
             <p className="text-white mt-1">View and manage administrator information</p>
@@ -54,7 +54,7 @@ const AdminDetailView = ({ admin, onBack }) => {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-8">
+      <div className="  mx-auto px-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Profile Card */}
           <div className="lg:col-span-1">
