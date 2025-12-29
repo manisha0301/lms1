@@ -2,12 +2,17 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';                    // NEW
+import { fileURLToPath } from 'url';       // NEW
 
 import pool from './config/db.js';
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
-
+import { createCoursesTable } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable } from './models/academicAdminModel.js';
+
+const __filename = fileURLToPath(import.meta.url);  // NEW
+const __dirname = path.dirname(__filename);         // NEW
 
 const app = express();
 
@@ -26,12 +31,16 @@ app.use(cors({
 
 app.use(express.json({ limit: '20mb' }));
 
+// SERVE UPLOADED IMAGES - THIS MAKES http://localhost:5000/uploads/image.jpg WORK
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));  // ← NEW: MAIN LINE
+
 // Initialize DB tables
 const initDatabase = async () => {
   try {
     await createSuperAdminTable(pool);
     await createDefaultSuperAdmin(pool);
     await createAcademicAdminsTable(pool);
+    await createCoursesTable(pool);
     console.log('All database tables initialized');
   } catch (error) {
     console.error('Database initialization failed:', error.message);

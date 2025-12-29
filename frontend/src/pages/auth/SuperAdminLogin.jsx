@@ -31,10 +31,15 @@ const SuperAdminLogin = () => {
       const data = await response.json();
 
       if (data.success) {
-        sessionStorage.setItem("token", data.token);
-        sessionStorage.setItem("user", JSON.stringify(data.user));
+        // sessionStorage.setItem("token", data.token);
+        // sessionStorage.setItem("user", JSON.stringify(data.user));
+
+        localStorage.setItem("superAdminToken", data.token);        // ← Same key as Courses page
+        localStorage.setItem("superAdminUser", JSON.stringify(data.user));  // Optional: save user info 
+        
         // alert("Super Admin Login Successful!");
         navigate("/dash");
+        
       } else {
         alert("Error: " + data.error);
       }

@@ -1,193 +1,237 @@
-// src/pages/superAdmin/SuperAdminCourses.jsx
-import React, { useState } from "react";
-import { Search, Clock, Users, Calendar, IndianRupee, Filter, Plus, X, Image as ImageIcon } from "lucide-react";
+// frontend/src/pages/superAdmin/SuperAdminCourses.jsx
+import React, { useState, useEffect } from "react";
+import { Plus, Clock, IndianRupee, X, Image as ImageIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const SuperAdminCourses = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [durationFilter, setDurationFilter] = useState("all");
-  const [priceFilter, setPriceFilter] = useState("all");
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [newCourse, setNewCourse] = useState({
     title: "",
     duration: "",
     price: "",
     originalPrice: "",
-    thumbnail: null, // For file upload
+    thumbnail: null,
     live: true,
   });
 
-  const initialCourses = [
-    { id: 1, title: "Full Stack Web Development", instructor: "Er. Rajesh Kumar", duration: "6 Months", students: 2847, price: 24999, originalPrice: 49999, live: true },
-    { id: 2, title: "Data Science & Machine Learning", instructor: "Dr. Priya Sharma", duration: "8 Months", students: 1892, price: 34999, originalPrice: 69999, live: true },
-    { id: 3, title: "MERN Stack Developer", instructor: "Aman Singh", duration: "5 Months", students: 3201, price: 19999, originalPrice: 39999, live: true },
-    { id: 4, title: "Python Django + React", instructor: "Sachin Patel", duration: "4 Months", students: 1567, price: 17999, originalPrice: 35999, live: false },
-    { id: 5, title: "Java Full Stack with Spring Boot", instructor: "Neha Gupta", duration: "7 Months", students: 987, price: 29999, originalPrice: 59999, live: true },
-    { id: 6, title: "UI/UX Design Professional", instructor: "Rohan Mehta", duration: "3 Months", students: 2103, price: 14999, originalPrice: 29999, live: true },
-  ];
+  // Fetch real courses from backend when page loads
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("superAdminToken");
 
-  const [courses, setCourses] = useState(initialCourses);
+        const res = await fetch("http://localhost:5000/api/auth/superadmin/courses", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          course.instructor.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDuration = durationFilter === "all" || course.duration.includes(durationFilter);
-    const matchesPrice = priceFilter === "all" ||
-      (priceFilter === "under20" && course.price < 20000) ||
-      (priceFilter === "20to30" && course.price >= 20000 && course.price <= 30000) ||
-      (priceFilter === "above30" && course.price > 30000);
-    return matchesSearch && matchesDuration && matchesPrice;
-  });
+        const data = await res.json();
+        console.log("Result:", data);
+        if (data.success) {
+          setCourses(data.courses);
+        } else {
+          alert("Failed to load courses: " + data.error);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        alert("Error loading courses. Is backend running?");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const handleThumbnailUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) {
+      setNewCourse((prev) => ({ ...prev, thumbnail: file }));
+    } else {
+      alert("Please select a valid image (JPG/PNG, max 5MB)");
+    }
+  };
+
+  const removeThumbnail = () => {
+    setNewCourse((prev) => ({ ...prev, thumbnail: null }));
+  };
 
   const handleAddCourse = async () => {
-    // Validation
     if (!newCourse.title || !newCourse.duration || !newCourse.price) {
       alert("Please fill in all required fields marked with *");
       return;
     }
 
-    const price = parseInt(newCourse.price);
+    const price = parseFloat(newCourse.price);
     if (isNaN(price) || price <= 0) {
       alert("Please enter a valid price");
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const courseToAdd = {
-      id: Date.now(),
-      title: newCourse.title,
-      instructor: "",
-      description: "Comprehensive course with hands-on projects and live training.",
-      duration: newCourse.duration,
-      students: 0,
-      price,
-      originalPrice: newCourse.originalPrice ? parseInt(newCourse.originalPrice) : Math.round(price * 2),
-      thumbnail: newCourse.thumbnail ? URL.createObjectURL(newCourse.thumbnail) : null,
-      live: newCourse.live,
-    };
+    try {
+      const token = localStorage.getItem("superAdminToken");
 
-    setCourses(prev => [...prev, courseToAdd]);
+      const formData = new FormData();
+      formData.append("name", newCourse.title);
+      formData.append("type", newCourse.live ? "Live" : "Self-Paced");
+      formData.append("price", price);
+      formData.append("duration", newCourse.duration);
+      formData.append("description", "Comprehensive course with hands-on projects and live training.");
+      formData.append("teachers", JSON.stringify([]));
+      formData.append("batches", JSON.stringify([]));
+      formData.append("originalPrice", newCourse.originalPrice || "");
+      if (newCourse.thumbnail) {
+        formData.append("image", newCourse.thumbnail);
+      }
 
-    // Reset form and close modal
-    setNewCourse({
-      title: "",
-      duration: "",
-      price: "",
-      originalPrice: "",
-      thumbnail: null,
-      live: true,
-    });
-    setIsAddModalOpen(false);
-    setIsSubmitting(false);
-    
-    alert("Course added successfully!");
-  };
+      const res = await fetch("http://localhost:5000/api/auth/superadmin/courses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-  const handleThumbnailUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setNewCourse(prev => ({ ...prev, thumbnail: file }));
-    } else {
-      alert("Please select a valid image file");
+      const data = await res.json();
+
+      if (data.success) {
+        setCourses((prev) => [data.course, ...prev]);
+
+        setNewCourse({
+          title: "",
+          duration: "",
+          price: "",
+          originalPrice: "",
+          thumbnail: null,
+          live: true,
+        });
+        setIsAddModalOpen(false);
+        alert("Course added successfully and saved to database!");
+      } else {
+        alert("Error: " + (data.error || "Failed to add course"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error. Check console and backend.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const removeThumbnail = () => {
-    setNewCourse(prev => ({ ...prev, thumbnail: null }));
-  };
-
-  const isFormValid = newCourse.title && newCourse.duration && newCourse.price;
+  const isFormValid = newCourse.title && newCourse.duration && newCourse.price > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Professional Header */}
+      {/* Header */}
       <div className="bg-[#1e3a8a] text-white py-6">
-        <div className="mx-auto px-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-semibold">All Courses</h1>
+        <div className="mx-auto px-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-semibold">All Courses</h1>
               <p className="mt-2 text-blue-100">Explore job-oriented technical programs with live training and placement support</p>
-            </div>
-
-            {/* Add New Course Button */}
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-white text-[#1e40af] px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-100 transition shadow-md hover:-translate-y-0.5 cursor-pointer"
-            >
-              <Plus className="w-5 h-5" />
-              Add New Course
-            </button>
           </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+              className="bg-white text-[#1e40af] px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-100 transition shadow-md hover:-translate-y-0.5 cursor-pointer"
+          >
+            <Plus className="w-5 h-5" />
+            Add New Course
+          </button>
         </div>
       </div>
 
+      {/* Course List */}
       <div className="mx-auto px-6 py-10">
-
-        {/* Course Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
-            <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
-              <div className="h-48 bg-gray-200 border-b border-gray-200 relative">
-                <div className="absolute top-3 left-3 bg-green-600 text-white text-xs font-medium px-3 py-1 rounded">
-                  {course.live ? "LIVE" : "SELF-PACED"}
-                </div>
-              </div>
-
-              <div className="p-5">
-                <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">{course.title}</h3>
-
-                <div className="flex items-center gap-4 text-xs text-gray-500 mt-4">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{course.duration}</span>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-1 text-xl font-bold text-[#1e40af]">
-                      <IndianRupee className="w-5 h-5" />
-                      {course.price.toLocaleString()}
+        {loading ? (
+          <p className="text-center py-20 text-gray-600 text-lg">Loading courses...</p>
+        ) : courses.length === 0 ? (
+          <p className="text-center py-20 text-gray-500 text-lg">No courses yet. Add your first one!</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((course) => (
+              <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                <div className="h-48 bg-gray-200 border-b border-gray-200 relative">
+                  {course.image ? (
+                    <img
+                      src={`http://localhost:5000/uploads/${course.image}`}
+                      alt={course.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                      <ImageIcon className="w-16 h-16 text-gray-400" />
                     </div>
-                    <del className="text-xs text-gray-500">₹{course.originalPrice.toLocaleString()}</del>
+                  )}
+                  <div className="absolute top-3 left-3 bg-green-600 text-white text-xs font-medium px-3 py-1 rounded">
+                    {course.type?.toUpperCase() || (course.live ? "LIVE" : "SELF-PACED")}
                   </div>
-                  <Link
-                    to={`/course/${course.id}`}
-                    className="bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition"
-                  >
-                    View Details
-                  </Link>
+                </div>
+
+                <div className="p-5">
+                  <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">{course.name}</h3>
+                  <div className="flex items-center gap-4 text-xs text-gray-500 mt-4">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{course.duration || "Not specified"}</span>
+                    </div>
+                  </div>
+
+                  {/* PRICE DISPLAY  */}
+                  <div className="mt-5 flex items-end justify-between">
+                    <div className="flex flex-col">
+                      {/* Current Price */}
+                      <div className="flex items-center gap-1 text-xl font-bold text-[#1e40af] leading-none">
+                        <IndianRupee className="w-5 h-5" />
+                        <span>{Number(course.price).toLocaleString()}</span>
+                      </div>
+
+                      {/* Original Price */}
+                      {(() => {
+                        const orig = course.original_price || course.originalPrice || course.originalprice;
+                        if (orig && Number(orig) > Number(course.price)) {
+                          return (
+                            <div className="mt-1 text-sm text-gray-500">
+                              <del>
+                                ₹{Number(orig).toLocaleString()}
+                              </del>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+
+                    <Link
+                      to={`/course/${course.id}`}
+                      className="bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition"
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredCourses.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-gray-500 text-lg">No courses found matching your criteria.</p>
+            ))}
           </div>
         )}
       </div>
 
-      {/* ADD NEW COURSE MODAL */}
+      {/* Add New Course Model */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => !isSubmitting && setIsAddModalOpen(false)}
           />
 
-          {/* Modal */}
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 z-10">
               <div className="flex justify-between items-center">
@@ -216,27 +260,19 @@ const SuperAdminCourses = () => {
             </div>
 
             <div className="p-8 space-y-6">
-              {/* Basic Info */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newCourse.title}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Course Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newCourse.title}
                     onChange={(e) => setNewCourse(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
-                    placeholder="e.g., Full Stack Web Development with React & Node.js"
-                  />
-                </div>
-
-
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                  placeholder="e.g., Full Stack Web Development with React & Node.js"
+                />
               </div>
 
-
-
-              {/* Duration & Pricing */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -267,7 +303,6 @@ const SuperAdminCourses = () => {
                 </div>
               </div>
 
-              {/* Original Price & Live Toggle */}
               <div className="grid md:grid-cols-2 gap-6 items-end">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (₹)</label>
@@ -295,7 +330,6 @@ const SuperAdminCourses = () => {
                 </div>
               </div>
 
-              {/* Thumbnail Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-[#1e40af]" />
@@ -343,7 +377,6 @@ const SuperAdminCourses = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-8 py-6 flex gap-3 justify-end">
               <button
                 onClick={() => {

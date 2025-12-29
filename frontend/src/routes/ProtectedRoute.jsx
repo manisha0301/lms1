@@ -3,15 +3,16 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
-  const token = sessionStorage.getItem('token');
+  // CHANGE: Check localStorage for "superAdminToken"
+  const token = localStorage.getItem('superAdminToken');
   const location = useLocation();
 
-  // If no token, redirect to login and preserve the attempted URL
   if (!token) {
+    // No token → redirect to login, remember where they were trying to go
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If authenticated, render the protected page
+  // Token exists → allow access to protected page
   return children;
 };
 
