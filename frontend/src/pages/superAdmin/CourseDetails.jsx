@@ -28,16 +28,6 @@ export default function CourseDetails() {
   const [selectedOrgs, setSelectedOrgs] = useState([]);
   const [academicAdmins, setAcademicAdmins] = useState([]);
 
-  const educationalOrganizations = [
-    { id: 1, name: "IIT Kharagpur" },
-    { id: 2, name: "Jadavpur University" },
-    { id: 3, name: "St. Xavier's College, Kolkata" },
-    { id: 4, name: "Presidency University" },
-    { id: 5, name: "Techno India University" },
-    { id: 6, name: "IIEST Shibpur" },
-    { id: 7, name: "Calcutta University" },
-    { id: 8, name: "Brainware University" }
-  ];
 
   const handleOrgToggle = (adminId) => {
     setSelectedOrgs((prev) =>
@@ -48,36 +38,71 @@ export default function CourseDetails() {
   };
 
   const handleAssignSubmit = async () => {
-    if (selectedOrgs.length === 0) {
-      alert("Please select at least one organization.");
-      return;
-    }
-    alert(`Course assigned successfully to ${selectedOrgs.length} organization(s)!`);
-    setIsAssignModalOpen(false);
-    setSelectedOrgs([]);
-  };
+  if (selectedOrgs.length === 0) {
+    alert("Please select at least one institution.");
+    return;
+  }
 
-  const openAssignModal = async () => {
-    try {
-      const token = localStorage.getItem("superAdminToken");
-      const res = await fetch("http://localhost:5000/api/auth/superadmin/academic-admins-assign", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setAcademicAdmins(data.admins);
-        setSelectedOrgs([]); // reset selection
-        setIsAssignModalOpen(true);
-      } else {
-        alert("Failed to load academic admins");
-      }
-    } catch (err) {
-      console.error("Error fetching academic admins:", err);
-      alert("Network error");
+  try {
+    const token = localStorage.getItem("superAdminToken");
+    const res = await fetch("http://localhost:5000/api/auth/superadmin/courses/assign", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        courseId: course.id,
+        adminIds: selectedOrgs
+      }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(data.message);
+      setIsAssignModalOpen(false);
+      setSelectedOrgs([]);
+    } else {
+      alert("Error: " + data.error);
     }
-  };
+  } catch (err) {
+    console.error("Assign error:", err);
+    alert("Network error");
+  }
+};
+
+const openAssignModal = async () => {
+  try {
+    const token = localStorage.getItem("superAdminToken");
+
+    // Fetch all academic admins
+    const adminsRes = await fetch("http://localhost:5000/api/auth/superadmin/academic-admins-assign", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const adminsData = await adminsRes.json();
+
+    // Fetch current assignments for this course
+    const assignRes = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${course.id}/assignments`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const assignData = await assignRes.json();
+
+    if (adminsData.success && assignData.success) {
+      setAcademicAdmins(adminsData.admins);
+      setSelectedOrgs(assignData.assignedIds || []);
+      setIsAssignModalOpen(true);
+    } else {
+      alert("Failed to load data");
+    }
+  } catch (err) {
+    console.error("Error loading assignment data:", err);
+    alert("Network error");
+  }
+};
 
   useEffect(() => {
     fetchCourse();
@@ -227,7 +252,7 @@ export default function CourseDetails() {
                 {/* Assign Course Button */}
                 <button
                   onClick={openAssignModal}
-                                        className="bg-white hover:bg-gray-100 text-[#1e40af] px-8 py-3 rounded-md font-semibold transition-all hover:shadow-lg hover:-translate-y-1 flex items-center gap-2 cursor-pointer"
+                  className="bg-white hover:bg-gray-100 text-[#1e40af] px-8 py-3 rounded-md font-semibold transition-all hover:shadow-lg hover:-translate-y-1 flex items-center gap-2 cursor-pointer"
                 >
                   <Users className="w-5 h-5" />
                   Assign Course
@@ -262,7 +287,7 @@ export default function CourseDetails() {
             </h2>
             <button
               onClick={() => setIsAddModalOpen(true)}
-                                    className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition shadow-md cursor-pointer"
+              className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition shadow-md cursor-pointer"
             >
               <Play className="w-5 h-5" />
               Add Content
@@ -394,7 +419,7 @@ export default function CourseDetails() {
                   type="text"
                   value={newModuleTitle}
                   onChange={(e) => setNewModuleTitle(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e40af] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e40af] focus:border-transparent"
                   placeholder="e.g., Advanced React Patterns"
                 />
               </div>
@@ -405,7 +430,7 @@ export default function CourseDetails() {
                   <button
                     type="button"
                     onClick={() => setNewChapters(prev => [...prev, { title: '', duration: '45 min', type: 'video' }])}
-                                        className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
+                    className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
                   >
                     <Play className="w-4 h-4" /> Add Chapter
                   </button>
@@ -468,7 +493,7 @@ export default function CourseDetails() {
                         <button
                           type="button"
                           onClick={() => setNewChapters(prev => prev.filter((_, i) => i !== index))}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
+                          className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
                         >
                           Remove
                         </button>
@@ -486,7 +511,7 @@ export default function CourseDetails() {
                   setNewModuleTitle('');
                   setNewChapters([]);
                 }}
-                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -525,7 +550,7 @@ export default function CourseDetails() {
                   <button
                     type="button"
                     onClick={() => setEditChapters(prev => [...prev, { title: '', duration: '45 min', type: 'video' }])}
-                                        className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
+                    className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
                   >
                     <Play className="w-4 h-4" /> Add Chapter
                   </button>

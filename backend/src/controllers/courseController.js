@@ -102,3 +102,61 @@ export const getAcademicAdminsForAssign = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch academic admins' });
   }
 };
+
+export const assignCourseToAdmins = async (req, res) => {
+  try {
+    const { courseId, adminIds } = req.body;
+
+    if (!courseId || !Array.isArray(adminIds)) {
+      return res.status(400).json({ success: false, error: 'Invalid data' });
+    }
+
+    // Get current assignments for this course
+    const { rows: current } = await pool.query(
+      'SELECT academic_admin_id FROM course_academic_assignments WHERE course_id = $1',
+      [courseId]
+    );
+    const currentIds = current.map(row => row.academic_admin_id);
+
+    // Find what to add and what to remove
+    const toAdd = adminIds.filter(id => !currentIds.includes(id));
+    const toRemove = currentIds.filter(id => !adminIds.includes(id));
+
+    // Remove unchecked ones
+    if (toRemove.length > 0) {
+      await pool.query(
+        'DELETE FROM course_academic_assignments WHERE course_id = $1 AND academic_admin_id = ANY($2::int[])',
+        [courseId, toRemove]
+      );
+    }
+
+    // Add new checked ones
+    if (toAdd.length > 0) {
+      const values = toAdd.map(id => `(${courseId}, ${id})`).join(',');
+      await pool.query(`
+        INSERT INTO course_academic_assignments (course_id, academic_admin_id)
+        VALUES ${values}
+        ON CONFLICT (course_id, academic_admin_id) DO NOTHING
+      `);
+    }
+
+    res.json({ success: true, message: 'Assignment updated successfully!' });
+  } catch (error) {
+    console.error('Assign course error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update assignment' });
+  }
+};
+
+export const getCourseAssignments = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { rows } = await pool.query(
+      'SELECT academic_admin_id FROM course_academic_assignments WHERE course_id = $1',
+      [courseId]
+    );
+    const ids = rows.map(r => r.academic_admin_id);
+    res.json({ success: true, assignedIds: ids });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed' });
+  }
+};

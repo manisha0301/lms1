@@ -10,7 +10,9 @@ import {
   getCourses, 
   getCourse, 
   updateContents,
-  getAcademicAdminsForAssign
+  getAcademicAdminsForAssign,
+  assignCourseToAdmins,
+  getCourseAssignments
 } from '../controllers/courseController.js';
 
 // Multer setup for image upload
@@ -82,4 +84,9 @@ router.put('/courses/:id/contents', protectSuperAdmin, updateContents);
 // Get academic admins for assign modal
 router.get('/academic-admins-assign', protectSuperAdmin, getAcademicAdminsForAssign);
 
+// Save course assignment to academic admins
+router.post('/courses/assign', protectSuperAdmin, assignCourseToAdmins);
 export default router;
+
+// Get current assignments for a course (to pre-check checkboxes)
+router.get('/courses/:courseId/assignments', protectSuperAdmin, getCourseAssignments);
