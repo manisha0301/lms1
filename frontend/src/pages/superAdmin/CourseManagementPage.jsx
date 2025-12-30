@@ -17,6 +17,7 @@ import {
   Target,
   Clock,
   Award,
+  User,
 } from 'lucide-react';
 
 const CoursesManagementPage = () => {
@@ -391,13 +392,13 @@ const CoursesManagementPage = () => {
               >
                 <div className="flex items-center gap-5">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                    {academic.academicName.split(' ').map(n => n[0]).join('')}
+                    {academic.center.split(' ').map(n => n[0]).join('')}
                   </div>
                   <div className="text-left">
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#1e3a8a] transition">{academic.academicName}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#1e3a8a] transition">{academic.center}</h3>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                       <span className="flex items-center gap-1">
-                        <Building2 className="w-4 h-4" /> {academic.center}
+                        <User className="w-4 h-4" /> {academic.academicName}
                       </span>
                       <span>•</span>
                       <span>{academic.totalCourses} Courses</span>

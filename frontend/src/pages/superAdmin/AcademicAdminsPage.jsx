@@ -81,6 +81,11 @@ const AcademicAdminsPage = () => {
       return;
     }
 
+    if (newAdmin.mobile && !/^\+?[0-9]{10,15}$/.test(newAdmin.mobile)) {
+      setError('Please enter a valid mobile number.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const token = getToken();
@@ -248,8 +253,18 @@ const AcademicAdminsPage = () => {
                 onClick={() => {
                   setIsAddModalOpen(false);
                   setError('');
+                  setNewAdmin({
+                    fullName: '',
+                    email: '',
+                    mobile: '',
+                    role: 'Academic Admin',
+                    academicAdmins: '',
+                    password: '',
+                    confirmPassword: '',
+                    twoFactor: false,
+                  });
                 }}
-                className="text-gray-500 hover:text-gray-700 transition"
+                className="text-gray-500 hover:text-gray-700 transition cursor-pointer"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -394,15 +409,25 @@ const AcademicAdminsPage = () => {
                   onClick={() => {
                     setIsAddModalOpen(false);
                     setError('');
+                    setNewAdmin({
+                      fullName: '',
+                      email: '',
+                      mobile: '',
+                      role: 'Academic Admin',
+                      academicAdmins: '',
+                      password: '',
+                      confirmPassword: '',
+                      twoFactor: false,
+                    });
                   }}
-                  className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+                  className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-8 py-3 bg-[#1e3a8a] text-white rounded-lg font-bold hover:bg-blue-800 transition shadow-lg flex items-center gap-2 disabled:opacity-70"
+                  className="px-8 py-3 bg-[#1e3a8a] text-white rounded-lg font-bold hover:bg-blue-800 transition shadow-lg flex items-center gap-2 disabled:opacity-70 cursor-pointer"
                 >
                   {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
                   {submitting ? 'Adding...' : 'Add Admin'}

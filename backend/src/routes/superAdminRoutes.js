@@ -1,6 +1,6 @@
 // src/routes/superAdminRoutes.js
 import express from 'express';
-import { superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
+import { getDashboardStats, superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
 import {protectSuperAdmin} from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
 
@@ -67,6 +67,7 @@ const router = express.Router();
 // Existing Super Admin routes
 router.post('/login', superAdminLogin);
 router.post('/change-password', protectSuperAdmin, superAdminChangePassword);
+router.get('/stats', protectSuperAdmin, getDashboardStats); 
 
 // Existing Academic Admin routes
 router.get('/academic-admins', protectSuperAdmin, getAllAcademicAdmins);

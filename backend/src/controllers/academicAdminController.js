@@ -52,6 +52,13 @@ const createNewAcademicAdmin = async (req, res) => {
       });
     }
 
+    if (mobile && !/^\+?[0-9]{10,15}$/.test(mobile)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid mobile number"
+      });
+    }
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);

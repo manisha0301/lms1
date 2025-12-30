@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   UserCheck,
@@ -32,19 +32,37 @@ const SuperAdminDashboard = () => {
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [stats, setStats] = useState({
+      totalStudents: 0,
+      totalFaculties: 0,
+      totalCentres: 0,
+      totalAcademics: 0,
+      totalAdmins: 0,
+      totalCourses: 0,
+      totalExams: 0,
+      totalAssignments: 0,
+      totalRevenue: 0,
+  });
 
-
-  const stats = {
-    totalStudents: 2847,
-    totalFaculties: 87,
-    totalCentres: 34,
-    totalAcademics: 12,
-    totalAdmins: 5,
-    totalCourses: 156,
-    totalExams: 892,
-    totalAssignments: 2156,
-    totalRevenue: 2847500,
-  };
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('superAdminToken');  // Assuming token is stored in localStorage
+        const response = await fetch('http://localhost:5000/api/auth/superadmin/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const recentNotifications = [
     { id: 1, message: "New admin 'Rakesh Kumar' was created", time: "2 mins ago", type: "admin" },
@@ -306,7 +324,6 @@ const SuperAdminDashboard = () => {
   <div className="space-y-5 max-h-[230px] overflow-y-auto pr-2">
     {recentNotifications.map((notif) => (
       <div
-        key={notif.id}
         className="p-5 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-2xl border border-[#1e3a8a]/10 hover:shadow-md transition"
       >
         <div className="flex items-start gap-4">

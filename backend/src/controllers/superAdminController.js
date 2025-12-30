@@ -145,4 +145,39 @@ const superAdminChangePassword = async (req, res) => {
   }
 };
 
+export const getDashboardStats = async (req, res) => {
+  try {
+    // Query for total academic admins
+    const academicsResult = await pool.query('SELECT COUNT(*) FROM academic_admins');
+    const totalAcademics = parseInt(academicsResult.rows[0].count, 10);
+
+    // Query for total courses
+    const coursesResult = await pool.query('SELECT COUNT(*) FROM courses');
+    const totalCourses = parseInt(coursesResult.rows[0].count, 10);
+
+    // You can add more stats here as other tables are implemented
+    // For now, including only the requested ones
+    const stats = {
+      totalAcademics,
+      totalCourses,
+      // Placeholder for others if needed
+      totalStudents: 0,    // Update when students table exists
+      totalFaculties: 0,   // Update when faculties table exists
+      totalCentres: 0,
+      totalAdmins: 0,
+      totalExams: 0,
+      totalAssignments: 0,
+      totalRevenue: 0,
+    };
+
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stats' });
+  }
+};
+
 export { superAdminLogin, superAdminChangePassword };
