@@ -22,6 +22,23 @@ export const createCoursesTable = async () => {
   console.log('courses table created or already exists');
 };
 
+export const createCourseAcademicRelationTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS course_academic_assignments (
+      id SERIAL PRIMARY KEY,
+      course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+      academic_admin_id INTEGER REFERENCES academic_admins(id) ON DELETE CASCADE,
+      assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(course_id, academic_admin_id)
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_assignments_course ON course_academic_assignments(course_id);
+    CREATE INDEX IF NOT EXISTS idx_assignments_admin ON course_academic_assignments(academic_admin_id);
+  `;
+  await pool.query(query);
+  console.log('course_academic_assignments table created or already exists');
+}
+
 export const addCourse = async ({
   image,
   name,
