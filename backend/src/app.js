@@ -9,7 +9,7 @@ import pool from './config/db.js';
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
 import { createCourseAcademicRelationTable, createCoursesTable } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
-import { createAcademicAdminsTable } from './models/academicAdminModel.js';
+import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
 import adminRoutes from './routes/adminRoutes.js';
 const __filename = fileURLToPath(import.meta.url);  // NEW
 const __dirname = path.dirname(__filename);         // NEW
@@ -42,6 +42,7 @@ const initDatabase = async () => {
     await createAcademicAdminsTable(pool);
     await createCoursesTable(pool);
     await createCourseAcademicRelationTable(pool);
+    await createAcademicAdminDetailsTable(pool);
     console.log('All database tables initialized');
   } catch (error) {
     console.error('Database initialization failed:', error.message);

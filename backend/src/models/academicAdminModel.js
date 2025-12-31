@@ -76,3 +76,32 @@ export const updateAcademicAdminPassword = async (pool, id, newPasswordHash) => 
   );
   return rows[0] || null;
 };
+
+export const createAcademicAdminDetailsTable = async () => {
+  try {
+    const query = `
+      CREATE TABLE IF NOT EXISTS academic_admin_details (
+        id SERIAL PRIMARY KEY,
+        admin_id INTEGER NOT NULL UNIQUE,
+        mobile VARCHAR(20),
+        date_of_birth DATE,
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100) DEFAULT 'India',
+        pincode VARCHAR(10),
+        about TEXT,
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_admin
+          FOREIGN KEY (admin_id)
+          REFERENCES academic_admins(id)
+          ON DELETE CASCADE
+      );
+    `;
+    await pool.query(query);
+    console.log('academic_admin_details table created or already exists');
+  } catch (error) {
+    console.error('Error creating academic_admin_details table:', error);
+  }
+};
