@@ -35,12 +35,6 @@ export default function AdminDashboard() {
     { id: 4, name: "Pune Campus", dean: "Prof. Vikram Singh", students: 398, faculty: 12 },
     { id: 5, name: "Hyderabad", dean: "Dr. Neha Reddy", students: 245, faculty: 6 },
     { id: 6, name: "Chennai", dean: "Prof. Arjun Nair", students: 122, faculty: 3 },
-    { id: 4, name: "Pune Campus", dean: "Prof. Vikram Singh", students: 398, faculty: 12 },
-    { id: 5, name: "Hyderabad", dean: "Dr. Neha Reddy", students: 245, faculty: 6 },
-    { id: 6, name: "Chennai", dean: "Prof. Arjun Nair", students: 122, faculty: 3 },
-    { id: 4, name: "Pune Campus", dean: "Prof. Vikram Singh", students: 398, faculty: 12 },
-    { id: 5, name: "Hyderabad", dean: "Dr. Neha Reddy", students: 245, faculty: 6 },
-    { id: 6, name: "Chennai", dean: "Prof. Arjun Nair", students: 122, faculty: 3 },
   ];
 
   const recentNotifications = [
@@ -230,7 +224,7 @@ export default function AdminDashboard() {
                 <div className="p-8 space-y-5 overflow-y-auto flex-1 max-h-[525px]">
                   {branchHierarchy.map((branch, index) => (
                     <div
-                      key={branch.id}
+                      key={`${branch.id}-${index}`}
                       className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-6 p-6
                                 bg-gradient-to-r from-[#1e3a8a]/5 to-white
                                 rounded-2xl border border-[#1e3a8a]/10

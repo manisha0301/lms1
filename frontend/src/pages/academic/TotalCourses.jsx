@@ -102,14 +102,14 @@ const TotalCourses = ({ onBack }) => {
     <div className="min-h-screen bg-gray-50">
       {/* Professional Header */}
       <div className="bg-[#1e3a8a] text-white py-12">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-6">
+        <div className="mx-auto px-6 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <button
+            {/* <button
               onClick={handleBackClick}
               className="p-2.5 hover:bg-white/10 rounded-xl transition-all cursor-pointer"
             >
               <ArrowLeft className="w-6 h-6" />
-            </button>
+            </button> */}
             <div>
               <h1 className="text-3xl font-semibold">All Courses</h1>
               <p className="mt-2 text-blue-100">Manage and monitor all active courses</p>
@@ -128,7 +128,7 @@ const TotalCourses = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="mx-auto px-6 py-10">
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

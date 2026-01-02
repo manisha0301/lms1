@@ -1,6 +1,6 @@
 // src/routes/superAdminRoutes.js
 import express from 'express';
-import { getDashboardStats, superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
+import { getDashboardStats, getSuperAdminProfile, superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
 import {protectSuperAdmin} from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
 
@@ -12,7 +12,8 @@ import {
   updateContents,
   getAcademicAdminsForAssign,
   assignCourseToAdmins,
-  getCourseAssignments
+  getCourseAssignments,
+  getCoursesForManagement
 } from '../controllers/courseController.js';
 
 // Multer setup for image upload
@@ -67,10 +68,11 @@ const upload = multer({ storage });
 
 const router = express.Router();
 
-// Existing Super Admin routes
+// Existing Super Admin routes 
 router.post('/login', superAdminLogin);
 router.post('/change-password', protectSuperAdmin, superAdminChangePassword);
 router.get('/stats', protectSuperAdmin, getDashboardStats); 
+router.get('/profile', protectSuperAdmin, getSuperAdminProfile);
 
 // Existing Academic Admin routes
 router.get('/academic-admins', protectSuperAdmin, getAllAcademicAdmins);
@@ -91,3 +93,6 @@ export default router;
 
 // Get current assignments for a course (to pre-check checkboxes)
 router.get('/courses/:courseId/assignments', protectSuperAdmin, getCourseAssignments);
+
+// Get courses for management page
+router.get('/course/management', protectSuperAdmin, getCoursesForManagement); 

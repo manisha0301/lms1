@@ -160,3 +160,57 @@ export const getCourseAssignments = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed' });
   }
 };
+
+export const getCoursesForManagement = async (req, res) => {
+  try {
+    const { rows: academicsData } = await pool.query(`
+      SELECT 
+        aa.id as "academicId",
+        aa.full_name as "academicName",
+        aa.email as "academicEmail",
+        aa.academic_name as center,
+        COUNT(DISTINCT caa.course_id) as "totalCourses",
+        0 as "totalStudents",  -- Placeholder - requires enrollments table
+        0 as "totalRevenue",   -- Placeholder
+        COALESCE(
+          JSONB_AGG(
+            DISTINCT JSONB_BUILD_OBJECT(
+              'id', c.id,
+              'title', c.name,
+              'code', UPPER(SPLIT_PART(c.name, ' ', 1)) || '-' || UPPER(SPLIT_PART(aa.full_name, ' ', 1)) || '-25A',
+              'faculty', 'Faculty TBD',
+              'facultyEmail', 'faculty@kristellar.com',
+              'duration', c.duration,
+              'startDate', COALESCE((c.batches->0->>'startDate')::text, '2025-01-01'),
+              'totalStudents', 0,
+              'activeStudents', 0,
+              'examsConducted', 0,
+              'totalExams', 0,
+              'completedAssignments', 0,
+              'totalAssignments', 0,
+              'avgAttendance', 0,
+              'revenue', 0,
+              'status', 'Ongoing',
+              'batchSize', 350,
+              'completionRate', 87,
+              'topPerformer', 'Rohan Mehta',
+              'lastActivity', '2 hours ago'
+            )
+          ) FILTER (WHERE c.id IS NOT NULL),
+          '[]'::jsonb
+        ) as courses
+      FROM academic_admins aa
+      LEFT JOIN course_academic_assignments caa ON aa.id = caa.academic_admin_id
+      LEFT JOIN courses c ON c.id = caa.course_id
+      WHERE aa.status = 'Active'
+      GROUP BY aa.id
+      ORDER BY aa.full_name ASC
+    `);
+
+    res.json({ success: true, academicsData });
+
+  } catch (error) {
+    console.error('Get courses management error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch management data' });
+  }
+};

@@ -131,12 +131,12 @@ const FacultiesManagement = () => {
 
             {/* Header - same style as AllCourses */}
             <div className="bg-[#1e3a8a] text-white py-12">
-                <div className="max-w-7xl mx-auto px-6">
+                <div className="mx-auto px-6">
                     <div className="flex justify-between items-center gap-6">
                         <div className='flex flex-row gap-6'>
-                        <button onClick={() => window.history.back()} className="text-white hover:bg-white/10 p-2 rounded-lg transition cursor-pointer">
+                        {/* <button onClick={() => window.history.back()} className="text-white hover:bg-white/10 p-2 rounded-lg transition cursor-pointer">
                             <ArrowLeft className="w-8 h-8" />
-                        </button>
+                        </button> */}
                         <div>
                             <h1 className="text-3xl font-semibold">Faculty Management</h1>
                             <p className="mt-2 text-blue-100">Manage, approve, and track all faculty members</p>
@@ -160,7 +160,7 @@ const FacultiesManagement = () => {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 py-10">
+            <div className="mx-auto px-6 py-10">
                 {/* Filters - same style as AllCourses */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

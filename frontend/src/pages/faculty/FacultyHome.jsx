@@ -39,20 +39,36 @@ const FacultyHome = () => {
   const recentCourses = [
     { id: "node-201", title: "Advanced Node.js", code: "CSE-405", students: 48, status: "Active", thumbnail: course1 },
     { id: "dsa-101", title: "Data Structures & Algorithms", code: "CSE-201", students: 72, status: "Active", thumbnail: course2 },
+    { id: "web-310", title: "Full Stack Web Dev", code: "CSE-310", students: 55, status: "Upcoming", thumbnail: course3 },
+    { id: "node-201", title: "Advanced Node.js", code: "CSE-405", students: 48, status: "Active", thumbnail: course1 },
+    { id: "dsa-101", title: "Data Structures & Algorithms", code: "CSE-201", students: 72, status: "Active", thumbnail: course2 },
     { id: "web-310", title: "Full Stack Web Dev", code: "CSE-310", students: 55, status: "Upcoming", thumbnail: course3 }
   ];
 
   const upcomingClasses = [
     { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
-    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" }
+    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
+    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
+    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
+    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
+    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
+    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
+    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
   ];
 
   const upcomingExams = [
     { title: "Mid-term – Advanced ML", datetime: "Nov 25, 9:00 AM – 11:00 AM", location: "Hall C" },
-    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" }
+    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" },
+    { title: "Mid-term – Advanced ML", datetime: "Nov 25, 9:00 AM – 11:00 AM", location: "Hall C" },
+    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" },
+    { title: "Mid-term – Advanced ML", datetime: "Nov 25, 9:00 AM – 11:00 AM", location: "Hall C" },
+    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" },
   ];
 
   const notifications = [
+    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
+    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
+    { message: "New grading policy update", time: "Yesterday", type: "info" },
     { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
     { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
     { message: "New grading policy update", time: "Yesterday", type: "info" }
@@ -219,7 +235,7 @@ const FacultyHome = () => {
         </section>
 
         {/* Search Bar */}
-        <section className="mb-6">
+        {/* <section className="mb-6">
           <div className="bg-white rounded-xl shadow-lg p-3 max-w-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -232,12 +248,12 @@ const FacultyHome = () => {
               />
             </div>
           </div>
-        </section>
+        </section> */}
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
           {/* My Recent Courses */}
-          <section className="xl:col-span-2">
+          <section className="md:col-span-2">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <BookOpen className="w-6 h-6 text-[#1e3a8a]" />
@@ -249,7 +265,7 @@ const FacultyHome = () => {
               </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-lg max-h-80 overflow-y-auto">
               <ul className="divide-y divide-gray-200">
                 {filteredCourses.length === 0 ? (
                   <li className="p-6 text-center text-gray-500">No courses found</li>
@@ -310,7 +326,7 @@ const FacultyHome = () => {
               <Calendar className="w-6 h-6 text-indigo-600" />
               Upcoming Classes
             </h2>
-            <div className="bg-white rounded-2xl shadow-lg divide-y divide-gray-200">
+            <div className="bg-white rounded-2xl shadow-lg divide-y divide-gray-200 max-h-80 overflow-y-auto">
               {upcomingClasses.map((cls, i) => (
                 <div key={i} className="p-5 flex justify-between items-center">
                   <div>
@@ -331,7 +347,7 @@ const FacultyHome = () => {
               <Clock className="w-6 h-6 text-red-600" />
               Upcoming Exams
             </h2>
-            <div className="bg-white rounded-2xl shadow-lg divide-y divide-gray-200">
+            <div className="bg-white rounded-2xl shadow-lg divide-y divide-gray-200 max-h-80 overflow-y-auto">
               {upcomingExams.map((exam, i) => (
                 <div key={i} className="p-5 flex justify-between items-center">
                   <div>

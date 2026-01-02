@@ -1,5 +1,5 @@
 // src/pages/superadmin/MyProfile.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Mail, 
   Edit3,
@@ -25,24 +25,44 @@ export default function MyProfile() {
     confirmPassword: ''
   });
   // Mock Super Admin Data
-  const [profile, setProfile] = useState({
-    name: "Admin User",
-    email: "admin@kristellar.com",
-    phone: "+91 98765 43210",
-    role: "Super Administrator",
-    joiningDate: "2023-01-01",
-    lastLogin: "2025-12-15 10:30 AM",
-    twoFactor: true,
-    emailVerified: true,
-    recentActivities: [
-      "Approved new academic admin",
-      "Updated system settings",
-      "Reviewed finance reports",
-      "Resolved server alert"
-    ]
-  });
-
+  const [profile, setProfile] = useState([]);
   const [editData, setEditData] = useState({ ...profile });
+
+  useEffect(() => {
+    // Fetch super admin profile data from backend (mocked here)
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('superAdminToken'); // Assuming token is stored in localStorage
+        const response = await fetch('http://localhost:5000/api/auth/superadmin/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setProfile({
+            name: data.user.name,
+            email: data.user.email,
+            role: 'Super Admin',
+            phone: data.user.phone || 'N/A',
+            joiningDate: new Date(data.user.created_at).toLocaleDateString(),
+          });
+          console.log(data.user);
+          setEditData({
+            name: data.user.name,
+            email: data.user.email,
+            phone: data.user.phone || '',
+          });
+        } else {
+          alert('Failed to fetch profile data.');
+        } 
+      } catch (error) {
+        alert('Error fetching profile data.');
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleSave = () => {
     setProfile({ ...editData });
@@ -138,7 +158,7 @@ export default function MyProfile() {
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
               <div className="text-center">
                 <div className="w-32 h-32 mx-auto bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-xl">
-                  {profile.name.split(' ').map(n => n[0]).join('')}
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : ''}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mt-4">{profile.name}</h2>
                 <p className="text-[#1e3a8a] font-medium">{profile.role}</p>
@@ -269,19 +289,6 @@ export default function MyProfile() {
                   <Key className="w-5 h-5" />
                   Change Password
                 </button>
-              </div>
-            </div>
-
-            {/* Recent Activities */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Recent Activities</h3>
-              <div className="space-y-4">
-                {profile.recentActivities.map((act, i) => (
-                  <div key={i} className="flex items-start gap-3 text-sm p-4 bg-[#1e3a8a]/5 rounded-xl">
-                    <Activity className="w-4 h-4 text-[#1e3a8a] mt-0.5" />
-                    <p className="text-gray-700">{act}</p>
-                  </div>
-                ))}
               </div>
             </div>
 
