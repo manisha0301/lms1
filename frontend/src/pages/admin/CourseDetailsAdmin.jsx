@@ -1,16 +1,38 @@
 // src/pages/admin/CourseDetailsAdmin.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import {
-  Calendar, Clock, Link2, Edit3, Plus, Trash2, X, ChevronRight,
-  Users, FileText, CheckCircle, AlertCircle, BookOpen, FolderOpen,
-  ArrowLeft
+  Calendar,
+  Clock,
+  Link2,
+  Edit3,
+  Plus,
+  Trash2,
+  X,
+  ChevronRight,
+  Users,
+  FileText,
 } from "lucide-react";
 
 const CourseDetailsAdmin = () => {
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showContentModal, setShowContentModal] = useState(false);
+
+  // This will hold real name & description + dummy data
+  const [course, setCourse] = useState({
+    name: "Loading...",
+    description: "Loading course details...",
+    batch: { startDate: "2025-01-10", endDate: "2025-04-10", startTime: "07:00 PM", endTime: "09:00 PM" },
+    meetingLink: "https://zoom.us/j/987654321",
+    students: [
+      { id: 1, name: "Aarav Sharma", phone: "+91 98765 43210", email: "aarav@gmail.com", assignments: 8, exams: 3 },
+      { id: 2, name: "Priya Singh", phone: "+91 87654 32109", email: "priya@yahoo.com", assignments: 10, exams: 3 },
+      { id: 3, name: "Rohan Patel", phone: "+91 76543 21098", email: "rohan@outlook.com", assignments: 7, exams: 2 },
+    ],
+  });
 
   const [sections] = useState([
     {
@@ -36,40 +58,55 @@ const CourseDetailsAdmin = () => {
         {
           id: 3,
           name: "Module 3: Hooks Deep Dive",
-          chapters: ["useState & useEffect", "Custom Hooks", "Performance Optimization"]
-        }
-      ]
-    }
+          chapters: ["useState & useEffect", "Custom Hooks", "Performance Optimization"],
+        },
+      ],
+    },
   ]);
-
-  const course = {
-    name: "React Masterclass 2025",
-    batch: { startDate: "2025-01-10", endDate: "2025-04-10", startTime: "07:00 PM", endTime: "09:00 PM" },
-    meetingLink: "https://zoom.us/j/987654321",
-    description: "Complete React mastery with hooks, context, Redux Toolkit, real projects, and deployment strategies.",
-    students: [
-      { id: 1, name: "Aarav Sharma", phone: "+91 98765 43210", email: "aarav@gmail.com", assignments: 8, exams: 3 },
-      { id: 2, name: "Priya Singh", phone: "+91 87654 32109", email: "priya@yahoo.com", assignments: 10, exams: 3 },
-      { id: 3, name: "Rohan Patel", phone: "+91 76543 21098", email: "rohan@outlook.com", assignments: 7, exams: 2 },
-    ]
-  };
 
   const [newSection, setNewSection] = useState({
     name: "",
-    modules: [
-      { name: "", chapters: [""] }
-    ]
+    modules: [{ name: "", chapters: [""] }],
   });
 
-  // Reset when modal opens
   const openContentModal = () => {
     setNewSection({ name: "", modules: [{ name: "", chapters: [""] }] });
     setShowContentModal(true);
   };
 
+  // Fetch real name and description only
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`http://localhost:5000/api/auth/admin/courses/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          setCourse(prev => ({
+            ...prev,
+            name: data.course.name || "Untitled Course",
+            description: data.course.description || "No description available.",
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching course:", err);
+        setCourse(prev => ({
+          ...prev,
+          name: "Error loading course",
+          description: "Could not fetch course details.",
+        }));
+      }
+    };
+
+    if (id) fetchCourseDetails();
+  }, [id]);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header*/}
       <div className="bg-[#1e3a8a] text-white py-12">
         <div className="mx-auto px-6 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
@@ -82,7 +119,6 @@ const CourseDetailsAdmin = () => {
       </div>
 
       <div className="mx-auto px-6 pb-10 pt-2">
-
         {/* Tabs */}
         <div className="flex flex-wrap gap-3 mb-4 border-b border-gray-200">
           {["overview", "content", "students"].map((tab) => (
@@ -166,13 +202,13 @@ const CourseDetailsAdmin = () => {
         {activeTab === "content" && (
           <div className="space-y-6">
             <div className="flex justify-end items-end">
-            <button
-              onClick={openContentModal}
-              className="w-52 py-3 bg-[#1e3a8a] text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3 transition hover:scale-105 cursor-pointer"
-            >
-              <Plus className="w-6 h-6" />
-              Add New Section
-            </button>
+              <button
+                onClick={openContentModal}
+                className="w-52 py-3 bg-[#1e3a8a] text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3 transition hover:scale-105 cursor-pointer"
+              >
+                <Plus className="w-6 h-6" />
+                Add New Section
+              </button>
             </div>
             {sections.map((section) => (
               <div key={section.id} className="bg-white rounded-xl shadow-xl border border-gray-100 p-8">

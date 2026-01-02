@@ -348,11 +348,58 @@ const updateAcademicAdminProfile = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update' });
   }
 };
+
+// Get Assigned Courses (name, price only)
+const getAssignedCourses = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+
+    const { rows } = await pool.query(`
+      SELECT c.id, c.name, c.price , c.description
+      FROM courses c
+      JOIN course_academic_assignments ca ON c.id = ca.course_id
+      WHERE ca.academic_admin_id = $1
+      ORDER BY c.created_at DESC
+    `, [adminId]);
+
+    res.json({ success: true, courses: rows });
+  } catch (error) {
+    console.error('Get Assigned Courses Error →', error.message);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// Get Course Details (including description)
+const getCourseDetails = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const courseId = req.params.id;
+
+    const { rows } = await pool.query(`
+      SELECT c.id, c.name, c.price, c.description, c.type, c.duration, c.image,
+      FROM courses c
+      JOIN course_academic_assignments ca ON c.id = ca.course_id
+      WHERE ca.academic_admin_id = $1 AND c.id = $2
+    `, [adminId, courseId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Course not found or not assigned' });
+    }
+
+    res.json({ success: true, course: rows[0] });
+  } catch (error) {
+    console.error('Get Course Details Error →', error.message);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
 export { 
   getAllAcademicAdmins, 
   createNewAcademicAdmin, 
   academicAdminLogin, 
   academicAdminChangePassword,
   getAcademicAdminProfile,
-  updateAcademicAdminProfile
+  updateAcademicAdminProfile,
+  getAssignedCourses,
+  getCourseDetails
 };

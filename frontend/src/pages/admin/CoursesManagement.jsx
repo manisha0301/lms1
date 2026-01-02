@@ -1,5 +1,5 @@
 // src/pages/admin/CoursesManagement.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BookOpen,
   Plus,
@@ -22,45 +22,64 @@ import { useNavigate } from "react-router-dom";
 const CoursesManagement = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // This controls whether ANY modal is open
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [modalType, setModalType] = useState(""); // "add", "edit", "view", "delete"
+  const [modalType, setModalType] = useState("");
 
-  const [courses, setCourses] = useState([
-    {
-      id: 1,
-      name: "React Masterclass 2025",
-      type: "Live",
-      price: 7999,
-      teachers: ["Dr. Rajesh Kumar", "Prof. Anjali Mehta"],
-      batch: { startDate: "2025-01-10", endDate: "2025-04-10", startTime: "07:00 PM", endTime: "09:00 PM" },
-      description: "Advanced React with hooks, context, Redux Toolkit, projects & deployment",
-      addedToday: true,
-    },
-    {
-      id: 2,
-      name: "Python for Data Science",
-      type: "Recorded",
-      price: 4999,
-      teachers: ["Mr. Vikram Singh"],
-      batch: { startDate: "2024-12-01", endDate: "2025-03-01", startTime: "10:00 AM", endTime: "12:00 PM" },
-      description: "Pandas, NumPy, Visualization, ML basics — complete roadmap",
-      addedToday: false,
-    },
-    {
-      id: 3,
-      name: "Full Stack MERN",
-      type: "Live",
-      price: 12999,
-      teachers: ["Prof. Anjali Mehta"],
-      batch: { startDate: "2025-02-01", endDate: "2025-06-01", startTime: "08:00 PM", endTime: "10:00 PM" },
-      description: "MongoDB, Express, React, Node.js — build 5 real-world apps",
-      addedToday: true,
-    },
-  ]);
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    const fetchRealCourses = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Please login again");
+          navigate("/login");
+          return;
+        }
+
+        const res = await fetch("http://localhost:5000/api/auth/admin/courses", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("Fetched courses:", data);
+
+        if (data.success && data.courses.length > 0) {
+          const enrichedCourses = data.courses.map((course, index) => ({
+            id: course.id, 
+            name: course.name || "Untitled Course", 
+            price: course.price || 0, 
+            description: course.description || "No description available.",
+            type: index % 2 === 0 ? "Live" : "Recorded",
+            teachers: index === 0 
+              ? ["Dr. Rajesh Kumar", "Prof. Anjali Mehta"]
+              : index === 1 
+              ? ["Mr. Vikram Singh"] 
+              : ["Prof. Anjali Mehta"],
+            batch: {
+              startDate: "2025-01-10",
+              endDate: "2025-04-10",
+              startTime: "07:00 PM",
+              endTime: "09:00 PM"
+            },
+            addedToday: index < 2,
+          }));
+
+          setCourses(enrichedCourses);
+        } else {
+          setCourses([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+        setCourses([]);
+      }
+    };
+
+    fetchRealCourses();
+  }, [navigate]);
 
   const todayAdded = courses.filter(c => c.addedToday).length;
   const filtered = courses.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -68,7 +87,7 @@ const CoursesManagement = () => {
   const openModal = (type, course = null) => {
     setSelectedCourse(course);
     setModalType(type);
-    setIsModalOpen(true); // This is the key fix
+    setIsModalOpen(true);
   };
 
   const closeModal = () => {
@@ -82,17 +101,9 @@ const CoursesManagement = () => {
       {/* Header */}
       <div className="bg-[#1e3a8a] text-white py-12">
         <div className="mx-auto px-6 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            {/* <button
-              onClick={() => navigate(-1)}
-              className="p-2.5 hover:bg-white/10 rounded-xl transition-all cursor-pointer"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button> */}
-            <div>
-              <h1 className="text-3xl font-semibold">Courses Management</h1>
-              <p className="mt-2 text-blue-100">Create, edit and manage all courses beautifully</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-semibold">Courses Management</h1>
+            <p className="mt-2 text-blue-100">Create, edit and manage all courses beautifully</p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -115,7 +126,7 @@ const CoursesManagement = () => {
       </div>
 
       <div className="mx-auto px-6 py-10">
-        {/* Search + Add Button */}
+        {/* Search */ }
         <div className="flex flex-col lg:flex-row gap-6 items-center justify-between mb-8">
           <div className="relative flex-1 max-w-lg">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
@@ -123,13 +134,13 @@ const CoursesManagement = () => {
               type="text"
               placeholder="Search courses..."
               value={searchTerm}
-              onChange={(e => setSearchTerm(e.target.value))}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#1e3a8a]/20 focus:border-[#1e3a8a] transition text-lg"
             />
           </div>
 
           <button
-            onClick={() => openModal("add")} // Now uses same function
+            onClick={() => openModal("add")}
             className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center gap-3"
           >
             <Plus className="w-6 h-6" />
@@ -139,40 +150,49 @@ const CoursesManagement = () => {
 
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((course) => (
-            <div
-              key={course.id}
-              className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
-            >
-              <div className="bg-[#1e3a8a] text-white p-6">
-                <h2 className="text-2xl font-bold">{course.name}</h2>
-                <p className="text-sm opacity-90 mt-1">{course.type}</p>
-              </div>
-              <div className="p-6 space-y-4">
-                <p className="text-lg font-bold text-gray-900">₹{course.price.toLocaleString()}</p>
-                <p className="text-gray-600">{course.description.substring(0, 100)}...</p>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Users className="w-4 h-4" />
-                  {course.teachers.join(", ")}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Calendar className="w-4 h-4" />
-                  {course.batch.startDate} - {course.batch.endDate}
-                </div>
-              </div>
-              <div className="flex justify-end gap-4 px-6 pb-6">
-                <button onClick={() => navigate('/course/:id')} className="p-2 hover:bg-gray-100 rounded-xl transition">
-                  <Eye className="w-5 h-5 text-[#1e3a8a]" />
-                </button>
-                <button onClick={() => openModal("edit", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
-                  <Edit className="w-5 h-5 text-emerald-600" />
-                </button>
-                <button onClick={() => openModal("delete", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
-                  <Trash2 className="w-5 h-5 text-red-600" />
-                </button>
-              </div>
+          {filtered.length === 0 ? (
+            <div className="col-span-full text-center py-20">
+              <p className="text-2xl text-gray-600">No courses assigned yet</p>
             </div>
-          ))}
+          ) : (
+            filtered.map((course) => (
+              <div
+                key={course.id}
+                className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+              >
+                <div className="bg-[#1e3a8a] text-white p-6">
+                  <h2 className="text-2xl font-bold">{course.name}</h2>
+                  <p className="text-sm opacity-90 mt-1">{course.type}</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <p className="text-lg font-bold text-gray-900">₹{Math.trunc(course.price).toLocaleString()}</p>
+                  <p className="text-gray-600 line-clamp-1">{course.description}</p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Users className="w-4 h-4" />
+                    {course.teachers.join(", ")}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar className="w-4 h-4" />
+                    {course.batch.startDate} - {course.batch.endDate}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-4 px-6 pb-6">
+                  <button 
+                    onClick={() => navigate(`/course/${course.id}`)}
+                    className="p-2 hover:bg-gray-100 rounded-xl transition"
+                  >
+                    <Eye className="w-5 h-5 text-[#1e3a8a]" />
+                  </button>
+                  <button onClick={() => openModal("edit", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
+                    <Edit className="w-5 h-5 text-emerald-600" />
+                  </button>
+                  <button onClick={() => openModal("delete", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Unified Modal (Add + Edit) */}
