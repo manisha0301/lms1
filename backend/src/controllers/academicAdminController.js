@@ -238,4 +238,121 @@ const academicAdminChangePassword = async (req, res) => {
   }
 };
 
-export { getAllAcademicAdmins, createNewAcademicAdmin, academicAdminLogin, academicAdminChangePassword };
+// Get Academic Admin Profile
+const getAcademicAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user.id; // from protect middleware
+
+    const { rows } = await pool.query(`
+      SELECT 
+        a.id,
+        a.full_name AS "fullName",
+        a.email,
+        a.username,
+        a.role,
+        a.status,
+        a.academic_name AS "institution",
+        a.mobile,
+        d.date_of_birth AS "dateOfBirth",
+        d.address,
+        d.city,
+        d.state,
+        d.country,
+        d.pincode,
+        d.about,
+        a.created_at AS "joinedAt"
+      FROM academic_admins a
+      LEFT JOIN academic_admin_details d ON a.id = d.admin_id
+      WHERE a.id = $1
+    `, [adminId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Admin not found' });
+    }
+
+    res.json({ success: true, profile: rows[0] });
+  } catch (error) {
+    console.error('Get Academic Admin Profile Error →', error.message);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// Update Academic Admin Profile
+const updateAcademicAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const {
+      fullName,
+      mobile,
+      dateOfBirth,
+      address,
+      city,
+      state,
+      country,
+      pincode,
+      about
+    } = req.body;
+
+    // Update main table
+    await pool.query(
+      `UPDATE academic_admins 
+       SET full_name = COALESCE($1, full_name),
+           mobile = COALESCE($2, mobile)
+       WHERE id = $3`,
+      [fullName, mobile, adminId]
+    );
+
+    // Update or insert details
+    await pool.query(`
+      INSERT INTO academic_admin_details (
+        admin_id, date_of_birth, address, city, state, country, pincode, about
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (admin_id) DO UPDATE SET
+        date_of_birth = EXCLUDED.date_of_birth,
+        address = EXCLUDED.address,
+        city = EXCLUDED.city,
+        state = EXCLUDED.state,
+        country = EXCLUDED.country,
+        pincode = EXCLUDED.pincode,
+        about = EXCLUDED.about,
+        updated_at = CURRENT_TIMESTAMP
+    `, [adminId, dateOfBirth, address, city, state, country, pincode, about]);
+
+    // Return fresh profile
+    const { rows } = await pool.query(`
+      SELECT 
+        a.id,
+        a.full_name AS "fullName",
+        a.email,
+        a.username,
+        a.role,
+        a.status,
+        a.academic_name AS "institution",
+        a.mobile,
+        d.date_of_birth AS "dateOfBirth",
+        d.address,
+        d.city,
+        d.state,
+        d.country,
+        d.pincode,
+        d.about,
+        d.joined_at AS "joinedAt"
+      FROM academic_admins a
+      LEFT JOIN academic_admin_details d ON a.id = d.admin_id
+      WHERE a.id = $1
+    `, [adminId]);
+
+    res.json({ success: true, profile: rows[0] });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update' });
+  }
+};
+export { 
+  getAllAcademicAdmins, 
+  createNewAcademicAdmin, 
+  academicAdminLogin, 
+  academicAdminChangePassword,
+  getAcademicAdminProfile,
+  updateAcademicAdminProfile
+};
