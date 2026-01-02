@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BookOpen,
   Users,
@@ -24,174 +24,42 @@ const CoursesManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedAcademics, setExpandedAcademics] = useState({});
   const [selectedCourse, setSelectedCourse] = useState(null);
-  // Academic-wise course data
-  const academicsData = [
-    {
-      academicId: 1,
-      academicName: "Priya Sharma",
-      academicEmail: "priya.sharma@kristellar.com",
-      center: "Bhubaneswar Main Campus",
-      totalCourses: 3,
-      totalStudents: 829,
-      totalRevenue: 3567500,
-      courses: [
-        {
-          id: 101,
-          title: "Full Stack Web Development (MERN)",
-          code: "MERN-PRIYA-25A",
-          faculty: "Dr. Vikash Ranjan",
-          facultyEmail: "vikash@kristellar.com",
-          duration: "6 months",
-          startDate: "2025-08-01",
-          totalStudents: 342,
-          activeStudents: 318,
-          examsConducted: 4,
-          totalExams: 6,
-          completedAssignments: 89,
-          totalAssignments: 120,
-          avgAttendance: 94,
-          revenue: 1854000,
-          status: "Ongoing",
-          batchSize: 350,
-          completionRate: 87,
-          topPerformer: "Rohan Mehta",
-          lastActivity: "2 hours ago",
-        },
-        {
-          id: 102,
-          title: "Python for Data Analytics",
-          code: "PDA-PRIYA-25D",
-          faculty: "Dr. Neha Sharma",
-          facultyEmail: "neha@kristellar.com",
-          duration: "3 months",
-          startDate: "2025-10-01",
-          totalStudents: 412,
-          activeStudents: 401,
-          examsConducted: 1,
-          totalExams: 4,
-          completedAssignments: 45,
-          totalAssignments: 60,
-          avgAttendance: 88,
-          revenue: 1236000,
-          status: "Ongoing",
-          batchSize: 350,
-          completionRate: 87,
-          topPerformer: "Rohan Mehta",
-          lastActivity: "2 hours ago",
-        },
-        {
-          id: 103,
-          title: "UI/UX Design Masterclass",
-          code: "UIUX-PRIYA-25C",
-          faculty: "Siddharth Patel",
-          facultyEmail: "siddharth@kristellar.com",
-          duration: "4 months",
-          startDate: "2025-07-20",
-          totalStudents: 198,
-          activeStudents: 182,
-          examsConducted: 5,
-          totalExams: 5,
-          completedAssignments: 78,
-          totalAssignments: 85,
-          avgAttendance: 96,
-          revenue: 891000,
-          status: "Completed",
-          batchSize: 350,
-          completionRate: 87,
-          topPerformer: "Rohan Mehta",
-          lastActivity: "2 hours ago",
-        },
-      ],
-    },
-    {
-      academicId: 2,
-      academicName: "Rahul Verma",
-      academicEmail: "rahul.verma@kristellar.com",
-      center: "Cuttack Extension Center",
-      totalCourses: 2,
-      totalStudents: 521,
-      totalRevenue: 2218500,
-      courses: [
-        {
-          id: 201,
-          title: "Data Science & Machine Learning",
-          code: "DSML-RAHUL-25B",
-          faculty: "Prof. Ananya Mishra",
-          facultyEmail: "ananya@kristellar.com",
-          duration: "5 months",
-          startDate: "2025-09-15",
-          totalStudents: 287,
-          activeStudents: 275,
-          examsConducted: 3,
-          totalExams: 5,
-          completedAssignments: 67,
-          totalAssignments: 90,
-          avgAttendance: 91,
-          revenue: 1583500,
-          status: "Ongoing",
-          batchSize: 350,
-          completionRate: 87,
-          topPerformer: "Rohan Mehta",
-          lastActivity: "2 hours ago",
-        },
-        {
-          id: 202,
-          title: "Digital Marketing Professional",
-          code: "DMP-RAHUL-25E",
-          faculty: "Riya Kapoor",
-          facultyEmail: "riya@kristellar.com",
-          duration: "3 months",
-          startDate: "2025-11-01",
-          totalStudents: 234,
-          activeStudents: 229,
-          examsConducted: 1,
-          totalExams: 3,
-          completedAssignments: 34,
-          totalAssignments: 45,
-          avgAttendance: 93,
-          revenue: 634500,
-          status: "Ongoing",
-          batchSize: 350,
-          completionRate: 87,
-          topPerformer: "Rohan Mehta",
-          lastActivity: "2 hours ago",
-        },
-      ],
-    },
-    {
-      academicId: 3,
-      academicName: "Anita Das",
-      academicEmail: "anita.das@kristellar.com",
-      center: "Online Division",
-      totalCourses: 1,
-      totalStudents: 156,
-      totalRevenue: 702000,
-      courses: [
-        {
-          id: 301,
-          title: "Advanced React & Next.js",
-          code: "REACT-ANITA-25F",
-          faculty: "Amit Singh",
-          facultyEmail: "amit@kristellar.com",
-          duration: "2 months",
-          startDate: "2025-11-10",
-          totalStudents: 156,
-          activeStudents: 152,
-          examsConducted: 0,
-          totalExams: 2,
-          completedAssignments: 18,
-          totalAssignments: 30,
-          avgAttendance: 89,
-          revenue: 702000,
-          status: "Live",
-          batchSize: 350,
-          completionRate: 87,
-          topPerformer: "Rohan Mehta",
-          lastActivity: "2 hours ago",
-        },
-      ],
-    },
-  ];
+  const [academicsData, setAcademicsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('superAdminToken'); // Assuming JWT stored in localStorage
+        const response = await fetch('http://localhost:5000/api/auth/superadmin/course/management', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setAcademicsData(data.academicsData);
+        } else {
+          setError(data.error);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   // Flatten all courses for search
   const allCourses = academicsData.flatMap(ac => ac.courses.map(c => ({ ...c, academic: ac })));

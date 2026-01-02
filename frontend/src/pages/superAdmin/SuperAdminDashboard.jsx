@@ -322,8 +322,9 @@ const SuperAdminDashboard = () => {
 
   {/* Scrollable Notification List */}
   <div className="space-y-5 max-h-[230px] overflow-y-auto pr-2">
-    {recentNotifications.map((notif) => (
+    {recentNotifications.map((notif, idx) => (
       <div
+        key={`${notif.id}-${idx}`}
         className="p-5 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-2xl border border-[#1e3a8a]/10 hover:shadow-md transition"
       >
         <div className="flex items-start gap-4">

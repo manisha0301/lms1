@@ -180,4 +180,25 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
+export const getSuperAdminProfile = async (req, res) => {
+  try {
+    const superAdmin = await findSuperAdminByEmail(pool, req.user.email);
+    if (!superAdmin) {
+      return res.status(404).json({ success: false, error: 'Super Admin not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: superAdmin.id,
+        email: superAdmin.email,
+        role: "superadmin"
+      }
+    });
+  } catch (error) {
+    console.error('Get Super Admin Profile Error →', error.message);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
 export { superAdminLogin, superAdminChangePassword };
