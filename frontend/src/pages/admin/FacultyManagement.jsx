@@ -4,7 +4,7 @@ import {
   Users, UserPlus, Search, Calendar, CheckCircle, XCircle,
   Eye, Trash2, Edit, Key, BookOpen, Camera, X, Loader2,
   Mail, Phone, Home, Briefcase, GraduationCap, Lock, UserCheck,
-  MapPin, Shield, AlertCircle, ArrowLeft
+  MapPin, Shield, AlertCircle, ArrowLeft, Check, X as RejectIcon
 } from "lucide-react";
 
 const FacultyManagement = () => {
@@ -12,30 +12,43 @@ const FacultyManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
-  const [modalType, setModalType] = useState(""); // view, edit, password, courses, delete
+  const [modalType, setModalType] = useState("");
 
   const [faculties, setFaculties] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+
+  const fetchFacultyData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch('http://localhost:5000/api/auth/admin/faculty', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setFaculties(data.faculties || []);
+        setPendingRequests(data.pendingRequests || []);
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setTimeout(() => {
-      setFaculties([
-        { id: 1, code: "FAC001", name: "Dr. Rajesh Kumar", email: "rajesh@faculty.com", phone: "+91 98765 12345", state: "Maharashtra", district: "Mumbai", status: "Active", courses: 5 },
-        { id: 2, code: "FAC002", name: "Prof. Anjali Mehta", email: "anjali@faculty.com", phone: "+91 87654 32109", state: "Karnataka", district: "Bangalore", status: "Active", courses: 8 },
-        { id: 3, code: "FAC003", name: "Mr. Vikram Singh", email: "vikram@faculty.com", phone: "+91 76543 21098", state: "Delhi", district: "New Delhi", status: "Active", courses: 3 },
-      ]);
-      setPendingRequests([
-        { id: 4, code: "FAC004", name: "Dr. Sneha Patel", email: "sneha.new@faculty.com", phone: "+91 91234 56789", qualification: "PhD Computer Science", designation: "Associate Professor" },
-        { id: 5, code: "FAC005", name: "Prof. Amit Sharma", email: "amit@faculty.com", phone: "+91 82345 67890", qualification: "M.Tech", designation: "Assistant Professor" },
-      ]);
-      setLoading(false);
-    }, 800);
+    fetchFacultyData();
   }, []);
 
   const filteredFaculties = faculties.filter(f =>
-    f.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.name.toLowerCase().includes(searchTerm.toLowerCase())
+    f.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    f.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const openModal = (type, faculty) => {
@@ -46,6 +59,112 @@ const FacultyManagement = () => {
   const closeModal = () => {
     setSelectedFaculty(null);
     setModalType("");
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setFilePreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setSelectedFile(null);
+      setFilePreview(null);
+    }
+  };
+
+  const handleAddFaculty = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    const formData = new FormData(e.target);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch('http://localhost:5000/api/auth/admin/faculty', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setShowAddModal(false);
+        setSelectedFile(null);
+        setFilePreview(null);
+        setFaculties(prev => [data.faculty, ...prev]);
+        e.target.reset();
+        alert("Faculty added successfully");
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      alert("Failed to add faculty. Check console.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Approve faculty
+  const handleApprove = async (facultyId) => {
+    if (!window.confirm("Approve this faculty member? They will be able to log in.")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:5000/api/auth/admin/faculty/${facultyId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Remove from pending
+        setPendingRequests(prev => prev.filter(f => f.id !== facultyId));
+        // Add to active faculties
+        setFaculties(prev => [data.faculty, ...prev]);
+        alert("Faculty approved successfully!");
+      } else {
+        alert("Approval failed: " + data.error);
+      }
+    } catch (err) {
+      console.error("Approve error:", err);
+      alert("Failed to approve faculty.");
+    }
+  };
+
+  // Reject faculty
+  const handleReject = async (facultyId) => {
+    if (!window.confirm("Reject this faculty request? This action cannot be undone.")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:5000/api/auth/admin/faculty/${facultyId}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setPendingRequests(prev => prev.filter(f => f.id !== facultyId));
+        alert("Faculty request rejected.");
+      } else {
+        alert("Rejection failed: " + data.error);
+      }
+    } catch (err) {
+      console.error("Reject error:", err);
+      alert("Failed to reject faculty.");
+    }
   };
 
   return (
@@ -67,7 +186,7 @@ const FacultyManagement = () => {
           </div>
           <div className="flex items-center gap-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
-              <p className="text-3xl font-bold text-[#1e3a8a]">{faculties.length}</p>
+              <p className="text-3xl font-bold text-[#1e3a8a]">{faculties.length + pendingRequests.length}</p>
               <p className="text-sm text-gray-600 mt-1">Total Faculties</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 text-center">
@@ -136,135 +255,209 @@ const FacultyManagement = () => {
           </div>
         ) : (
           <>
+            {/* Overview Tab */}
             {activeTab === "overview" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Faculties Overview Card */}
-                <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                {/* Active Faculties */}
+                <div className="bg-white rounded-xl shadow-xl border border-gray-100">
                   <div className="bg-[#1e3a8a] text-white p-6">
                     <h2 className="text-2xl font-bold flex items-center gap-3">
                       <Users className="w-7 h-7" />
                       Faculties Overview
                     </h2>
                   </div>
-                  <div className="p-6 space-y-4">
-                    {faculties.map((faculty) => (
-                      <div
-                        key={faculty.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-indigo-50 transition cursor-pointer"
-                        onClick={() => openModal("view", faculty)}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-[#1e3a8a] rounded-xl flex items-center justify-center text-white font-bold">
-                            {faculty.name.split(" ").map(n => n[0]).join("")}
+                  <div className="p-6 space-y-4 overflow-y-auto max-h-[400px]">
+                    {faculties.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8">No active faculties yet</p>
+                    ) : (
+                      faculties.map((faculty) => (
+                        <div
+                          key={faculty.id}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-indigo-50 transition cursor-pointer"
+                          onClick={() => openModal("view", faculty)}
+                        >
+                          <div className="flex items-center gap-4">
+                            {faculty.profile_picture ? (
+                              <img
+                                src={`http://localhost:5000/uploads/faculty/${faculty.profile_picture}`}
+                                alt={faculty.name}
+                                className="w-12 h-12 rounded-xl object-cover border border-gray-300"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-[#1e3a8a] rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                                {faculty.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-bold text-gray-800">{faculty.name}</h3>
+                              <p className="text-sm text-gray-600">{faculty.code} • {faculty.address || 'Location not set'}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-gray-800">{faculty.name}</h3>
-                            <p className="text-sm text-gray-600">{faculty.code} • {faculty.state}</p>
-                          </div>
+                          <span className="px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm">
+                            Active
+                          </span>
                         </div>
-                        <span className="px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm">
-                          {faculty.status}
-                        </span>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
-                {/* Pending Requests Card */}
-                <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+                {/* Pending Requests */}
+                <div className="bg-white rounded-xl shadow-xl border border-gray-100">
                   <div className="bg-[#1e3a8a] text-white p-6">
                     <h2 className="text-2xl font-bold flex items-center gap-3">
                       <AlertCircle className="w-7 h-7" />
                       Pending Requests
                     </h2>
                   </div>
-                  <div className="p-6 space-y-4">
-                    {pendingRequests.map((request) => (
-                      <div key={request.id} className="p-4 bg-gray-50 rounded-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h3 className="font-bold text-gray-800">{request.name}</h3>
-                            <p className="text-sm text-gray-600">{request.designation}</p>
+                  <div className="p-6 space-y-4 overflow-y-auto max-h-[400px]">
+                    {pendingRequests.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8">No pending requests</p>
+                    ) : (
+                      pendingRequests.map((request) => (
+                        <div key={request.id} className="p-4 bg-gray-50 rounded-2xl">
+                          <div className="flex items-center justify-between mb-4">
+                            {request.profile_picture ? (
+                              <img
+                                src={`http://localhost:5000/uploads/faculty/${request.profile_picture}`}
+                                alt={request.name}
+                                className="w-12 h-12 rounded-xl object-cover border border-gray-300"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white font-bold">
+                                {request.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-bold text-gray-800">{request.name}</h3>
+                              <p className="text-sm text-gray-600">{request.designation}</p>
+                            </div>
+                            <span className="px-4 py-2 bg-yellow-100 text-yellow-700 font-bold rounded-full text-sm">
+                              Pending
+                            </span>
                           </div>
-                          <span className="px-4 py-2 bg-yellow-100 text-yellow-700 font-bold rounded-full text-sm">
-                            Pending
-                          </span>
+                          <div className="flex justify-end gap-4">
+                          <button
+                          onClick={() => handleApprove(request.id)} 
+                          className="px-6 py-2 bg-[#1e3a8a] text-white rounded-xl font-semibold transition cursor-pointer hover:scale-105">
+                              Approve
+                            </button>
+                          <button 
+                          onClick={() => handleReject(request.id)}
+                          className="px-6 py-2 bg-white text-black rounded-xl font-semibold transition cursor-pointer hover:scale-105 border border-gray-300">
+                              Reject
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex justify-end gap-4">
-                          <button className="px-6 py-2 bg-[#1e3a8a] text-white rounded-xl font-semibold transition cursor-pointer hover:scale-105">
-                            Approve
-                          </button>
-                          <button className="px-6 py-2 bg-white text-black rounded-xl font-semibold transition cursor-pointer hover:scale-105 border border-gray-300">
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Faculties Tab */}
             {activeTab === "faculties" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredFaculties.map((faculty) => (
-                  <div
-                    key={faculty.id}
-                    className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
-                  >
-                    <div className="bg-[#1e3a8a] text-white p-6">
-                      <h2 className="text-xl font-bold">{faculty.name}</h2>
-                      <p className="text-sm opacity-90 mt-1">{faculty.code}</p>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {faculty.email}</p>
-                      <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {faculty.phone}</p>
-                      <p className="text-gray-600 flex items-center gap-2"><MapPin className="w-4 h-4" /> {faculty.district}, {faculty.state}</p>
-                      <p className="text-gray-600 flex items-center gap-2"><BookOpen className="w-4 h-4" /> {faculty.courses} Courses</p>
-                    </div>
-                    <div className="flex justify-end gap-4 px-6 pb-6">
+                {filteredFaculties.length === 0 ? (
+                  <p className="col-span-full text-center text-gray-500 py-12">No faculties found</p>
+                ) : (
+                  filteredFaculties.map((faculty) => (
+                    <div
+                      key={faculty.id}
+                      className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                    >
+                      <div className="bg-[#1e3a8a] text-white p-6">
+                        <h2 className="text-xl font-bold">{faculty.name}</h2>
+                        <p className="text-sm opacity-90 mt-1">{faculty.code}</p>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        <div className="flex justify-center mb-4">
+                          {faculty.profile_picture ? (
+                            <img
+                              src={`http://localhost:5000/uploads/faculty/${faculty.profile_picture}`}
+                              alt={faculty.name}
+                              className="w-24 h-24 rounded-full object-cover border-4 border-[#1e3a8a]"
+                            />
+                          ) : (
+                            <div className="w-24 h-24 bg-[#1e3a8a] rounded-full flex items-center justify-center text-white font-bold text-3xl">
+                              {faculty.name.split(" ").map(n => n[0]).join("")}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {faculty.email}</p>
+                        <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {faculty.phone}</p>
+                        <p className="text-gray-600 flex items-center gap-2"><MapPin className="w-4 h-4" /> {faculty.address || 'Not provided'}</p>
+                        <p className="text-gray-600 flex items-center gap-2"><BookOpen className="w-4 h-4" /> {faculty.courses || 0} Courses</p>
+                      </div>
+                      <div className="flex justify-end gap-4 px-6 pb-6">
                       <button onClick={() => openModal("view", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
-                        <Eye className="w-5 h-5 text-[#1e3a8a]" />
-                      </button>
+                          <Eye className="w-5 h-5 text-[#1e3a8a]" />
+                        </button>
                       <button onClick={() => openModal("edit", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
-                        <Edit className="w-5 h-5 text-emerald-600" />
-                      </button>
+                          <Edit className="w-5 h-5 text-emerald-600" />
+                        </button>
                       <button onClick={() => openModal("delete", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
-                        <Trash2 className="w-5 h-5 text-red-600" />
-                      </button>
+                          <Trash2 className="w-5 h-5 text-red-600" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
 
+            {/* Pending Tab - WITH WORKING APPROVE/REJECT */}
             {activeTab === "pending" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
-                  >
-                    <div className="bg-[#1e3a8a] text-white p-6">
-                      <h2 className="text-xl font-bold">{request.name}</h2>
-                      <p className="text-sm opacity-90 mt-1">{request.code}</p>
+                {pendingRequests.length === 0 ? (
+                  <p className="col-span-full text-center text-gray-500 py-12">No pending requests</p>
+                ) : (
+                  pendingRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="bg-white rounded-xl shadow-xl border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                    >
+                      <div className="bg-[#1e3a8a] text-white p-6">
+                        <h2 className="text-xl font-bold">{request.name}</h2>
+                        <p className="text-sm opacity-90 mt-1">{request.code}</p>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        <div className="flex justify-center mb-4">
+                          {request.profile_picture ? (
+                            <img
+                              src={`http://localhost:5000/uploads/faculty/${request.profile_picture}`}
+                              alt={request.name}
+                              className="w-24 h-24 rounded-full object-cover border-4 border-[#1e3a8a]"
+                            />
+                          ) : (
+                            <div className="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-3xl">
+                              {request.name.split(" ").map(n => n[0]).join("")}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {request.email}</p>
+                        <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {request.phone}</p>
+                        <p className="text-gray-600 flex items-center gap-2"><GraduationCap className="w-4 h-4" /> {request.qualification}</p>
+                        <p className="text-gray-600 flex items-center gap-2"><Briefcase className="w-4 h-4" /> {request.designation}</p>
+                      </div>
+                      <div className="flex justify-end gap-4 px-6 pb-6">
+                        <button 
+                          onClick={() => handleApprove(request.id)}
+                          className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition"
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          onClick={() => handleReject(request.id)}
+                          className="px-6 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-6 space-y-4">
-                      <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {request.email}</p>
-                      <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {request.phone}</p>
-                      <p className="text-gray-600 flex items-center gap-2"><GraduationCap className="w-4 h-4" /> {request.qualification}</p>
-                      <p className="text-gray-600 flex items-center gap-2"><Briefcase className="w-4 h-4" /> {request.designation}</p>
-                    </div>
-                    <div className="flex justify-end gap-4 px-6 pb-6">
-                      <button className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition cursor-pointer">
-                        Approve
-                      </button>
-                      <button className="px-6 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition cursor-pointer">
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </>
@@ -464,11 +657,11 @@ const FacultyManagement = () => {
                 </div>
 
                 <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
+                  <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all">
                     Cancel
                   </button>
-                  <button type="submit" className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
-                    Add Faculty
+                  <button type="submit" disabled={submitting} className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all disabled:opacity-70">
+                    {submitting ? "Adding..." : "Add Faculty"}
                   </button>
                 </div>
               </form>

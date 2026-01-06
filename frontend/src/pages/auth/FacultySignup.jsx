@@ -24,23 +24,20 @@ const FacultySignup = () => {
     termsAccepted: false,
   });
 
-  // ----- verification flags -----------------------------------------
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
   const [verifyingPhone, setVerifyingPhone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // ----- password match --------------------------------------------
   const [passwordError, setPasswordError] = useState('');
   const [profilePreview, setProfilePreview] = useState(null);
 
-  // ----- keep verification state after OTP page returns -------------
   useEffect(() => {
     if (location.state?.emailVerified) setEmailVerified(true);
     if (location.state?.phoneVerified) setPhoneVerified(true);
   }, [location.state]);
 
-  // ----- password match validation ----------------------------------
   useEffect(() => {
     if (form.password || form.confirmPassword) {
       setPasswordError(
@@ -51,7 +48,6 @@ const FacultySignup = () => {
     }
   }, [form.password, form.confirmPassword]);
 
-  // ----- generic change handler -------------------------------------
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
@@ -73,11 +69,9 @@ const FacultySignup = () => {
     }
   };
 
-  // ----- word counter for short CV ----------------------------------
   const countWords = (text) =>
     text.trim().split(/\s+/).filter((w) => w.length > 0).length;
 
-  // ----- OTP navigation ---------------------------------------------
   const sendOTP = (type) => {
     if (type === 'email' && !form.email) return alert('Enter email first');
     if (type === 'phone' && !form.phone) return alert('Enter phone first');
@@ -87,35 +81,69 @@ const FacultySignup = () => {
       phone: form.phone,
       type,
       fromSignup: true,
-      returnTo: '/faculty-signup', // optional – OTP page can use it
+      returnTo: '/faculty-signup',
     };
 
     navigate('/otp', { state: payload });
   };
 
-  // ----- final submit ------------------------------------------------
-  const handleSignup = (e) => {
+  // REAL API SUBMIT
+  const handleSignup = async (e) => {
     e.preventDefault();
 
     if (!form.termsAccepted) return alert('Accept Terms & Conditions');
-    if (!emailVerified || !phoneVerified)
-      return alert('Please verify both email and phone');
+    // if (!emailVerified || !phoneVerified)
+    //   return alert('Please verify both email and phone');
     if (form.shortCV && countWords(form.shortCV) > 100)
       return alert('Short CV must be ≤ 100 words');
     if (form.password !== form.confirmPassword)
       return alert('Passwords do not match');
-    if (form.password.length < 6)
-      return alert('Password must be ≥ 6 characters');
+    if (form.password.length < 8)
+      return alert('Password must be at least 8 characters');
 
-    // ---- demo mode (replace with real API call) ----
-    console.log('Faculty Signup submitted:', {
-      ...form,
-      profilePicture: form.profilePicture?.name ?? null,
-    });
-    alert('Account created successfully! (Demo mode)');
+    setSubmitting(true);
+
+    const formData = new FormData();
+    formData.append('firstName', form.firstName.trim());
+    formData.append('lastName', form.lastName.trim());
+    formData.append('email', form.email.toLowerCase().trim());
+    formData.append('phone', form.phone.trim());
+    formData.append('address', form.address.trim());
+    formData.append('designation', form.designation.trim());
+    formData.append('qualification', form.qualification.trim());
+    formData.append('shortCV', form.shortCV.trim());
+    formData.append('linkedinUrl', form.linkedin.trim());
+    formData.append('instagramUrl', form.instagram.trim());
+    formData.append('facebookUrl', form.facebook.trim());
+    formData.append('password', form.password);
+    formData.append('employmentStatus', form.employmentStatus);
+
+    if (form.profilePicture) {
+      formData.append('profilePicture', form.profilePicture);
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/faculty/signup', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert('Signup successful! Your account is pending admin approval.\nYou will be notified once approved.');
+        navigate('/login'); // or home page
+      } else {
+        alert('Signup failed: ' + data.error);
+      }
+    } catch (err) {
+      console.error('Signup error:', err);
+      alert('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // -----------------------------------------------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -130,7 +158,7 @@ const FacultySignup = () => {
           </div>
 
           <form onSubmit={handleSignup} className="space-y-6">
-            {/* ---------- Name ---------- */}
+            {/* Name */}
             <div className="grid md:grid-cols-2 gap-5">
               <input
                 type="text"
@@ -152,7 +180,7 @@ const FacultySignup = () => {
               />
             </div>
 
-            {/* ---------- Email (with verify) ---------- */}
+            {/* Email + Verify */}
             <div className="relative">
               <input
                 type="email"
@@ -173,15 +201,11 @@ const FacultySignup = () => {
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 } ${verifyingEmail ? 'opacity-50' : ''}`}
               >
-                {emailVerified
-                  ? 'Verified'
-                  : verifyingEmail
-                  ? 'Sending...'
-                  : 'Verify Email'}
+                {emailVerified ? 'Verified' : verifyingEmail ? 'Sending...' : 'Verify Email'}
               </button>
             </div>
 
-            {/* ---------- Phone (with verify) ---------- */}
+            {/* Phone + Verify */}
             <div className="relative">
               <input
                 type="tel"
@@ -202,15 +226,10 @@ const FacultySignup = () => {
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 } ${verifyingPhone ? 'opacity-50' : ''}`}
               >
-                {phoneVerified
-                  ? 'Verified'
-                  : verifyingPhone
-                  ? 'Sending...'
-                  : 'Verify Phone'}
+                {phoneVerified ? 'Verified' : verifyingPhone ? 'Sending...' : 'Verify Phone'}
               </button>
             </div>
 
-            {/* ---------- Rest of the fields (unchanged) ---------- */}
             <textarea
               name="address"
               placeholder="Full Address"
@@ -230,8 +249,8 @@ const FacultySignup = () => {
                   <input
                     type="radio"
                     name="employmentStatus"
-                    value="employed"
-                    checked={form.employmentStatus === 'employed'}
+                    value="Employed"
+                    checked={form.employmentStatus === 'Employed'}
                     onChange={handleChange}
                     required
                     className="mr-2 text-blue-600"
@@ -242,8 +261,8 @@ const FacultySignup = () => {
                   <input
                     type="radio"
                     name="employmentStatus"
-                    value="unemployed"
-                    checked={form.employmentStatus === 'unemployed'}
+                    value="Unemployed"
+                    checked={form.employmentStatus === 'Unemployed'}
                     onChange={handleChange}
                     className="mr-2 text-blue-600"
                   />
@@ -259,7 +278,7 @@ const FacultySignup = () => {
                 placeholder="Current Designation"
                 value={form.designation}
                 onChange={handleChange}
-                disabled={form.employmentStatus === 'unemployed'}
+                disabled={form.employmentStatus === 'Unemployed'}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
               <input
@@ -344,7 +363,7 @@ const FacultySignup = () => {
               value={form.password}
               onChange={handleChange}
               required
-              minLength="6"
+              minLength="8"
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                 passwordError ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -358,7 +377,7 @@ const FacultySignup = () => {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 required
-                minLength="6"
+                minLength="8"
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   passwordError ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -392,16 +411,15 @@ const FacultySignup = () => {
             <button
               type="submit"
               disabled={
+                submitting ||
                 !form.termsAccepted ||
                 passwordError ||
                 !form.password ||
-                form.password.length < 6 ||
-                !emailVerified ||
-                !phoneVerified
+                form.password.length < 8
               }
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {submitting ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 

@@ -1,7 +1,23 @@
-// src/routes/superAdminRoutes.js
+// src/routes/adminRoutes.js
 import express from 'express';
-import { academicAdminChangePassword, academicAdminLogin, getAcademicAdminProfile, getAssignedCourses, getCourseDetails, updateAcademicAdminProfile} from '../controllers/academicAdminController.js';
+import { 
+  academicAdminChangePassword, 
+  academicAdminLogin, 
+  getAcademicAdminProfile, 
+  getAssignedCourses, 
+  getCourseDetails, 
+  updateAcademicAdminProfile 
+} from '../controllers/academicAdminController.js';
+
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
+
+// Faculty Management
+import { createFaculty, 
+        getFacultyList, 
+        uploadProfilePic , 
+        approvePendingFaculty,
+        rejectPendingFaculty
+ } from '../controllers/facultyController.js';
 
 const router = express.Router();
 
@@ -11,5 +27,12 @@ router.get('/profile', protectAcademicAdmin, getAcademicAdminProfile);
 router.put('/profile', protectAcademicAdmin, updateAcademicAdminProfile);
 router.get('/courses', protectAcademicAdmin, getAssignedCourses);
 router.get('/courses/:id', protectAcademicAdmin, getCourseDetails);
+
+// Faculty Routes
+router.post('/faculty', protectAcademicAdmin, uploadProfilePic, createFaculty);
+router.get('/faculty', protectAcademicAdmin, getFacultyList);
+
+router.patch('/faculty/:facultyId/approve', protectAcademicAdmin, approvePendingFaculty);
+router.patch('/faculty/:facultyId/reject', protectAcademicAdmin, rejectPendingFaculty);
 
 export default router;

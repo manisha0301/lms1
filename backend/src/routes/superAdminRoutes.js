@@ -4,7 +4,7 @@ import { getDashboardStats, getSuperAdminProfile, superAdminChangePassword, supe
 import {protectSuperAdmin} from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
 
-// Course controller import - CLEAN SEGREGATION
+
 import { 
   createCourse, 
   getCourses, 
@@ -20,7 +20,7 @@ import {
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs'; // ← ADDED FOR FILE SYSTEM OPERATIONS
+import fs from 'fs'; 
 
 // Fix __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -44,8 +44,8 @@ const storage = multer.diskStorage({
     // Create clean slug from course name
     let slug = courseName
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')      // replace non-alphanumeric with -
-      .replace(/^-+|-+$/g, '');         // trim - from start/end
+      .replace(/[^a-z0-9]+/g, '-')      
+      .replace(/^-+|-+$/g, '');         
 
     if (!slug) slug = 'course';
 
