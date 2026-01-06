@@ -378,14 +378,14 @@ const getAssignedCourses = async (req, res) => {
   }
 };
 
-// Get Course Details (including description)
+// Get Course Details 
 const getCourseDetails = async (req, res) => {
   try {
     const adminId = req.user.id;
     const courseId = req.params.id;
 
     const { rows } = await pool.query(`
-      SELECT c.id, c.name, c.price, c.description, c.type, c.duration, c.image
+      SELECT c.id, c.name, c.price, c.description, c.type, c.duration, c.image, c.contents
       FROM courses c
       JOIN course_academic_assignments ca ON c.id = ca.course_id
       WHERE ca.academic_admin_id = $1 AND c.id = $2

@@ -27,6 +27,7 @@ const CoursesManagement = () => {
   const [modalType, setModalType] = useState("");
 
   const [courses, setCourses] = useState([]);
+  const [activeFaculties, setActiveFaculties] = useState([]); // ← Real active faculties
 
   useEffect(() => {
     const fetchRealCourses = async () => {
@@ -81,6 +82,30 @@ const CoursesManagement = () => {
     fetchRealCourses();
   }, [navigate]);
 
+  // Fetch active faculties for teacher assignment
+  useEffect(() => {
+    const fetchActiveFaculties = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/auth/admin/faculty", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          setActiveFaculties(data.faculties || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch active faculties:", err);
+      }
+    };
+
+    fetchActiveFaculties();
+  }, []);
+
   const todayAdded = courses.filter(c => c.addedToday).length;
   const filtered = courses.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -126,7 +151,7 @@ const CoursesManagement = () => {
       </div>
 
       <div className="mx-auto px-6 py-10">
-        {/* Search */ }
+        {/* Search */}
         <div className="flex flex-col lg:flex-row gap-6 items-center justify-between mb-8">
           <div className="relative flex-1 max-w-lg">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
@@ -244,24 +269,29 @@ const CoursesManagement = () => {
                   </div>
                 </div>
 
-                {/* Assign Teachers */}
+                {/* Assign Teachers — DYNAMIC, ONLY NAMES, SAME UI */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-4">Assign Teachers</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {/* Teachers checkboxes like in TotalCourses */}
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" id="teacher1" className="w-5 h-5 border-gray-300 rounded" />
-                      <label htmlFor="teacher1" className="text-gray-700">Dr. Rajesh Kumar</label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" id="teacher2" className="w-5 h-5 border-gray-300 rounded" /> 
-                      <label htmlFor="teacher2" className="text-gray-700">Prof. Anjali Mehta</label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" id="teacher3" className="w-5 h-5 border-gray-300 rounded" />
-                      <label htmlFor="teacher3" className="text-gray-700">Mr. Vikram Singh</label>
-                    </div>
-                    
+                    {activeFaculties.length === 0 ? (
+                      <p className="col-span-full text-gray-500 text-center py-4">No active faculties available</p>
+                    ) : (
+                      activeFaculties.map((faculty, index) => (
+                        <div key={faculty.id} className="flex items-center gap-3">
+                          <input 
+                            type="checkbox" 
+                            id={`teacher-${faculty.id}`} 
+                            className="w-5 h-5 border-gray-300 rounded" 
+                          />
+                          <label 
+                            htmlFor={`teacher-${faculty.id}`} 
+                            className="text-gray-700 cursor-pointer"
+                          >
+                            {faculty.name}
+                          </label>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -288,8 +318,8 @@ const CoursesManagement = () => {
                     Cancel
                   </button>
                   <button 
-                  className="px-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition"
-                  onClick={closeModal}>
+                    className="px-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition"
+                    onClick={closeModal}>
                     {modalType === "add" ? "Create Course" : "Save Changes"}
                   </button>
                 </div>

@@ -2,8 +2,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import path from 'path';                    // NEW
-import { fileURLToPath } from 'url';       // NEW
+import path from 'path';                    
+import { fileURLToPath } from 'url';       
 
 import pool from './config/db.js';
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
@@ -11,10 +11,11 @@ import { createCourseAcademicRelationTable, createCoursesTable } from './models/
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
 import adminRoutes from './routes/adminRoutes.js';
-import { create } from 'domain';
+import { createFacultyTable } from './models/facultyModel.js';
+import facultyRoutes from './routes/facultyRoutes.js';
 import { createNotificationsTable } from './models/notificationModel.js';
-const __filename = fileURLToPath(import.meta.url);  // NEW
-const __dirname = path.dirname(__filename);         // NEW
+const __filename = fileURLToPath(import.meta.url);  
+const __dirname = path.dirname(__filename);         
 
 const app = express();
 
@@ -45,6 +46,7 @@ const initDatabase = async () => {
     await createCoursesTable(pool);
     await createCourseAcademicRelationTable(pool);
     await createAcademicAdminDetailsTable(pool);
+    await createFacultyTable();
     await createNotificationsTable(pool);
     console.log('All database tables initialized');
     
@@ -58,6 +60,7 @@ initDatabase();
 // Routes
 app.use('/api/auth/superadmin', superAdminRoutes);
 app.use('/api/auth/admin', adminRoutes);
+app.use('/api/faculty', facultyRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
