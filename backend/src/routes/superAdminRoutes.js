@@ -1,6 +1,6 @@
 // src/routes/superAdminRoutes.js
 import express from 'express';
-import { getDashboardStats, getSuperAdminProfile, superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
+import { getDashboardStats, getSuperAdminNotifications, getSuperAdminProfile, superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
 import {protectSuperAdmin} from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
 
@@ -96,3 +96,6 @@ router.get('/courses/:courseId/assignments', protectSuperAdmin, getCourseAssignm
 
 // Get courses for management page
 router.get('/course/management', protectSuperAdmin, getCoursesForManagement); 
+
+// New route for fetching super admin notifications
+router.get('/notifications', protectSuperAdmin, getSuperAdminNotifications);

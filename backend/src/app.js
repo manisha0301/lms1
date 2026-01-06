@@ -11,6 +11,8 @@ import { createCourseAcademicRelationTable, createCoursesTable } from './models/
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
 import adminRoutes from './routes/adminRoutes.js';
+import { create } from 'domain';
+import { createNotificationsTable } from './models/notificationModel.js';
 const __filename = fileURLToPath(import.meta.url);  // NEW
 const __dirname = path.dirname(__filename);         // NEW
 
@@ -43,7 +45,9 @@ const initDatabase = async () => {
     await createCoursesTable(pool);
     await createCourseAcademicRelationTable(pool);
     await createAcademicAdminDetailsTable(pool);
+    await createNotificationsTable(pool);
     console.log('All database tables initialized');
+    
   } catch (error) {
     console.error('Database initialization failed:', error.message);
   }

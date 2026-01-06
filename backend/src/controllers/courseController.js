@@ -6,6 +6,7 @@ import {
   getCourseById,
   updateCourseContents
 } from '../models/courseModel.js';
+import { addNotificationForSuperAdmin } from '../models/notificationModel.js';
 
 // Create new course
 export const createCourse = async (req, res) => {
@@ -40,6 +41,14 @@ export const createCourse = async (req, res) => {
       batches,
       originalPrice: finalOriginalPrice
     });
+
+    const notifyMessage = `New course created: "${newCourse.name}" (${newCourse.type}, ₹${newCourse.price})`;
+    await addNotificationForSuperAdmin(
+      pool,
+      notifyMessage,
+      'course',       // you can define new type if you want different styling
+      'medium'
+    );
 
     res.status(201).json({ success: true, course: newCourse });
   } catch (error) {
@@ -138,6 +147,19 @@ export const assignCourseToAdmins = async (req, res) => {
         VALUES ${values}
         ON CONFLICT (course_id, academic_admin_id) DO NOTHING
       `);
+    }
+
+    // Get course name for nice message
+    const { rows: [course] } = await pool.query(
+      'SELECT name FROM courses WHERE id = $1',
+      [courseId]
+    );
+
+    if (course) {
+      const adminCount = Array.isArray(adminIds) ? adminIds.length : 1;
+      const message = `Course "${course.name}" assigned to ${adminCount} academic admin${adminCount !== 1 ? 's' : ''}`;
+
+      await addNotificationForSuperAdmin(pool, message, 'course', 'medium');
     }
 
     res.json({ success: true, message: 'Assignment updated successfully!' });

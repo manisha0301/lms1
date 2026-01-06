@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { createAcademicAdmin, findAllAcademicAdmins, updateAcademicAdminPassword } from '../models/academicAdminModel.js';
 import pool from '../config/db.js';
 import jwt from 'jsonwebtoken';
+import { addNotificationForSuperAdmin } from '../models/notificationModel.js';
 
 const getAllAcademicAdmins = async (req, res) => {
   try {
@@ -74,6 +75,14 @@ const createNewAcademicAdmin = async (req, res) => {
     };
 
     const newAdmin = await createAcademicAdmin(pool, adminData);
+
+    const notifyMessage = `New Academic Admin created: ${newAdmin.fullName} (${newAdmin.email})`;
+    await addNotificationForSuperAdmin(
+      pool,
+      notifyMessage,
+      'admin',          // matches your frontend icon/color logic
+      'medium'
+    );
 
     res.status(201).json({
       success: true,
@@ -376,7 +385,7 @@ const getCourseDetails = async (req, res) => {
     const courseId = req.params.id;
 
     const { rows } = await pool.query(`
-      SELECT c.id, c.name, c.price, c.description, c.type, c.duration, c.image,
+      SELECT c.id, c.name, c.price, c.description, c.type, c.duration, c.image
       FROM courses c
       JOIN course_academic_assignments ca ON c.id = ca.course_id
       WHERE ca.academic_admin_id = $1 AND c.id = $2

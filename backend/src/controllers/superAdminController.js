@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { findSuperAdminByEmail, updateSuperAdminPassword } from '../models/superAdminModel.js';
 import pool from '../config/db.js';
+import { getNotificationsByUser } from '../models/notificationModel.js';
 
 // Simple email validation regex
 const isValidEmail = (email) => {
@@ -197,6 +198,25 @@ export const getSuperAdminProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Get Super Admin Profile Error →', error.message);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+export const getSuperAdminNotifications = async (req, res) => {
+  try {
+    const { limit } = req.query;  // Optional ?limit=4 for recent notifications
+    const notifications = await getNotificationsByUser(
+      'superadmin',
+      req.user.id,  // From JWT middleware
+      limit ? parseInt(limit, 10) : null
+    );
+
+    res.json({
+      success: true,
+      notifications
+    });
+  } catch (error) {
+    console.error('Get SuperAdmin Notifications Error →', error.message);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
