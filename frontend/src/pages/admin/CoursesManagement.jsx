@@ -66,7 +66,9 @@ const CoursesManagement = () => {
               startTime: "07:00 PM",
               endTime: "09:00 PM"
             },
-            addedToday: index < 2,
+            addedToday: course.created_at
+              ? new Date(course.created_at).toDateString() === new Date().toDateString()
+              : false,
           }));
 
           setCourses(enrichedCourses);
@@ -152,7 +154,7 @@ const CoursesManagement = () => {
 
       <div className="mx-auto px-6 py-10">
         {/* Search */}
-        <div className="flex flex-col lg:flex-row gap-6 items-center justify-between mb-8">
+        <div className="flex flex-row gap-6 items-center justify-between mb-8">
           <div className="relative flex-1 max-w-lg">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
             <input

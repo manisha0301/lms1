@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 
 import pool from './config/db.js';
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
-import { createCourseAcademicRelationTable, createCoursesTable } from './models/courseModel.js';
+import { createCourseAcademicRelationTable, createCourseModulesTables, createCoursesTable, createCourseWeeksTable } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -43,11 +43,13 @@ const initDatabase = async () => {
     await createSuperAdminTable(pool);
     await createDefaultSuperAdmin(pool);
     await createAcademicAdminsTable(pool);
+    await createAcademicAdminDetailsTable(pool);
     await createCoursesTable(pool);
     await createCourseAcademicRelationTable(pool);
-    await createAcademicAdminDetailsTable(pool);
-    await createFacultyTable();
+    await createCourseWeeksTable(pool);
+    await createCourseModulesTables(pool);
     await createNotificationsTable(pool);
+    await createFacultyTable();
     console.log('All database tables initialized');
     
   } catch (error) {
