@@ -13,7 +13,7 @@ import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './mo
 import adminRoutes from './routes/adminRoutes.js';
 import { createFacultyTable } from './models/facultyModel.js';
 import facultyRoutes from './routes/facultyRoutes.js';
-
+import { createNotificationsTable } from './models/notificationModel.js';
 // NEW: Student imports
 import studentRoutes from './routes/studentRoutes.js';
 import { createStudentsTable } from './models/studentModel.js';
@@ -51,11 +51,13 @@ const initDatabase = async () => {
     await createCourseAcademicRelationTable(pool);
     await createAcademicAdminDetailsTable(pool);
     await createFacultyTable();
+    await createNotificationsTable(pool);
 
     // NEW: Create students table
     await createStudentsTable();
 
     console.log('All database tables initialized');
+    
   } catch (error) {
     console.error('Database initialization failed:', error.message);
   }

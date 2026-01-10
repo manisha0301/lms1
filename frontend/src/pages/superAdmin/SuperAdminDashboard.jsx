@@ -26,6 +26,7 @@ import {
   User,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
@@ -43,6 +44,10 @@ const SuperAdminDashboard = () => {
       totalAssignments: 0,
       totalRevenue: 0,
   });
+  const [notifications, setNotifications] = useState([]);  // Full list for modal
+  const [recentNotifications, setRecentNotifications] = useState([]);  // Top 4 for summary
+  const [notificationsLoading, setNotificationsLoading] = useState(true);  // NEW
+  const [notificationsError, setNotificationsError] = useState(null);  // NEW
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -61,31 +66,54 @@ const SuperAdminDashboard = () => {
         console.error('Failed to fetch stats:', error);
       }
     };
+
+    // NEW: Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true);
+      const token = localStorage.getItem('superAdminToken');
+
+      // Fetch recent (limit 4)
+      const recentRes = await fetch('http://localhost:5000/api/auth/superadmin/notifications?limit=4', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const recentData = await recentRes.json();
+      if (recentData.success) {
+        setRecentNotifications(
+          recentData.notifications.map(notif => ({
+            ...notif,
+            time: formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })  // e.g., "2 mins ago"
+          }))
+        );
+      } else {
+        throw new Error(recentData.error);
+      }
+
+      // Fetch full list
+      const fullRes = await fetch('http://localhost:5000/api/auth/superadmin/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const fullData = await fullRes.json();
+      if (fullData.success) {
+        setNotifications(
+          fullData.notifications.map(notif => ({
+            ...notif,
+            time: formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })
+          }))
+        );
+      } else {
+        throw new Error(fullData.error);
+      }
+    } catch (err) {
+      setNotificationsError(err.message);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+    fetchNotifications();
     fetchStats();
   }, []);
-
-  const recentNotifications = [
-    { id: 1, message: "New admin 'Rakesh Kumar' was created", time: "2 mins ago", type: "admin" },
-    { id: 2, message: "Backup completed successfully", time: "1 hour ago", type: "success" },
-    { id: 3, message: "Revenue milestone: ₹28,47,500 crossed!", time: "3 hours ago", type: "revenue" },
-    { id: 4, message: "High server load detected (87%)", time: "5 hours ago", type: "warning" },
-    { id: 1, message: "New admin 'Rakesh Kumar' was created", time: "2 mins ago", type: "admin" },
-    { id: 2, message: "Backup completed successfully", time: "1 hour ago", type: "success" },
-    { id: 3, message: "Revenue milestone: ₹28,47,500 crossed!", time: "3 hours ago", type: "revenue" },
-    { id: 4, message: "High server load detected (87%)", time: "5 hours ago", type: "warning" },
-  ];
-
-  const notifications = [
-    { id: 1, type: "exam", message: "Prof. Rahul requested exam link approval for 'JavaScript Advanced'", time: "2 hours ago", status: "pending", priority: "high" },
-    { id: 2, type: "exam", message: "Prof. Sneha requested exam approval for 'React Hooks'", time: "5 hours ago", status: "pending", priority: "medium" },
-    { id: 3, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-    { id: 4, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-    { id: 5, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-    { id: 6, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-    { id: 7, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-    { id: 8, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-    { id: 9, type: "info", message: "New batch scheduled for MERN course starting Dec 1", time: "1 day ago", status: "approved", priority: "low" },
-  ];
 
   // Regular stats (non-clickable)
   const regularStats = [
