@@ -1,5 +1,5 @@
 // src/pages/faculty/FacultyProfile.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -17,32 +17,115 @@ import {
   Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig.js';
 
 export default function FacultyProfile() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock Faculty Data
-  const [faculty, setFaculty] = useState({
-    name: "Dr. Sarah Chen",
-    email: "sarah.chen@cybernetics.edu",
-    phone: "+91 98765 43210",
-    employeeId: "FAC-2025-108",
-    department: "Computer Science & Engineering",
-    designation: "Associate Professor",
-    joiningDate: "2018-07-15",
-    qualifications: "Ph.D. in Computer Science, Stanford University",
-    coursesTeaching: ["Advanced Node.js (CSE-405)", "Machine Learning A-Z (CSE-601)"],
-    totalClasses: 124,
-    totalStudents: 168
-  });
+  // Faculty Data
+  const [faculty, setFaculty] = useState(null);
 
-  const [editData, setEditData] = useState({ ...faculty });
+  const [editData, setEditData] = useState({});
 
-  const handleSave = () => {
-    setFaculty({ ...editData });
-    setIsEditing(false);
+  // Fetch faculty profile and dashboard data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        // Fetch profile
+        const profileResponse = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Fetch dashboard data for courses count
+        const dashboardResponse = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (profileResponse.data.success && dashboardResponse.data.success) {
+          const profileData = profileResponse.data.profile;
+          const dashboardData = dashboardResponse.data.dashboard;
+          
+          setFaculty({
+            name: profileData.full_name,
+            email: profileData.email,
+            phone: profileData.phone || '',
+            employeeId: profileData.code,
+            designation: profileData.designation || 'Faculty Member',
+            joiningDate: profileData.joining_date ? new Date(profileData.joining_date).toISOString().split('T')[0] : '',
+            qualifications: profileData.qualification || '',
+            profilePicture: profileData.profile_picture,
+            address: profileData.address || '',
+            totalCourses: dashboardData.totalCourses || 0,
+            totalStudents: 0 // Placeholder, could be calculated if needed
+          });
+          setEditData({
+            name: profileData.full_name,
+            email: profileData.email,
+            phone: profileData.phone || '',
+            designation: profileData.designation || 'Faculty Member',
+            qualifications: profileData.qualification || '',
+            address: profileData.address || ''
+          });
+        } else {
+          setError('Failed to load profile data');
+        }
+      } catch (err) {
+        console.error('Data fetch error:', err);
+        setError('Unable to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [navigate]);
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.patch(`${apiConfig.API_BASE_URL}/api/faculty/profile`, {
+        full_name: editData.name,
+        phone: editData.phone,
+        designation: editData.designation,
+        qualification: editData.qualifications
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        const updatedProfile = response.data.profile;
+        setFaculty({
+          name: updatedProfile.full_name,
+          email: updatedProfile.email,
+          phone: updatedProfile.phone || '',
+          employeeId: updatedProfile.code,
+          designation: updatedProfile.designation || 'Faculty Member',
+          joiningDate: updatedProfile.joining_date ? new Date(updatedProfile.joining_date).toISOString().split('T')[0] : '',
+          qualifications: updatedProfile.qualification || '',
+          profilePicture: updatedProfile.profile_picture,
+          address: updatedProfile.address || '',
+          totalCourses: faculty.totalCourses, // Keep existing
+          totalStudents: faculty.totalStudents // Keep existing
+        });
+        setIsEditing(false);
+      } else {
+        alert('Failed to update profile');
+      }
+    } catch (err) {
+      console.error('Profile update error:', err);
+      alert('Failed to update profile');
+    }
   };
 
   const handleCancel = () => {
@@ -51,10 +134,27 @@ export default function FacultyProfile() {
   };
 
   const handleLogout = () => {
-    // Clear session and redirect
-    alert("Logged out successfully!");
+    localStorage.removeItem('token');
     navigate('/login');
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-xl text-gray-600">Loading profile...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !faculty) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-xl text-red-600">{error || 'No profile data available'}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -73,23 +173,36 @@ export default function FacultyProfile() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
             <div className="text-center">
-              <div className="w-32 h-32 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-xl">
+              {faculty.profilePicture ? (
+                <img
+                  src={`${apiConfig.API_BASE_URL}/uploads/faculty/${faculty.profilePicture}`}
+                  alt={faculty.name}
+                  className="w-32 h-32 mx-auto rounded-full object-cover shadow-xl"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div 
+                className="w-32 h-32 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-xl"
+                style={{ display: faculty.profilePicture ? 'none' : 'flex' }}
+              >
                 {faculty.name.split(' ').map(n => n[0]).join('')}
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mt-4">{faculty.name}</h2>
               <p className="text-indigo-600 font-medium">{faculty.designation}</p>
-              <p className="text-sm text-gray-600 mt-1">{faculty.department}</p>
               
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div className="bg-[#1e3a8a]/5 rounded-xl p-4">
                     <BookOpen className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-800">{faculty.coursesTeaching.length}</p>
+                    <p className="text-2xl font-bold text-gray-800">{faculty.totalCourses || 0}</p>
                     <p className="text-xs text-gray-600">Courses</p>
                   </div>
                   <div className="bg-[#1e3a8a]/5 rounded-xl p-4">
                     <User className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-gray-800">{faculty.totalStudents}</p>
+                    <p className="text-2xl font-bold text-gray-800">{faculty.totalStudents || 0}</p>
                     <p className="text-xs text-gray-600">Students</p>
                   </div>
                 </div>
@@ -104,13 +217,6 @@ export default function FacultyProfile() {
               >
                 <Edit3 className="w-5 h-5" />
                 Edit Profile
-              </button>
-              <button
-                onClick={() => setShowHelp(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium"
-              >
-                <HelpCircle className="w-5 h-5" />
-                Help & Support
               </button>
             </div>
           </div>
@@ -141,20 +247,20 @@ export default function FacultyProfile() {
 
             <div className="grid md:grid-cols-2 gap-6">
               {[
-                { label: "Full Name", value: faculty.name, key: "name", icon: User },
-                { label: "Employee ID", value: faculty.employeeId, key: "employeeId", icon: Award },
-                { label: "Email Address", value: faculty.email, key: "email", icon: Mail },
-                { label: "Phone Number", value: faculty.phone, key: "phone", icon: Phone },
-                { label: "Department", value: faculty.department, key: "department", icon: Building },
-                { label: "Qualifications", value: faculty.qualifications, key: "qualifications", icon: Award },
-                { label: "Joining Date", value: new Date(faculty.joiningDate).toLocaleDateString('en-IN'), key: "joiningDate", icon: Calendar },
-              ].map((field) => (
+                { label: "Full Name", value: faculty.name, key: "name", icon: User, editable: true },
+                { label: "Employee ID", value: faculty.employeeId, key: "employeeId", icon: Award, editable: false },
+                { label: "Email Address", value: faculty.email, key: "email", icon: Mail, editable: false },
+                { label: "Phone Number", value: faculty.phone, key: "phone", icon: Phone, editable: true },
+                { label: "Designation", value: faculty.designation, key: "designation", icon: Building, editable: true },
+                { label: "Qualifications", value: faculty.qualifications, key: "qualifications", icon: Award, editable: true },
+                { label: "Joining Date", value: faculty.joiningDate ? new Date(faculty.joiningDate).toLocaleDateString('en-IN') : 'Not available', key: "joiningDate", icon: Calendar, editable: false },
+              ].filter(field => field.key !== 'department').map((field) => (
                 <div key={field.key} className="space-y-2">
                   <p className="text-sm text-gray-600 flex items-center gap-2">
                     <field.icon className="w-4 h-4" />
                     {field.label}
                   </p>
-                  {isEditing ? (
+                  {isEditing && field.editable ? (
                     <input
                       type="text"
                       value={editData[field.key]}
@@ -164,25 +270,6 @@ export default function FacultyProfile() {
                   ) : (
                     <p className="font-medium text-gray-800">{field.value}</p>
                   )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Courses Teaching */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-indigo-600" />
-              Courses Currently Teaching
-            </h3>
-            <div className="space-y-4">
-              {faculty.coursesTeaching.map((course, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-xl hover:shadow-md transition">
-                  <div>
-                    <p className="font-semibold text-gray-800">{course}</p>
-                    <p className="text-sm text-gray-600 mt-1">Semester: Fall 2025</p>
-                  </div>
-                  <ChevronRight className="w-6 h-6 text-indigo-600" />
                 </div>
               ))}
             </div>

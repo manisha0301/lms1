@@ -1,14 +1,14 @@
 // src/pages/faculty/FacultyHome.jsx
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
-import { 
-  BookOpen, 
-  Users, 
-  Star, 
-  Clock, 
-  Calendar, 
-  Bell, 
-  BarChart3, 
+import { useState, useEffect, useMemo } from 'react';
+import {
+  BookOpen,
+  Users,
+  Star,
+  Clock,
+  Calendar,
+  Bell,
+  BarChart3,
   Search,
   ChevronRight,
   X,
@@ -16,35 +16,88 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-
-// Placeholder thumbnails (use your actual assets)
-import course1 from '../../assets/node.webp';
-import course2 from '../../assets/vue.webp';
-import course3 from '../../assets/python.webp';
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig.js'; 
 
 const FacultyHome = () => {
   const navigate = useNavigate();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // MOCK DATA (Frontend Only)
-  const faculty = { name: "Dr. Sarah Chen", avatar: "SC", email: "sarah.chen@university.edu" };
+  // Data state
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const stats = {
-    totalCourses: 12,
-    totalStudents: 342,
-    avgRating: 4.6
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        const response = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.success) {
+          setDashboardData(response.data.dashboard);
+        } else {
+          setError('Failed to load dashboard data');
+        }
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+        setError('Unable to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, [navigate]);
+
+  
+  const facultyName = dashboardData?.faculty?.name || '';
+  const facultyDesignation = dashboardData?.faculty?.designation || 'Faculty Member';
+
+  const initials = facultyName
+    ? facultyName
+        .split(' ')
+        .map(word => word.charAt(0))
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '';
+
+  const totalCourses = dashboardData?.totalCourses ?? 0;
+
+  const assignedCourses = dashboardData?.recentCourses
+    ? dashboardData.recentCourses.map(course => ({
+        id: course.id,
+        title: course.title,
+        code: `CSE-${String(course.id).padStart(3, '0')}`,
+        students: Math.floor(Math.random() * 60) + 20, 
+        status: course.type === 'Live' ? 'Active' : 'Upcoming',
+        thumbnail: course.thumbnail
+      }))
+    : [];
+
+  const filteredCourses = useMemo(() => {
+    return assignedCourses.filter(c =>
+      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.code.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, assignedCourses]);
+
+  const handleCourseClick = (courseId) => {
+    navigate(`/course/${courseId}`);
   };
 
-  const recentCourses = [
-    { id: "node-201", title: "Advanced Node.js", code: "CSE-405", students: 48, status: "Active", thumbnail: course1 },
-    { id: "dsa-101", title: "Data Structures & Algorithms", code: "CSE-201", students: 72, status: "Active", thumbnail: course2 },
-    { id: "web-310", title: "Full Stack Web Dev", code: "CSE-310", students: 55, status: "Upcoming", thumbnail: course3 },
-    { id: "node-201", title: "Advanced Node.js", code: "CSE-405", students: 48, status: "Active", thumbnail: course1 },
-    { id: "dsa-101", title: "Data Structures & Algorithms", code: "CSE-201", students: 72, status: "Active", thumbnail: course2 },
-    { id: "web-310", title: "Full Stack Web Dev", code: "CSE-310", students: 55, status: "Upcoming", thumbnail: course3 }
-  ];
-
+  
   const upcomingClasses = [
     { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
     { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
@@ -74,19 +127,22 @@ const FacultyHome = () => {
     { message: "New grading policy update", time: "Yesterday", type: "info" }
   ];
 
-  // Search & Filter
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const filteredCourses = useMemo(() => {
-    return recentCourses.filter(c => 
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.code.toLowerCase().includes(searchQuery.toLowerCase())
+  // Loading & Error states (after all hooks)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-xl text-gray-600">Loading dashboard...</p>
+      </div>
     );
-  }, [searchQuery]);
+  }
 
-  const handleCourseClick = (courseId) => {
-    navigate(`/course/${courseId}`);
-  };
+  if (error || !dashboardData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-xl text-red-600">{error || 'No dashboard data available'}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -108,7 +164,7 @@ const FacultyHome = () => {
           <div className="flex items-center gap-5">
             {/* Notification Bell */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                 className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
               >
@@ -123,7 +179,7 @@ const FacultyHome = () => {
                 <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                   <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
                     <h3 className="font-bold text-lg">Notifications</h3>
-                    <button 
+                    <button
                       onClick={() => setIsNotificationOpen(false)}
                       className="hover:bg-white/20 p-1 rounded cursor-pointer"
                     >
@@ -133,7 +189,7 @@ const FacultyHome = () => {
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.map((notif, i) => (
                       <div key={i} className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
-                        notif.type === 'urgent' ? 'bg-red-50' : notif.type === 'warning' ? 'bg-yellow-50' : ''
+                          notif.type === 'urgent' ? 'bg-red-50' : notif.type === 'warning' ? 'bg-yellow-50' : ''
                       }`}>
                         <p className="font-semibold text-gray-900">{notif.message}</p>
                         <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
@@ -147,83 +203,88 @@ const FacultyHome = () => {
             {/* Profile */}
             <div className="flex items-center gap-3 pl-4 border-l border-white/20">
               <div className="text-right">
-                <p className="font-semibold">{faculty.name}</p>
-                <p className="text-xs opacity-90">Faculty Member</p>
+                <p className="font-semibold">{facultyName}</p>
+                <p className="text-xs opacity-90">{facultyDesignation}</p>
               </div>
-              <div 
+              <div
                 className="w-11 h-11 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-xl font-bold cursor-pointer"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
               >
-                {faculty.avatar}
+                {initials}
               </div>
-              {/* Profile Dropdown - To be implemented */}
+
+              {/* Profile Dropdown */}
               <div>
-                {isProfileOpen && (
-                  <div className="absolute right-8 mt-9 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                    
-                    {/* Header */}
-                    <div className="bg-[#1e3a8a] text-white p-5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
-                          A
-                        </div>
-                        <div>
-                          <p className="text-lg font-bold">{faculty.name}</p>
-                          <p className="text-sm opacity-90">{faculty.email}</p>
-                        </div>
+              {isProfileOpen && (
+                <div className="absolute right-8 mt-9 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                  <div className="bg-[#1e3a8a] text-white p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold">{facultyName}</p>
+                        <p className="text-sm opacity-90">{facultyDesignation}</p>
                       </div>
                     </div>
+                  </div>
 
                     {/* Body */}
-                    <div className="p-3">
-                      <button
+                  <div className="p-3">
+                    <button
                         onClick={() => navigate('/profile')}
-                        className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
-                      >
-                        <User className="w-5 h-5 text-[#1e3a8a]" />
-                        <span className="font-medium text-gray-800">My Profile</span>
-                      </button>
+                      className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
+                    >
+                      <User className="w-5 h-5 text-[#1e3a8a]" />
+                      <span className="font-medium text-gray-800">My Profile</span>
+                    </button>
 
-                      <button
+                    <button
                         onClick={() => navigate('/settings')}
-                        className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
-                      >
-                        <Settings className="w-5 h-5 text-[#1e3a8a]" />
-                        <span className="font-medium text-gray-800">Settings</span>
-                      </button>
+                      className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
+                    >
+                      <Settings className="w-5 h-5 text-[#1e3a8a]" />
+                      <span className="font-medium text-gray-800">Settings</span>
+                    </button>
 
-                      <hr className="my-2 border-gray-200" />
+                    <hr className="my-2 border-gray-200" />
 
-                      <button
-                        onClick={() => navigate('/login')}
-                        className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
-                      >
-                        <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Logout</span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        navigate('/login');
+                      }}
+                      className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span className="font-medium">Logout</span>
+                    </button>
                   </div>
-                )}
+                </div>
+              )}
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className='mx-auto px-8 py-10'>
+      <div className="mx-auto px-8 py-10">
         {/* Summary Cards */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-            { label: "Total Courses", value: stats.totalCourses, icon: BookOpen, color: "indigo", link: "/totalcourses" },
-            { label: "Students Enrolled", value: stats.totalStudents, icon: Users, color: "green" },
-            { label: "Average Rating", value: `${stats.avgRating}/5`, icon: Star, color: "yellow" }
+            { label: "Total Courses", value: totalCourses, icon: BookOpen, link: "/totalcourses" },
+            { label: "Students Enrolled", value: 342, icon: Users },
+            { label: "Average Rating", value: "4.6/5", icon: Star }
           ].map((stat, i) => {
             const Icon = stat.icon;
             return (
-              <div key={i} className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4 hover:shadow-xl transition cursor-pointer"
-              onClick={() => navigate(stat.link)}>
-                <div className={`p-3 rounded-xl bg-[#1e3a8a]`}>
-                  <Icon className={`w-6 h-6 text-white`} />
+              <div
+                key={i}
+                className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4 hover:shadow-xl transition cursor-pointer"
+                onClick={() => stat.link && navigate(stat.link)}
+              >
+                <div className="p-3 rounded-xl bg-[#1e3a8a]">
+                  <Icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
@@ -233,22 +294,6 @@ const FacultyHome = () => {
             );
           })}
         </section>
-
-        {/* Search Bar */}
-        {/* <section className="mb-6">
-          <div className="bg-white rounded-xl shadow-lg p-3 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search courses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </section> */}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
@@ -276,13 +321,18 @@ const FacultyHome = () => {
                       onClick={() => handleCourseClick(course.id)}
                       className="p-4 hover:bg-gray-50 cursor-pointer flex items-center gap-4 transition"
                     >
-                      <img src={course.thumbnail} alt={course.title} className="w-16 h-16 rounded-lg object-cover" />
+                      <img
+                        src={course.thumbnail ? `${apiConfig.API_BASE_URL}/uploads/${course.thumbnail}` : '/fallback-course.jpg'}
+                        alt={course.title}
+                        className="w-16 h-16 rounded-lg object-cover bg-gray-200"
+                        onError={(e) => (e.target.src = '/fallback-course.jpg')}
+                      />
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-800">{course.title}</h3>
                         <p className="text-sm text-gray-500">{course.code} • {course.students} students</p>
                       </div>
                       <span className={`text-xs px-3 py-1 rounded-full ${
-                        course.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          course.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {course.status}
                       </span>
@@ -388,7 +438,6 @@ const FacultyHome = () => {
       </div>
     </div>
   );
-}
-
+};
 
 export default FacultyHome;

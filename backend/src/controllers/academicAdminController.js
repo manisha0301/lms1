@@ -364,7 +364,7 @@ const getAssignedCourses = async (req, res) => {
     const adminId = req.user.id;
 
     const { rows } = await pool.query(`
-      SELECT c.id, c.name, c.price , c.description, c.created_at
+      SELECT c.id, c.name, c.price , c.description , c.teachers, c.created_at
       FROM courses c
       JOIN course_academic_assignments ca ON c.id = ca.course_id
       WHERE ca.academic_admin_id = $1

@@ -19,6 +19,8 @@ import { createFaculty,
         rejectPendingFaculty
  } from '../controllers/facultyController.js';
 
+import { updateCourseTeachers } from '../controllers/courseController.js';
+
 const router = express.Router();
 
 router.post('/login', academicAdminLogin);
@@ -34,5 +36,7 @@ router.get('/faculty', protectAcademicAdmin, getFacultyList);
 
 router.patch('/faculty/:facultyId/approve', protectAcademicAdmin, approvePendingFaculty);
 router.patch('/faculty/:facultyId/reject', protectAcademicAdmin, rejectPendingFaculty);
+
+router.patch('/courses/:courseId/teachers', protectAcademicAdmin, updateCourseTeachers);
 
 export default router;

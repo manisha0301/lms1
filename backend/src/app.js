@@ -14,6 +14,10 @@ import adminRoutes from './routes/adminRoutes.js';
 import { createFacultyTable } from './models/facultyModel.js';
 import facultyRoutes from './routes/facultyRoutes.js';
 import { createNotificationsTable } from './models/notificationModel.js';
+// NEW: Student imports
+import studentRoutes from './routes/studentRoutes.js';
+import { createStudentsTable } from './models/studentModel.js';
+
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);         
 
@@ -34,8 +38,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '20mb' }));
 
-// SERVE UPLOADED IMAGES - THIS MAKES http://localhost:5000/uploads/image.jpg WORK
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));  // ← NEW: MAIN LINE
+// SERVE UPLOADED IMAGES
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Initialize DB tables
 const initDatabase = async () => {
@@ -50,6 +54,10 @@ const initDatabase = async () => {
     await createCourseModulesTables(pool);
     await createNotificationsTable(pool);
     await createFacultyTable();
+
+    // NEW: Create students table
+    await createStudentsTable();
+
     console.log('All database tables initialized');
     
   } catch (error) {
@@ -63,6 +71,9 @@ initDatabase();
 app.use('/api/auth/superadmin', superAdminRoutes);
 app.use('/api/auth/admin', adminRoutes);
 app.use('/api/faculty', facultyRoutes);
+
+// NEW: Student routes
+app.use('/api/auth/student', studentRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
