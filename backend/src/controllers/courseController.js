@@ -161,6 +161,7 @@ export const getCourseAssignments = async (req, res) => {
   }
 };
 
+// FIXED: Now shows REAL faculty names instead of dummy
 export const getCoursesForManagement = async (req, res) => {
   try {
     const { rows: academicsData } = await pool.query(`
@@ -170,16 +171,14 @@ export const getCoursesForManagement = async (req, res) => {
         aa.email as "academicEmail",
         aa.academic_name as center,
         COUNT(DISTINCT caa.course_id) as "totalCourses",
-        0 as "totalStudents",  -- Placeholder - requires enrollments table
-        0 as "totalRevenue",   -- Placeholder
+        0 as "totalStudents",
+        0 as "totalRevenue",
         COALESCE(
           JSONB_AGG(
             DISTINCT JSONB_BUILD_OBJECT(
               'id', c.id,
               'title', c.name,
               'code', UPPER(SPLIT_PART(c.name, ' ', 1)) || '-' || UPPER(SPLIT_PART(aa.full_name, ' ', 1)) || '-25A',
-              'faculty', 'Faculty TBD',
-              'facultyEmail', 'faculty@kristellar.com',
               'duration', c.duration,
               'startDate', COALESCE((c.batches->0->>'startDate')::text, '2025-01-01'),
               'totalStudents', 0,
@@ -194,7 +193,8 @@ export const getCoursesForManagement = async (req, res) => {
               'batchSize', 350,
               'completionRate', 87,
               'topPerformer', 'Rohan Mehta',
-              'lastActivity', '2 hours ago'
+              'lastActivity', '2 hours ago',
+              'teachers', c.teachers  -- Get real teacher IDs
             )
           ) FILTER (WHERE c.id IS NOT NULL),
           '[]'::jsonb
@@ -207,10 +207,71 @@ export const getCoursesForManagement = async (req, res) => {
       ORDER BY aa.full_name ASC
     `);
 
-    res.json({ success: true, academicsData });
+    // Convert teacher IDs to real names
+    const allTeacherIds = new Set();
+    academicsData.forEach(ac => {
+      ac.courses.forEach(course => {
+        if (course.teachers && Array.isArray(course.teachers)) {
+          course.teachers.forEach(id => allTeacherIds.add(id));
+        }
+      });
+    });
 
+    let facultyMap = {};
+    if (allTeacherIds.size > 0) {
+      const { rows: faculties } = await pool.query(
+        'SELECT id, full_name FROM faculty WHERE id = ANY($1)',
+        [Array.from(allTeacherIds)]
+      );
+      facultyMap = Object.fromEntries(faculties.map(f => [f.id, f.name]));
+    }
+
+    // Set real faculty names
+    academicsData.forEach(ac => {
+      ac.courses.forEach(course => {
+        if (course.teachers && course.teachers.length > 0) {
+          course.faculty = course.teachers
+            .map(id => facultyMap[id] || 'Unknown Faculty')
+            .join(', ');
+        } else {
+          course.faculty = 'No faculty assigned';
+        }
+        delete course.teachers; // clean up
+      });
+    });
+
+    res.json({ success: true, academicsData });
   } catch (error) {
     console.error('Get courses management error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch management data' });
+  }
+};
+
+// Update only teachers for a course
+export const updateCourseTeachers = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { teacherIds } = req.body;
+
+    if (!Array.isArray(teacherIds)) {
+      return res.status(400).json({ success: false, error: 'teacherIds must be an array' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE courses 
+       SET teachers = $1 
+       WHERE id = $2 
+       RETURNING id, teachers`,
+      [teacherIds, courseId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+
+    res.json({ success: true, teachers: rows[0].teachers });
+  } catch (error) {
+    console.error('Update teachers error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update teachers' });
   }
 };

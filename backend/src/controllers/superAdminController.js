@@ -1,4 +1,4 @@
-// src/controllers/superAdminController.js
+// backend/src/controllers/superAdminController.js
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { findSuperAdminByEmail, updateSuperAdminPassword } from '../models/superAdminModel.js';
@@ -155,14 +155,11 @@ export const getDashboardStats = async (req, res) => {
     const coursesResult = await pool.query('SELECT COUNT(*) FROM courses');
     const totalCourses = parseInt(coursesResult.rows[0].count, 10);
 
-    // You can add more stats here as other tables are implemented
-    // For now, including only the requested ones
     const stats = {
       totalAcademics,
       totalCourses,
-      // Placeholder for others if needed
-      totalStudents: 0,    // Update when students table exists
-      totalFaculties: 0,   // Update when faculties table exists
+      totalStudents: 0,
+      totalFaculties: 0,
       totalCentres: 0,
       totalAdmins: 0,
       totalExams: 0,
@@ -198,6 +195,25 @@ export const getSuperAdminProfile = async (req, res) => {
   } catch (error) {
     console.error('Get Super Admin Profile Error →', error.message);
     res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// Get all active institutes for student signup dropdown
+export const getAcademicInstitutes = async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT academic_name AS name 
+      FROM academic_admins 
+      WHERE status = 'Active' AND academic_name IS NOT NULL AND academic_name != ''
+      ORDER BY academic_name ASC
+    `);
+
+    const institutes = rows.map(row => row.name);
+
+    res.json({ success: true, institutes });
+  } catch (error) {
+    console.error('Get institutes error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch institutes' });
   }
 };
 

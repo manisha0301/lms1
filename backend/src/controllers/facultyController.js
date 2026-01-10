@@ -334,3 +334,180 @@ export const facultyLogin = async (req, res) => {
     res.status(500).json({ success: false, error: 'Login failed' });
   }
 };
+
+// Get dashboard data for logged-in faculty
+export const getFacultyDashboard = async (req, res) => {
+  try {
+    const facultyId = req.user.id; // from JWT
+
+    // Fetch faculty details (name, designation)
+    const { rows: facultyRows } = await pool.query(
+      'SELECT full_name, designation FROM faculty WHERE id = $1',
+      [facultyId]
+    );
+
+    if (facultyRows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Faculty not found' });
+    }
+
+    const faculty = facultyRows[0];
+
+    // Fetch courses where this faculty is in the teachers array
+    const { rows: courses } = await pool.query(`
+      SELECT 
+        id, 
+        name AS title, 
+        image AS thumbnail,
+        type,
+        price,
+        teachers,
+        COALESCE(created_at, CURRENT_TIMESTAMP) as created_at
+      FROM courses 
+      WHERE $1 = ANY(teachers)
+      ORDER BY created_at DESC
+    `, [facultyId]);
+
+    // Fetch teacher names for all courses
+    const allTeacherIds = new Set();
+    courses.forEach(course => {
+      if (course.teachers && Array.isArray(course.teachers)) {
+        course.teachers.forEach(id => allTeacherIds.add(id));
+      }
+    });
+
+    let facultyMap = {};
+    if (allTeacherIds.size > 0) {
+      const { rows: faculties } = await pool.query(
+        'SELECT id, full_name FROM faculty WHERE id = ANY($1)',
+        [Array.from(allTeacherIds)]
+      );
+      facultyMap = Object.fromEntries(faculties.map(f => [f.id, f.full_name]));
+    }
+
+    // Add teacher names to each course
+    courses.forEach(course => {
+      if (course.teachers && course.teachers.length > 0) {
+        course.facultyNames = course.teachers
+          .map(id => facultyMap[id] || 'Unknown Faculty')
+          .filter(name => name !== 'Unknown Faculty'); // Remove unknown ones
+      } else {
+        course.facultyNames = [];
+      }
+      // Format created_at date
+      if (course.created_at) {
+        course.created_at = new Date(course.created_at).toISOString();
+      }
+      delete course.teachers; 
+    });
+
+    
+
+    res.json({
+      success: true,
+      dashboard: {
+        totalCourses: courses.length,
+        recentCourses: courses.slice(0, 10), 
+        faculty: {
+          name: faculty.full_name,
+          designation: faculty.designation || 'Faculty Member',
+          
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get faculty dashboard error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load dashboard' });
+  }
+};
+
+// Get logged-in faculty profile
+export const getFacultyProfile = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+
+    // Get faculty basic info
+    const { rows: facultyRows } = await pool.query(`
+      SELECT 
+        id,
+        code,
+        full_name,
+        email,
+        phone,
+        address,
+        designation,
+        qualification,
+        profile_picture,
+        created_at AS joining_date
+      FROM faculty 
+      WHERE id = $1 AND status = 'Active'
+    `, [facultyId]);
+
+    if (facultyRows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    const faculty = facultyRows[0];
+
+    // Get courses taught by this faculty
+    const { rows: courseRows } = await pool.query(`
+      SELECT id, name, type
+      FROM courses 
+      WHERE $1 = ANY(teachers)
+      ORDER BY created_at DESC
+    `, [facultyId]);
+
+    
+    const totalClasses = courseRows.length * 10; 
+    const totalStudents = courseRows.length * 15; 
+
+    res.json({
+      success: true,
+      profile: {
+        ...faculty,
+        employeeId: faculty.code,
+        coursesTeaching: courseRows.map(c => `${c.name} (${c.type})`),
+        totalClasses,
+        totalStudents
+      }
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load profile' });
+  }
+};
+
+// Update faculty profile
+export const updateFacultyProfile = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+    const { full_name, phone, designation, qualification } = req.body;
+
+    const profile_picture = req.file ? req.file.filename : null;
+
+    const updates = {};
+    if (full_name) updates.full_name = full_name;
+    if (phone) updates.phone = phone;
+    if (designation) updates.designation = designation;
+    if (qualification) updates.qualification = qualification;
+    if (profile_picture) updates.profile_picture = profile_picture;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'No data to update' });
+    }
+
+    const { rows } = await pool.query(`
+      UPDATE faculty 
+      SET ${Object.keys(updates).map((k, i) => `${k} = $${i + 1}`).join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${Object.keys(updates).length + 1}
+      RETURNING code, full_name, email, phone, designation, qualification, profile_picture, created_at AS joining_date
+    `, [...Object.values(updates), facultyId]);
+
+    res.json({
+      success: true,
+      profile: rows[0]
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+};

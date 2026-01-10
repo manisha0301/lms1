@@ -1,17 +1,80 @@
-// src/pages/auth/Signup.jsx
-import React, { useEffect, useState } from "react";
+// frontend/src/pages/auth/FacultyLogin.jsx
+
+
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Phone, School, Calendar, Check, ArrowRight } from "lucide-react";
+import { Mail, Lock, Phone, Check } from "lucide-react";
+import axios from "axios";
+import apiConfig from "../../config/apiConfig.js";
 
 const FacultyLogin = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(false);
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [isLogin, setIsLogin] = useState(true);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post(`${apiConfig.API_BASE_URL}/api/faculty/login`, {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      });
+
+      if (response.data.success) {
+        // Save token and faculty info in localStorage
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("faculty", JSON.stringify(response.data.faculty));
+
+        // Redirect to faculty dashboard
+        navigate("/home", { replace: true });
+      }
+    } catch (err) {
+      let message = "Login failed. Please try again.";
+
+      if (err.response?.data?.error) {
+        message = err.response.data.error;
+      }
+
+      // Friendly messages for common cases
+      if (message.includes("pending approval")) {
+        message = "Your account is pending approval by the Academic Admin.";
+      } else if (message.includes("not approved")) {
+        message = "Your account was rejected. Please contact admin.";
+      } else if (message.includes("Invalid credentials")) {
+        message = "Incorrect email or password.";
+      }
+
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a]/5 via-white to-green-50/30 flex items-center justify-center px-4 py-12">
       <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
 
-        {/* LEFT SIDE - Motivational & Branding */}
+        {/* LEFT SIDE */}
         <div className="bg-gradient-to-br from-[#1e3a8a] to-[#1e40af] text-white p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
@@ -63,7 +126,7 @@ const FacultyLogin = () => {
           </div>
         </div>
 
-        {/* RIGHT SIDE - Login / Sign Up Form */}
+        {/* RIGHT SIDE */}
         <div className="p-10 lg:p-16 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
             <div className="text-center mb-10">
@@ -75,7 +138,7 @@ const FacultyLogin = () => {
               </p>
             </div>
 
-            {/* Social Login Buttons */}
+            {/* Social buttons */}
             <div className="space-y-3 mb-8">
               <button className="w-full flex items-center justify-center gap-3 bg-[#1e40af] text-white py-4 rounded-xl font-medium hover:bg-[#1e3a8a] transition">
                 <Mail className="w-5 h-5" />
@@ -96,16 +159,27 @@ const FacultyLogin = () => {
               </div>
             </div>
 
-            {/* // Login Form */}
-            <form className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-center">
+                {error}
+              </div>
+            )}
+
+            {/* Working Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email or Phone</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
                     placeholder="you@example.com or +919876543210"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af]"
+                    required
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] outline-none"
                   />
                 </div>
               </div>
@@ -116,28 +190,31 @@ const FacultyLogin = () => {
                   <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
                     type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af]"
+                    required
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] outline-none"
                   />
                 </div>
               </div>
 
               <button
-                onClick={() => navigate("/home")}
-                className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition cursor-pointer">
-                Login to Dashboard
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading ? "Logging in..." : "Login to Dashboard"}
               </button>
             </form>
 
             <div className="mt-10 text-center">
               <p className="text-gray-600">
                 Don't have an account?{" "}
-                <button
-                  onClick={() => navigate("/signup")}
-                  className="text-[#1e40af] font-bold hover:underline cursor-pointer"
-                >
+                <Link to="/faculty/signup" className="text-[#1e40af] font-bold hover:underline">
                   Sign Up Free
-                </button>
+                </Link>
               </p>
             </div>
 
@@ -152,7 +229,3 @@ const FacultyLogin = () => {
 };
 
 export default FacultyLogin;
-
-
-
-

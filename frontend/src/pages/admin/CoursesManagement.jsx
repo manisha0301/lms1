@@ -1,4 +1,4 @@
-// src/pages/admin/CoursesManagement.jsx
+//frontend/ src/pages/admin/CoursesManagement.jsx
 import React, { useState, useEffect } from "react";
 import {
   BookOpen,
@@ -27,10 +27,11 @@ const CoursesManagement = () => {
   const [modalType, setModalType] = useState("");
 
   const [courses, setCourses] = useState([]);
-  const [activeFaculties, setActiveFaculties] = useState([]); // ← Real active faculties
+  const [activeFaculties, setActiveFaculties] = useState([]);
+  const [selectedTeachers, setSelectedTeachers] = useState([]); // for edit modal
 
   useEffect(() => {
-    const fetchRealCourses = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -39,39 +40,42 @@ const CoursesManagement = () => {
           return;
         }
 
+        // Fetch courses
         const res = await fetch("http://localhost:5000/api/auth/admin/courses", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
         const data = await res.json();
-        console.log("Fetched courses:", data);
 
-        if (data.success && data.courses.length > 0) {
-          const enrichedCourses = data.courses.map((course, index) => ({
-            id: course.id, 
-            name: course.name || "Untitled Course", 
-            price: course.price || 0, 
+        if (data.success) {
+          // Use real data 
+          setCourses(data.courses.map(course => ({
+            id: course.id,
+            name: course.name || "Untitled Course",
+            price: course.price || 0,
             description: course.description || "No description available.",
-            type: index % 2 === 0 ? "Live" : "Recorded",
-            teachers: index === 0 
-              ? ["Dr. Rajesh Kumar", "Prof. Anjali Mehta"]
-              : index === 1 
-              ? ["Mr. Vikram Singh"] 
-              : ["Prof. Anjali Mehta"],
-            batch: {
+            type: course.type || "Live",
+            teachers: course.teachers || [], 
+            batch: course.batches?.[0] || {
               startDate: "2025-01-10",
               endDate: "2025-04-10",
               startTime: "07:00 PM",
               endTime: "09:00 PM"
             },
-            addedToday: index < 2,
-          }));
-
-          setCourses(enrichedCourses);
+            addedToday: false 
+          })));
         } else {
           setCourses([]);
+        }
+
+        // Fetch active faculties
+        const facultyRes = await fetch("http://localhost:5000/api/auth/admin/faculty", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const facultyData = await facultyRes.json();
+        if (facultyData.success) {
+          setActiveFaculties(facultyData.faculties || []);
         }
       } catch (err) {
         console.error("Failed to fetch courses:", err);
@@ -79,46 +83,66 @@ const CoursesManagement = () => {
       }
     };
 
-    fetchRealCourses();
+    fetchData();
   }, [navigate]);
-
-  // Fetch active faculties for teacher assignment
-  useEffect(() => {
-    const fetchActiveFaculties = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/auth/admin/faculty", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          setActiveFaculties(data.faculties || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch active faculties:", err);
-      }
-    };
-
-    fetchActiveFaculties();
-  }, []);
 
   const todayAdded = courses.filter(c => c.addedToday).length;
   const filtered = courses.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  // Helper to get faculty name from ID
+  const getFacultyName = (id) => {
+    const faculty = activeFaculties.find(f => f.id === id);
+    return faculty ? faculty.name : "Unknown Faculty";
+  };
 
   const openModal = (type, course = null) => {
     setSelectedCourse(course);
     setModalType(type);
     setIsModalOpen(true);
+
+    if (type === "edit" && course) {
+      setSelectedTeachers(course.teachers || []);
+    } else {
+      setSelectedTeachers([]);
+    }
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedCourse(null);
     setModalType("");
+    setSelectedTeachers([]);
+  };
+
+  // Save teachers
+  const handleSaveTeachers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:5000/api/auth/admin/courses/${selectedCourse.id}/teachers`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ teacherIds: selectedTeachers })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Update local state
+        setCourses(prev => prev.map(c => 
+          c.id === selectedCourse.id 
+            ? { ...c, teachers: selectedTeachers }
+            : c
+        ));
+        closeModal();
+        alert("Teachers assigned successfully!");
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (err) {
+      alert("Failed to save teachers");
+    }
   };
 
   return (
@@ -194,7 +218,10 @@ const CoursesManagement = () => {
                   <p className="text-gray-600 line-clamp-1">{course.description}</p>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Users className="w-4 h-4" />
-                    {course.teachers.join(", ")}
+                    {course.teachers.length > 0 
+                      ? course.teachers.map(getFacultyName).join(", ")
+                      : "No faculty assigned"
+                    }
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Calendar className="w-4 h-4" />
@@ -220,14 +247,12 @@ const CoursesManagement = () => {
           )}
         </div>
 
-        {/* Unified Modal (Add + Edit) */}
-        {isModalOpen && (modalType === "add" || modalType === "edit") && (
+        {/* Edit Modal */}
+        {isModalOpen && modalType === "edit" && selectedCourse && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center rounded-t-2xl">
-                <h2 className="text-2xl font-bold">
-                  {modalType === "add" ? "Add New Course" : "Edit Course"}
-                </h2>
+                <h2 className="text-2xl font-bold">Edit Course</h2>
                 <button onClick={closeModal} className="p-2 hover:bg-white/20 rounded-xl transition">
                   <X className="w-6 h-6" />
                 </button>
@@ -276,11 +301,19 @@ const CoursesManagement = () => {
                     {activeFaculties.length === 0 ? (
                       <p className="col-span-full text-gray-500 text-center py-4">No active faculties available</p>
                     ) : (
-                      activeFaculties.map((faculty, index) => (
+                      activeFaculties.map((faculty) => (
                         <div key={faculty.id} className="flex items-center gap-3">
                           <input 
                             type="checkbox" 
                             id={`teacher-${faculty.id}`} 
+                            checked={selectedTeachers.includes(faculty.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTeachers(prev => [...prev, faculty.id]);
+                              } else {
+                                setSelectedTeachers(prev => prev.filter(id => id !== faculty.id));
+                              }
+                            }}
                             className="w-5 h-5 border-gray-300 rounded" 
                           />
                           <label 
@@ -318,9 +351,10 @@ const CoursesManagement = () => {
                     Cancel
                   </button>
                   <button 
+                    onClick={handleSaveTeachers}
                     className="px-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition"
-                    onClick={closeModal}>
-                    {modalType === "add" ? "Create Course" : "Save Changes"}
+                  >
+                    Save Changes
                   </button>
                 </div>
               </div>

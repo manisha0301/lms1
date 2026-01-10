@@ -1,9 +1,8 @@
 // src/routes/superAdminRoutes.js
 import express from 'express';
-import { getDashboardStats, getSuperAdminProfile, superAdminChangePassword, superAdminLogin } from '../controllers/superAdminController.js';
+import { getDashboardStats, getSuperAdminProfile, superAdminChangePassword, superAdminLogin, getAcademicInstitutes } from '../controllers/superAdminController.js';
 import {protectSuperAdmin} from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
-
 
 import { 
   createCourse, 
@@ -89,10 +88,14 @@ router.get('/academic-admins-assign', protectSuperAdmin, getAcademicAdminsForAss
 
 // Save course assignment to academic admins
 router.post('/courses/assign', protectSuperAdmin, assignCourseToAdmins);
-export default router;
 
 // Get current assignments for a course (to pre-check checkboxes)
 router.get('/courses/:courseId/assignments', protectSuperAdmin, getCourseAssignments);
 
 // Get courses for management page
-router.get('/course/management', protectSuperAdmin, getCoursesForManagement); 
+router.get('/course/management', protectSuperAdmin, getCoursesForManagement);
+
+// NEW: Public endpoint for student signup dropdown (no auth needed)
+router.get('/institutes', getAcademicInstitutes);
+
+export default router;

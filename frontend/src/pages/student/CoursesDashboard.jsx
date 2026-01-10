@@ -1,18 +1,12 @@
 // src/pages/student/CoursesDashboard.jsx
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Bell, ChevronDown, User, Settings, LogOut, 
   BookOpen, Award, TrendingUp, Clock, IndianRupee, 
   Megaphone, Activity, X
 } from 'lucide-react';
-
-import oip from '../../assets/OIP.jpg';
-import node from '../../assets/node.webp';
-import vue from '../../assets/vue.webp';
-import python from '../../assets/python.webp';
-import java from '../../assets/java.webp';
-import ml from '../../assets/ML.webp';
+import axios from 'axios';
 
 export default function CoursesDashboard() {
   const navigate = useNavigate();
@@ -22,8 +16,57 @@ export default function CoursesDashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
 
-  const user = { firstName: "Rahul", lastName: "Sharma", email: "rahul.sharma@codekart.com" };
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Fetch real courses based on student's university
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        const res = await axios.get('http://localhost:5000/api/auth/student/courses', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data.success) {
+          const enrichedCourses = res.data.courses
+          setCourses(enrichedCourses);
+        }
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+        setCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [navigate]);
+
+  const filteredCourses = useMemo(() => {
+    let filtered = courses;
+    if (searchQuery) {
+      filtered = filtered.filter(c => 
+        c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        c.instructor.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    if (selectedDuration !== 'all') {
+      filtered = filtered.filter(c => c.duration?.includes(selectedDuration));
+    }
+    return filtered;
+  }, [courses, searchQuery, selectedDuration]);
+
+  const coursesToShow = showAllCourses ? filteredCourses : filteredCourses.slice(0, 6);
+
+  // Dummy data for sidebar
   const notifications = [
     { id: 1, title: "New Assignment Posted", desc: "React Masterclass - Module 6", time: "5 mins ago", unread: true },
     { id: 2, title: "Live Class Tomorrow", desc: "Node.js Advanced at 7:00 PM", time: "2 hours ago", unread: true },
@@ -41,36 +84,12 @@ export default function CoursesDashboard() {
     { id: 3, action: "Joined Live Class", course: "Java Spring Boot", time: "Yesterday" }
   ];
 
-  const stats = { enrolled: 8, completed: 3, inProgress: 5 };
-
-  const allCourses = [
-    { id: "react-101", title: "React Masterclass", instructor: "John Doe", thumbnail: oip, progress: 80, duration: "3 Months", price: 19999 },
-    { id: "node-201", title: "Node.js Advanced", instructor: "Jane Smith", thumbnail: node, progress: 45, duration: "6 Months", price: 24999 },
-    { id: "vue-301", title: "Vue.js Essentials", instructor: "Mike Chen", thumbnail: vue, progress: 100, duration: "1 Month", price: 14999 },
-    { id: "python-742", title: "Python for Data Science", instructor: "Sarah Lee", thumbnail: python, progress: 60, duration: "3 Months", price: 22999 },
-    { id: "java-501", title: "Java Spring Boot", instructor: "Raj Patel", thumbnail: java, progress: 20, duration: "12 Months", price: 34999 },
-    { id: "ml-601", title: "Machine Learning A-Z", instructor: "Dr. Kim", thumbnail: ml, progress: 0, duration: "6 Months", price: 39999 }
-  ];
-
-  const filteredCourses = useMemo(() => {
-    let filtered = allCourses;
-    if (searchQuery) filtered = filtered.filter(c => 
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      c.instructor.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    if (selectedDuration !== 'all') filtered = filtered.filter(c => c.duration.includes(selectedDuration));
-    return filtered;
-  }, [searchQuery, selectedDuration]);
-
-  const coursesToShow = showAllCourses ? filteredCourses : filteredCourses.slice(0, 6);
-
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* OFFICIAL CODEKART NAVBAR - EXACT #1e3a8a COLOR */}
+      {/* NAVBAR */}
       <header className="bg-[#1e3a8a] text-white sticky top-0 z-50 shadow-lg">
         <div className="px-8 py-4 flex justify-between items-center">
-          {/* Left: Official Branding */}
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl shadow-xl flex items-center justify-center">
               <span className="text-3xl font-black">K</span>
@@ -81,7 +100,6 @@ export default function CoursesDashboard() {
             </div>
           </div>
 
-          {/* Right: Bell + Profile */}
           <div className="flex items-center gap-4">
             {/* Notification Bell */}
             <div className="relative">
@@ -133,9 +151,8 @@ export default function CoursesDashboard() {
                 className="flex items-center gap-3 hover:bg-white/10 px-4 py-2.5 rounded-xl transition cursor-pointer"
               >
                 <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center font-bold text-lg">
-                  {user.firstName[0]}
+                  {user.firstName?.[0] || 'S'}
                 </div>
-                {/* <ChevronDown className={`w-5 h-5 transition-transform ${profileOpen ? 'rotate-180' : ''}`} /> */}
               </button>
 
               {profileOpen && (
@@ -143,7 +160,7 @@ export default function CoursesDashboard() {
                   <div className="bg-[#1e3a8a] text-white p-6">
                     <div className="flex items-center gap-4">
                       <div className="w-20 h-20 bg-white/25 rounded-full flex items-center justify-center text-3xl font-bold">
-                        {user.firstName[0]}{user.lastName[0]}
+                        {user.firstName?.[0]}{user.lastName?.[0]}
                       </div>
                       <div>
                         <p className="text-xl font-bold">{user.firstName} {user.lastName}</p>
@@ -155,13 +172,15 @@ export default function CoursesDashboard() {
                     <button onClick={() => navigate('/profile')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer">
                       <User className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">My Profile</span>
                     </button>
-                    <button onClick={() => navigate('/settings')}
-                    className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer">
+                    <button onClick={() => navigate('/settings')} className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer">
                       <Settings className="w-5 h-5 text-[#1e3a8a]" /> <span className="font-medium text-[#1e3a8a]">Settings</span>
                     </button>
                     <hr className="my-3 border-gray-200" />
                     <button className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-red-50 text-red-600 rounded-xl transition cursor-pointer"
-                      onClick={() => navigate('/login')}>
+                      onClick={() => {
+                        localStorage.clear();
+                        navigate('/login');
+                      }}>
                       <LogOut className="w-5 h-5" /> <span className="font-medium">Logout</span>
                     </button>
                   </div>
@@ -209,40 +228,62 @@ export default function CoursesDashboard() {
 
         {/* My Enrolled Courses */}
         <h2 className="text-3xl font-bold text-gray-900 mb-8">My Enrolled Courses</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-12">
-          {coursesToShow.map((course) => (
-            <div key={course.id} onClick={() => navigate(`/course/${course.id}`)} className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:-translate-y-3 transition-all cursor-pointer">
-              <div className="h-40 relative">
-                <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-                {course.progress === 100 && (
-                  <div className="absolute top-4 right-4 bg-emerald-600 text-white px-5 py-2 rounded-full font-bold shadow-lg">
-                    COMPLETED
-                  </div>
-                )}
-              </div>
-              <div className="p-7">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
-                <p className="text-gray-600 mb-5">by {course.instructor}</p>
-                <div className="flex justify-between text-sm text-gray-600 mb-6">
-                  <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {course.duration}</span>
-                  <span className="flex items-center gap-2"><IndianRupee className="w-4 h-4" /> ₹{course.price.toLocaleString()}</span>
+
+        {loading ? (
+          <div className="text-center py-20">
+            <p className="text-xl text-gray-600">Loading your courses...</p>
+          </div>
+        ) : coursesToShow.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-xl text-gray-600">No courses available for your institute yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-12">
+            {coursesToShow.map((course) => (
+              <div key={course.id} onClick={() => navigate(`/course/${course.id}`)} className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:-translate-y-3 transition-all cursor-pointer">
+                <div className="h-40 relative overflow-hidden">
+                  <img 
+                    src={course.thumbnail 
+                      ? `http://localhost:5000/uploads/${course.thumbnail}` 
+                      : "https://via.placeholder.com/400x300/6b7280/ffffff?text=No+Image"
+                    }
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                    // You can keep onError as fallback, or remove if the ternary handles it
+                    onError={(e) => {
+                      e.target.src = "https://via.placeholder.com/400x300/6b7280/ffffff?text=Image+Not+Found";
+                    }}
+                  />
+                  {course.progress === 100 && (
+                    <div className="absolute top-4 right-4 bg-emerald-600 text-white px-5 py-2 rounded-full font-bold shadow-lg">
+                      COMPLETED
+                    </div>
+                  )}
                 </div>
-                <div className="mb-6">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Progress</span>
-                    <span className="font-bold text-[#1e3a8a] text-lg">{course.progress}%</span>
+                <div className="p-7">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">{course.title}</h3>
+                  <p className="text-gray-600 mb-5">by {course.instructor}</p>
+                  <div className="flex justify-between text-sm text-gray-600 mb-6">
+                    <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {course.duration || "N/A"}</span>
+                    <span className="flex items-center gap-2"><IndianRupee className="w-4 h-4" /> ₹{course.price?.toLocaleString() || "0"}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-600 rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} />
+                  <div className="mb-6">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-600">Progress</span>
+                      <span className="font-bold text-[#1e3a8a] text-lg">{course.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div className="h-full bg-gradient-to-r from-[#1e3a8a] to-blue-600 rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }} />
+                    </div>
                   </div>
+                  <button className="w-full bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-xl transition cursor-pointer">
+                    {course.progress === 100 ? 'Review Course' : 'Continue Learning'}
+                  </button>
                 </div>
-                <button className="w-full bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold py-4 rounded-2xl shadow-xl transition cursor-pointer">
-                  {course.progress === 100 ? 'Review Course' : 'Continue Learning'}
-                </button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Recent Activity + Announcements */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
