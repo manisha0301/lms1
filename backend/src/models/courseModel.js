@@ -272,3 +272,58 @@ export const replaceCourseStructure = async (courseId, newStructure) => {
     client.release();
   }
 };
+
+// Returns array of weeks
+export const getCourseStructureFaculty = async (courseId) => {
+  const weeksRes = await pool.query(`
+    SELECT 
+      id,
+      title,
+      week_number AS "week",
+      "order"
+    FROM course_weeks
+    WHERE course_id = $1
+    ORDER BY "order" ASC, id ASC
+  `, [courseId]);
+
+  const weeks = weeksRes.rows;
+
+  for (const week of weeks) {
+    const modulesRes = await pool.query(`
+      SELECT 
+        id,
+        title,
+        "order"
+      FROM course_modules
+      WHERE week_id = $1
+      ORDER BY "order" ASC, id ASC
+    `, [week.id]);
+
+    week.modules = modulesRes.rows;
+
+    for (const module of week.modules) {
+      const contentsRes = await pool.query(`
+        SELECT 
+          id,
+          title,
+          type,
+          duration,
+          "order",
+          url
+        FROM module_contents
+        WHERE module_id = $1
+        ORDER BY "order" ASC, id ASC
+      `, [module.id]);
+
+      module.chapters = contentsRes.rows.map(ch => ({
+        ...ch,
+        url: ch.url ? `${process.env.BASE_URL}/uploads/${ch.url}` : null
+      }));
+    }
+
+    // Optional: you can later add assessment fetching here
+    week.assessment = null; // implement later
+  }
+
+  return weeks;
+};

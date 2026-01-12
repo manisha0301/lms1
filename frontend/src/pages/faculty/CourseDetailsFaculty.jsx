@@ -2,19 +2,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import {
-  BookOpen,
-  Users,
-  Clock,
-  Calendar,
-  Link as LinkIcon,
-  ChevronLeft,
-  Plus,
-  Edit2,
-  Trash2,
-  Eye,
-  Settings,
-  CheckCircle,
-  FileText,
+  BookOpen, Users, Clock, Calendar, Link as LinkIcon,
+  ChevronLeft, Plus, Edit2, Trash2, Eye, Settings,
+  CheckCircle, FileText, Upload, File,
 } from 'lucide-react';
 
 import node from '../../assets/node.webp';
@@ -23,7 +13,7 @@ export default function CourseDetailsFaculty() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
-  // MOCK DATA - Faculty View (same as before)
+  // MOCK DATA - Week wise structure
   const course = {
     id: courseId || "node-201",
     title: "Advanced Node.js",
@@ -34,79 +24,111 @@ export default function CourseDetailsFaculty() {
     totalStudents: 48,
     duration: "6 Months",
     status: "Active",
-    description: "Master backend development with Node.js, Express, MongoDB, and real-time applications. Build scalable APIs and full-stack projects.",
+    description: "Master backend development with Node.js, Express, MongoDB, and real-time applications.",
     schedule: "Tue & Thu, 10:00 AM – 11:30 AM",
     room: "Room A-204",
   };
 
-  const modules = [
+  const [weeks] = useState([
     {
-      id: 1,
-      title: "Module 1: Node.js Fundamentals",
-      lessons: [
-        { id: 101, title: "Introduction to Node.js", duration: "45 min" },
-        { id: 102, title: "Event Loop & Async Programming", duration: "60 min" },
-        { id: 103, title: "NPM & Package Management", duration: "30 min" },
+      week: 1,
+      title: "Week 1 - Foundations & Environment Setup",
+      modules: [
+        {
+          id: "m1",
+          title: "Module 1.1 - Node.js Basics",
+          chapters: [
+            { 
+              id: "c11", 
+              title: "Introduction & History", 
+              description: "Understanding what Node.js is and its evolution" 
+            },
+            { 
+              id: "c12", 
+              title: "Installation & First Program", 
+              description: "Setting up Node.js and writing hello world" 
+            },
+          ]
+        },
+        {
+          id: "m2",
+          title: "Module 1.2 - NPM & Modules",
+          chapters: [
+            { 
+              id: "c21", 
+              title: "NPM Basics & package.json", 
+              description: "Understanding package management" 
+            },
+          ]
+        }
       ],
       assessment: {
-        title: "Quiz 1: Node.js Basics",
+        id: "ass-w1",
+        title: "Week 1 Quiz - Node.js Fundamentals",
         type: "Quiz",
-        totalMarks: 20,
-        dueDate: "2025-11-22",
+        totalMarks: 25,
+        dueDate: "2025-10-18",
         published: true,
-        submissions: 42,
+        submissions: 41,
         totalStudents: 48,
-      },
+        // In real app → array of student submissions with file URLs
+        studentSubmissions: [
+          { sl: 1, name: "Rahul Sharma", submitted: true, fileUrl: "#" },
+          { sl: 2, name: "Priya Das", submitted: false, fileUrl: null },
+          // ... more
+        ]
+      }
     },
     {
-      id: 2,
-      title: "Module 2: Express.js & REST APIs",
-      lessons: [
-        { id: 201, title: "Setting up Express Server", duration: "50 min" },
-        { id: 202, title: "Routing & Middleware", duration: "70 min" },
-        { id: 203, title: "Error Handling", duration: "40 min" },
+      week: 2,
+      title: "Week 2 - Asynchronous Programming",
+      modules: [
+        {
+          id: "m3",
+          title: "Module 2.1 - Event Loop Deep Dive",
+          chapters: [
+            { id: "c31", title: "Call Stack & Event Queue", description: "How JavaScript executes code" },
+            { id: "c32", title: "Promises & Async/Await", description: "Modern ways to handle async" },
+          ]
+        }
       ],
-      assessment: {
-        title: "Assignment 1 Build a REST API",
-        type: "Assignment",
-        totalMarks: 50,
-        due: "2025-12-05",
-        published: true,
-        submissions: 31,
-        totalStudents: 48,
-      },
+      assessment: null // No assessment yet
     },
-    {
-      id: 3,
-      title: "Module 3: Database Integration",
-      lessons: [
-        { id: 301, title: "MongoDB with Mongoose", duration: "60 min" },
-        { id: 302, title: "CRUD Operations", duration: "55 min" },
-      ],
-      assessment: null,
-    },
-  ];
+    // ... more weeks
+  ]);
 
   const [classLink, setClassLink] = useState("https://zoom.us/j/1234567890");
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [tempLink, setTempLink] = useState(classLink);
+
+  // Modal states
+  const [showAddAssessmentModal, setShowAddAssessmentModal] = useState(false);
+  const [showViewSubmissionsModal, setShowViewSubmissionsModal] = useState(false);
+  const [selectedWeekForModal, setSelectedWeekForModal] = useState(null);
 
   const handleSaveLink = () => {
     setClassLink(tempLink);
     setIsEditingLink(false);
   };
 
+  const openAddAssessment = (week) => {
+    setSelectedWeekForModal(week);
+    setShowAddAssessmentModal(true);
+  };
+
+  const openViewSubmissions = (week) => {
+    setSelectedWeekForModal(week);
+    setShowViewSubmissionsModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header – exactly same as CourseDetails.jsx */}
+      {/* Header */}
       <div className="bg-[#1e3a8a] text-white py-12">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="mx-auto px-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="text-white hover:bg-white/10 p-2 rounded-lg transition cursor-pointer"
-              >
+              <button onClick={() => navigate(-1)} className="text-white hover:bg-white/10 p-2 rounded-lg transition">
                 <ChevronLeft className="w-8 h-8" />
               </button>
               <div>
@@ -120,46 +142,35 @@ export default function CourseDetailsFaculty() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="mx-auto px-6 py-10">
         <div className="space-y-8">
-          {/* Live Class Link Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* Live Class Link */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-xl font-bold flex items-center gap-2">
                 <LinkIcon className="w-5 h-5 text-[#1e40af]" /> Live Class Link
               </h2>
               {!isEditingLink && (
-                <button
-                  onClick={() => setIsEditingLink(true)}
-                  className="text-[#1e40af] hover:bg-blue-50 p-2 rounded-md transition cursor-pointer"
-                >
+                <button onClick={() => setIsEditingLink(true)} className="text-[#1e40af] hover:bg-blue-50 p-2 rounded-md">
                   <Edit2 className="w-5 h-5" />
                 </button>
               )}
             </div>
-
             <input
               type="url"
               value={isEditingLink ? tempLink : classLink}
               onChange={(e) => setTempLink(e.target.value)}
               disabled={!isEditingLink}
-              className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition disabled:bg-gray-100"
+              className="w-full px-4 py-3 rounded-md focus:ring-2 focus:ring-[#1e40af] disabled:bg-gray-100"
             />
-
             {isEditingLink && (
               <div className="mt-6 flex gap-4">
-                <button
-                  onClick={handleSaveLink}
-                  className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition flex items-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle className="w-4 h-4" /> Save Link
+                <button onClick={handleSaveLink} className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" /> Save
                 </button>
                 <button
-                  onClick={() => {
-                    setIsEditingLink(false);
-                    setTempLink(classLink);
-                  }}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition cursor-pointer"
+                  onClick={() => { setIsEditingLink(false); setTempLink(classLink); }}
+                  className="px-6 py-3 rounded-md hover:bg-gray-50"
                 >
                   Cancel
                 </button>
@@ -167,7 +178,7 @@ export default function CourseDetailsFaculty() {
             )}
           </div>
 
-          {/* Course Info Summary */}
+          {/* Course Info Summary - same as before */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
@@ -203,136 +214,221 @@ export default function CourseDetailsFaculty() {
               </div>
             </div>
           </div>
-
-          {/* Course Content */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <h2 className="text-xl font-bold flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-[#1e40af]" /> Course Content
               </h2>
-              <button className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition flex items-center gap-2 cursor-pointer">
-                <Plus className="w-4 h-4" /> Add Module
+              <button className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add Week
               </button>
             </div>
 
-            {modules.length === 0 ? (
-              <div className="text-center py-12">
-                <BookOpen className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">No modules added yet</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {modules.map((module) => (
-                  <div
-                    key={module.id}
-                    className="border border-gray-200 rounded-lg hover:shadow-md transition p-6"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-[#1e40af]" />
-                        {module.title}
-                      </h3>
-                      <div className="flex gap-2">
-                        <button className="text-[#1e40af] hover:bg-blue-50 p-2 rounded-md transition">
-                          <Edit2 className="w-5 h-5" />
-                        </button>
-                        <button className="text-red-600 hover:bg-red-50 p-2 rounded-md transition">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
+            <div className="space-y-10">
+              {weeks.map((week) => (
+                <div key={week.week} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition">
+                  {/* Week Title */}
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
+                    <Calendar className="w-7 h-7 text-[#1e40af]" />
+                    {week.title}
+                  </h3>
 
-                    {/* Lessons */}
-                    <div className="ml-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-gray-800 flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-gray-500" />
-                          Lessons ({module.lessons.length})
+                  {/* Modules under Week */}
+                  <div className="space-y-6 ml-4">
+                    {week.modules.map((module) => (
+                      <div key={module.id} className="border-l-4 border-[#1e40af] pl-4">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <BookOpen className="w-5 h-5" />
+                          {module.title}
                         </h4>
-                        <button className="text-sm text-[#1e40af] hover:underline">
-                          + Add Lesson
-                        </button>
-                      </div>
-                      <ul className="space-y-2 ml-6">
-                        {module.lessons.map((lesson) => (
-                          <li
-                            key={lesson.id}
-                            className="flex items-center justify-between text-gray-700"
-                          >
-                            <span className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-gray-400" />
-                              {lesson.title} • <span className="text-sm text-gray-500">{lesson.duration}</span>
-                            </span>
-                            <div className="flex gap-2">
-                              <button className="text-gray-500 hover:text-gray-700">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button className="text-gray-500 hover:text-gray-700">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
 
-                    {/* Assessment */}
-                    <div className="mt-6 border-t pt-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-gray-800 flex items-center gap-2">
-                          <Settings className="w-4 h-4 text-gray-500" />
-                          Assessment
-                        </h4>
-                        {!module.assessment && (
-                          <button className="text-sm text-[#1e40af] hover:underline">
-                            + Create Assessment
-                          </button>
-                        )}
-                      </div>
-
-                      {module.assessment ? (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h5 className="font-semibold text-gray-900">
-                                {module.assessment.title}
-                                <span className={`ml-3 text-xs px-2 py-1 rounded-full ${
-                                  module.assessment.type === 'Quiz'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-purple-100 text-purple-700'
-                                }`}>
-                                  {module.assessment.type}
-                                </span>
-                              </h5>
-                              <div className="mt-2 text-sm text-gray-600 space-y-1">
-                                <div>Total Marks: <strong>{module.assessment.totalMarks}</strong></div>
-                                <div>Due: <strong>{new Date(module.assessment.due).toLocaleDateString()}</strong></div>
-                                <div>
-                                  Submissions: <strong>{module.assessment.submissions}/{module.assessment.totalStudents}</strong>
-                                </div>
+                        {/* Chapters under Module */}
+                        <ul className="space-y-3 ml-6">
+                          {module.chapters.map((chapter) => (
+                            <li key={chapter.id} className="bg-gray-50 p-3 rounded">
+                              <div className="font-medium text-gray-800">
+                                {chapter.title}
                               </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button className="px-4 py-2 bg-[#1e40af] text-white text-sm rounded-md hover:bg-[#1e3a8a] transition">
-                                View Submissions
-                              </button>
-                              <button className="px-4 py-2 border border-gray-300 text-sm rounded-md hover:bg-gray-50 transition">
-                                Edit
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 italic">No assessment created yet.</p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {chapter.description}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Assessment Section for the Week */}
+                  <div className="mt-8 pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-gray-600" />
+                        Week Assessment
+                      </h4>
+
+                      {!week.assessment && (
+                        <button
+                          onClick={() => openAddAssessment(week.week)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
+                        >
+                          <Plus className="w-4 h-4" /> Add Assessment
+                        </button>
                       )}
                     </div>
+
+                    {week.assessment ? (
+                      <div className="bg-gray-50 rounded-lg p-5">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-semibold text-lg">
+                              {week.assessment.title}
+                              <span className="ml-3 text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                                {week.assessment.type}
+                              </span>
+                            </h5>
+                            <div className="mt-2 text-sm text-gray-600 space-y-1">
+                              <div>Total Marks: <strong>{week.assessment.totalMarks}</strong></div>
+                              <div>Due: <strong>{new Date(week.assessment.dueDate).toLocaleDateString()}</strong></div>
+                              <div>Submissions: <strong>{week.assessment.submissions}/{week.assessment.totalStudents}</strong></div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => openViewSubmissions(week.week)}
+                              className="px-4 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] text-sm"
+                            >
+                              View Submissions
+                            </button>
+                            <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 italic text-center py-4">
+                        No assessment created for this week yet.
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ---------------------- Modals ---------------------- */}
+
+      {/* Add Assessment Modal */}
+      {showAddAssessmentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 w-full max-w-lg">
+            <h3 className="text-xl font-bold mb-6">Add Assessment - Week {selectedWeekForModal}</h3>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium mb-1">Assessment Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Week 1 - Node.js Fundamentals Quiz"
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Upload File (PDF)</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <Upload className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                  <input type="file" accept=".pdf" className="hidden" />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-8">
+                <button
+                  onClick={() => setShowAddAssessmentModal(false)}
+                  className="px-6 py-2 border rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a]">
+                  Create Assessment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Submissions Modal */}
+      {showViewSubmissionsModal && selectedWeekForModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 w-full max-w-3xl max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">
+                Submissions - Week {selectedWeekForModal} Assessment
+              </h3>
+              <button onClick={() => setShowViewSubmissionsModal(false)} className="text-gray-500 hover:text-gray-700">
+                ✕
+              </button>
+            </div>
+
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-3 text-left">Sl.</th>
+                  <th className="p-3 text-left">Student Name</th>
+                  <th className="p-3 text-left">Status</th>
+                  <th className="p-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weeks
+                  .find(w => w.week === selectedWeekForModal)
+                  ?.assessment?.studentSubmissions?.map((student) => (
+                    <tr key={student.sl} className="border-t">
+                      <td className="p-3">{student.sl}</td>
+                      <td className="p-3">{student.name}</td>
+                      <td className="p-3">
+                        <span className={`px-3 py-1 rounded-full text-xs ${
+                          student.submitted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {student.submitted ? 'Submitted' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        {student.submitted && student.fileUrl ? (
+                          <a
+                            href={student.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#1e40af] hover:underline flex items-center justify-center gap-1"
+                          >
+                            <File className="w-4 h-4" /> View PDF
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+
+            <div className="mt-8 flex justify-end">
+              <button
+                onClick={() => setShowViewSubmissionsModal(false)}
+                className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -57,7 +57,7 @@ const superAdminLogin = async (req, res) => {
     const token = jwt.sign(
       { id: superAdmin.id, role: "superadmin", email: superAdmin.email },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.json({

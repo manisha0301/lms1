@@ -49,8 +49,8 @@ const CoursesManagement = () => {
         const data = await res.json();
 
         if (data.success) {
-          // Use real data 
-          setCourses(data.courses.map(course => ({
+          // Use real data
+          const enrichedCourses = (data.courses || []).map(course => ({
             id: course.id,
             name: course.name || "Untitled Course",
             price: course.price || 0,
@@ -66,7 +66,7 @@ const CoursesManagement = () => {
             addedToday: course.created_at
               ? new Date(course.created_at).toDateString() === new Date().toDateString()
               : false,
-          })));
+          }));
 
           setCourses(enrichedCourses);
         } else {

@@ -145,7 +145,7 @@ const academicAdminLogin = async (req, res) => {
         fullName: admin.full_name
       },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.json({
@@ -400,7 +400,10 @@ const getCourseDetails = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Course not found or not assigned' });
     }
 
-    res.json({ success: true, course: rows[0] });
+    // Return the full result set (array of rows) so the frontend can reconstruct
+    // the nested structure (weeks → modules → contents)
+    
+    res.json({ success: true, course: rows });
   } catch (error) {
     console.error('Get Course Details Error →', error.message);
     res.status(500).json({ success: false, error: 'Server error' });

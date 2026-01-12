@@ -15,6 +15,7 @@ import {
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { getCourseStructureFaculty } from '../models/courseModel.js';
 
 // Ensure uploads/faculty folder exists
 const uploadDir = path.join(process.cwd(), 'uploads/faculty');
@@ -315,7 +316,7 @@ export const facultyLogin = async (req, res) => {
     const token = jwt.sign(
       { id: faculty.id, role: 'faculty' },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.json({
@@ -509,5 +510,64 @@ export const updateFacultyProfile = async (req, res) => {
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+};
+
+// backend/src/controllers/facultyController.js
+
+export const getFacultyCourseDetail = async (req, res) => {
+  const { courseId } = req.params;
+  const facultyId = req.user.id;
+
+  try {
+    // 1. Verify faculty teaches this course
+    const { rows: courseCheck } = await pool.query(
+      'SELECT id, name, type, price, duration, description, image AS thumbnail, created_at FROM courses WHERE id = $1 AND $2 = ANY(teachers)',
+      [courseId, facultyId]
+    );
+
+    if (courseCheck.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not authorized to view this course or course not found'
+      });
+    }
+
+    const course = courseCheck[0];
+
+    // 2. Get total students count (you'll need proper relation table later)
+    const { rows: [{ total_students }] } = await pool.query(`
+      SELECT COUNT(DISTINCT student_id) as total_students
+      FROM enrollments 
+      WHERE course_id = $1 AND status = 'active'
+    `, [courseId]);
+
+    course.totalStudents = parseInt(total_students) || 0;
+
+    // 3. Get full course structure
+    const structure = await getCourseStructureFaculty(courseId); // ← from courseModel.js
+
+    // 4. Optional: Get current live class link
+    // You can store it in courses table as live_class_link TEXT or in separate settings table
+    const { rows: [linkRow] } = await pool.query(
+      'SELECT live_class_link FROM courses WHERE id = $1',
+      [courseId]
+    );
+
+    const response = {
+      success: true,
+      course: {
+        ...course,
+        totalStudents: course.totalStudents,
+        thumbnail: course.thumbnail ? `${process.env.BASE_URL}/uploads/${course.thumbnail}` : null
+      },
+      structure,
+      liveClassLink: linkRow?.live_class_link || null
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get faculty course detail error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load course details' });
   }
 };
