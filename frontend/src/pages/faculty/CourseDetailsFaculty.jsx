@@ -1,6 +1,8 @@
 // src/pages/faculty/CourseDetailsFaculty.jsx
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig.js';
 import {
   BookOpen, Users, Clock, Calendar, Link as LinkIcon,
   ChevronLeft, Plus, Edit2, Trash2, Eye, Settings,
@@ -10,93 +12,81 @@ import {
 import node from '../../assets/node.webp';
 
 export default function CourseDetailsFaculty() {
-  const { courseId } = useParams();
+  const { id: courseId } = useParams();
   const navigate = useNavigate();
 
-  // MOCK DATA - Week wise structure
-  const course = {
-    id: courseId || "node-201",
-    title: "Advanced Node.js",
-    code: "CSE-405",
-    thumbnail: node,
-    instructor: "Dr. Sarah Chen",
-    semester: "Fall 2025",
-    totalStudents: 48,
-    duration: "6 Months",
-    status: "Active",
-    description: "Master backend development with Node.js, Express, MongoDB, and real-time applications.",
-    schedule: "Tue & Thu, 10:00 AM – 11:30 AM",
-    room: "Room A-204",
-  };
+  // Course state (fetched from backend)
+  const [course, setCourse] = useState(null);
+  const [weeks, setWeeks] = useState([]);
+  const [loadingCourse, setLoadingCourse] = useState(true);
+  const [courseError, setCourseError] = useState(null);
 
-  const [weeks] = useState([
-    {
-      week: 1,
-      title: "Week 1 - Foundations & Environment Setup",
-      modules: [
-        {
-          id: "m1",
-          title: "Module 1.1 - Node.js Basics",
-          chapters: [
-            { 
-              id: "c11", 
-              title: "Introduction & History", 
-              description: "Understanding what Node.js is and its evolution" 
-            },
-            { 
-              id: "c12", 
-              title: "Installation & First Program", 
-              description: "Setting up Node.js and writing hello world" 
-            },
-          ]
-        },
-        {
-          id: "m2",
-          title: "Module 1.2 - NPM & Modules",
-          chapters: [
-            { 
-              id: "c21", 
-              title: "NPM Basics & package.json", 
-              description: "Understanding package management" 
-            },
-          ]
-        }
-      ],
-      assessment: {
-        id: "ass-w1",
-        title: "Week 1 Quiz - Node.js Fundamentals",
-        type: "Quiz",
-        totalMarks: 25,
-        dueDate: "2025-10-18",
-        published: true,
-        submissions: 41,
-        totalStudents: 48,
-        // In real app → array of student submissions with file URLs
-        studentSubmissions: [
-          { sl: 1, name: "Rahul Sharma", submitted: true, fileUrl: "#" },
-          { sl: 2, name: "Priya Das", submitted: false, fileUrl: null },
-          // ... more
-        ]
+  useEffect(() => {
+    const fetchCourse = async () => {
+      if (!courseId) {
+        setCourseError('Course ID is missing');
+        setLoadingCourse(false);
+        return;
       }
-    },
-    {
-      week: 2,
-      title: "Week 2 - Asynchronous Programming",
-      modules: [
-        {
-          id: "m3",
-          title: "Module 2.1 - Event Loop Deep Dive",
-          chapters: [
-            { id: "c31", title: "Call Stack & Event Queue", description: "How JavaScript executes code" },
-            { id: "c32", title: "Promises & Async/Await", description: "Modern ways to handle async" },
-          ]
-        }
-      ],
-      assessment: null // No assessment yet
-    },
-    // ... more weeks
-  ]);
 
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return navigate('/login');
+
+        const res = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data && res.data.success) {
+          const c = res.data.course;
+
+          // map fields to UI-friendly names
+          setCourse({
+            id: c.id,
+            title: c.name || c.title || `Course ${c.id}`,
+            code: c.code || `C-${c.id}`,
+            thumbnail: c.image ? `${apiConfig.API_BASE_URL}/uploads/${c.image}` : node,
+            instructor: (c.facultyNames && c.facultyNames.join(', ')) || 'TBD',
+            semester: c.semester || 'N/A',
+            totalStudents: c.totalStudents || 0,
+            duration: c.duration || 'N/A',
+            status: 'Active',
+            description: c.description || '',
+            schedule: c.schedule || 'TBD',
+            room: c.room || 'TBD'
+          });
+
+          // Map backend structure to the expected weeks/modules/chapters shape
+          const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
+          const mappedWeeks = apiWeeks.map((w, idx) => ({
+            week: w.weekNumber || idx + 1,
+            title: w.title || `Week ${idx + 1}`,
+            modules: (w.modules || []).map(m => ({
+              id: m.id,
+              title: m.title,
+              chapters: (m.chapters || []).map(ch => ({
+                id: ch.id,
+                title: ch.title,
+                description: ch.type ? `${ch.type}${ch.duration ? ' · ' + ch.duration : ''}` : (ch.url || '')
+              }))
+            })),
+            assessment: null
+          }));
+
+          setWeeks(mappedWeeks);
+        } else {
+          setCourseError((res.data && res.data.error) || 'Failed to load course');
+        }
+      } catch (err) {
+        console.error('Error fetching course:', err);
+        setCourseError('Error fetching course details');
+      } finally {
+        setLoadingCourse(false);
+      }
+    };
+
+    fetchCourse();
+  }, [courseId, navigate]);
   const [classLink, setClassLink] = useState("https://zoom.us/j/1234567890");
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [tempLink, setTempLink] = useState(classLink);
@@ -110,6 +100,22 @@ export default function CourseDetailsFaculty() {
     setClassLink(tempLink);
     setIsEditingLink(false);
   };
+
+  if (loadingCourse) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-lg text-gray-600">Loading course details...</p>
+      </div>
+    );
+  }
+
+  if (courseError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-lg text-red-600">{courseError}</p>
+      </div>
+    );
+  }
 
   const openAddAssessment = (week) => {
     setSelectedWeekForModal(week);
@@ -219,9 +225,6 @@ export default function CourseDetailsFaculty() {
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-[#1e40af]" /> Course Content
               </h2>
-              <button className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] flex items-center gap-2">
-                <Plus className="w-4 h-4" /> Add Week
-              </button>
             </div>
 
             <div className="space-y-10">
