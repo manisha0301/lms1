@@ -313,7 +313,7 @@ export default function CourseDetails() {
                   <img
                     src={`http://localhost:5000/uploads/${course.image}`}
                     alt={course.name}
-                    className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl border-4 border-white/30"
+                    className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl border-4 border-white/30 h-60"
                   />
                 ) : (
                   <div className="relative z-10 w-full max-w-md h-96 bg-gray-300 rounded-2xl border-4 border-white/30" />

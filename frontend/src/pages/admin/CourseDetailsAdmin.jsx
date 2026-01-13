@@ -83,28 +83,100 @@ const CourseDetailsAdmin = () => {
         const data = await res.json();
         console.log("Course details fetched:", data.course);
 
-          // Set basic course info from the first row
+        // The API sometimes returns an ARRAY of rows (joined rows for weeks/modules/content)
+        // Normalize both cases (array or single object) and build `sections` as expected by the UI
+        const coursePayload = data.course;
+
+        if (Array.isArray(coursePayload) && coursePayload.length > 0) {
+          // Use the first row that has `name` or fallback to the first element
+          const first = coursePayload.find(item => item && item.name) || coursePayload[0];
+
           setCourse(prev => ({
             ...prev,
-            name: data.course.name || "Untitled Course",
-            description: data.course.description || "No description available.",
+            name: first.name || "Untitled Course",
+            description: first.description || "No description available.",
           }));
 
-          // Set sections if content data is available
-          if (data.course.week_title) {
+          // Build weeks → modules → chapters structure
+          const weeksMap = new Map();
+
+          coursePayload.forEach(row => {
+            if (!row) return;
+
+            const weekId = row.week_id;
+            const weekTitle = row.week_title;
+            const moduleId = row.module_id;
+            const moduleName = row.module_name;
+            const contentId = row.content_id;
+            const contentTitle = row.content_title;
+
+            // Skip rows that don't include a week or module identifier
+            if (!weekId && !moduleId) return;
+
+            // Ensure week entry
+            const wKey = weekId ?? `week_unassigned`;
+            if (!weeksMap.has(wKey)) {
+              weeksMap.set(wKey, {
+                id: weekId || null,
+                name: weekTitle || "Unassigned",
+                modulesMap: new Map(),
+              });
+            }
+
+            const weekEntry = weeksMap.get(wKey);
+
+            // If module exists, ensure module entry
+            if (moduleId) {
+              if (!weekEntry.modulesMap.has(moduleId)) {
+                weekEntry.modulesMap.set(moduleId, { id: moduleId, name: moduleName || "Untitled Module", chapters: [] });
+              }
+
+              const moduleEntry = weekEntry.modulesMap.get(moduleId);
+
+              if (contentId) {
+                // Avoid duplicate chapters
+                if (!moduleEntry.chapters.some(c => c.id === contentId)) {
+                  moduleEntry.chapters.push({ id: contentId, title: contentTitle || "Untitled Content" });
+                }
+              }
+            }
+          });
+
+          const sectionsArr = Array.from(weeksMap.values()).map(w => ({
+            id: w.id,
+            name: w.name,
+            modules: Array.from(w.modulesMap.values())
+          }));
+
+          setSections(sectionsArr);
+          console.log('Parsed sections:', sectionsArr);
+        } else if (coursePayload && typeof coursePayload === 'object') {
+          // Legacy/single-object response
+          setCourse(prev => ({
+            ...prev,
+            name: coursePayload.name || "Untitled Course",
+            description: coursePayload.description || "No description available.",
+          }));
+
+          // Keep previous simple mapping if week fields are present
+          if (coursePayload.week_title) {
             setSections([{
-              id: data.course.week_id,
-              name: data.course.week_title,
+              id: coursePayload.week_id,
+              name: coursePayload.week_title,
               modules: [{
-                id: data.course.module_id,
-                name: data.course.module_name,
+                id: coursePayload.module_id,
+                name: coursePayload.module_name,
                 chapters: [{
-                  id: data.course.content_id,
-                  title: data.course.content_title
+                  id: coursePayload.content_id,
+                  title: coursePayload.content_title
                 }]
               }]
             }]);
           }
+        } else {
+          // No course data available
+          setCourse(prev => ({ ...prev, name: "Untitled Course", description: "No description available." }));
+        }
         // Fetch real per-admin schedule (batch + meeting link)
         const scheduleRes = await axios.get(
           `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/schedule`,

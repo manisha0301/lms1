@@ -405,7 +405,7 @@ WHERE ca.academic_admin_id = $1
     // Return the full result set (array of rows) so the frontend can reconstruct
     // the nested structure (weeks → modules → contents)
     
-    res.json({ success: true, course: rows[0] });
+    res.json({ success: true, course: rows });
   } catch (error) {
     console.error('Get Course Details Error →', error.message);
     res.status(500).json({ success: false, error: 'Server error' });
