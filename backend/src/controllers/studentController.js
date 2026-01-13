@@ -50,7 +50,7 @@ export const studentSignup = async (req, res) => {
     const token = jwt.sign(
       { id: student.id, email: student.email, role: 'student' },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.status(201).json({
@@ -103,7 +103,7 @@ export const studentLogin = async (req, res) => {
     const token = jwt.sign(
       { id: student.id, email: student.email, role: 'student' },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.json({

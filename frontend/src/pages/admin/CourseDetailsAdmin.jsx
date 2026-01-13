@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Users,
   FileText,
+  Layers,
+  BookOpen,
 } from "lucide-react";
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig.js'; // Adjust path if needed
@@ -22,6 +24,8 @@ const CourseDetailsAdmin = () => {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showContentModal, setShowContentModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+
 
   // Batch schedule form state (controlled)
   const [batchForm, setBatchForm] = useState({
@@ -49,35 +53,8 @@ const CourseDetailsAdmin = () => {
     ],
   });
 
-  const [sections] = useState([
-    {
-      id: 1,
-      name: "Week 1 - Introduction",
-      modules: [
-        {
-          id: 1,
-          name: "Module 1: Getting Started",
-          chapters: ["Welcome & Setup", "Course Overview", "Tools Installation"]
-        },
-        {
-          id: 2,
-          name: "Module 2: React Basics",
-          chapters: ["JSX & Components", "State & Props", "Event Handling"]
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: "Week 2 - Advanced Concepts",
-      modules: [
-        {
-          id: 3,
-          name: "Module 3: Hooks Deep Dive",
-          chapters: ["useState & useEffect", "Custom Hooks", "Performance Optimization"],
-        },
-      ],
-    },
-  ]);
+  // ── Real course structure (weeks/sections) ──────────────────
+  const [sections, setSections] = useState([]); // array of weeks/sections
 
   const [newSection, setNewSection] = useState({
     name: "",
@@ -93,22 +70,41 @@ const CourseDetailsAdmin = () => {
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("token");
 
         // Fetch course basic info
         const res = await fetch(`http://localhost:5000/api/auth/admin/courses/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        const data = await res.json();
 
-        if (data.success) {
+        const data = await res.json();
+        console.log("Course details fetched:", data.course);
+
+          // Set basic course info from the first row
           setCourse(prev => ({
             ...prev,
             name: data.course.name || "Untitled Course",
             description: data.course.description || "No description available.",
           }));
-        }
 
+          // Set sections if content data is available
+          if (data.course.week_title) {
+            setSections([{
+              id: data.course.week_id,
+              name: data.course.week_title,
+              modules: [{
+                id: data.course.module_id,
+                name: data.course.module_name,
+                chapters: [{
+                  id: data.course.content_id,
+                  title: data.course.content_title
+                }]
+              }]
+            }]);
+          }
         // Fetch real per-admin schedule (batch + meeting link)
         const scheduleRes = await axios.get(
           `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/schedule`,
@@ -122,8 +118,10 @@ const CourseDetailsAdmin = () => {
             meetingLink: scheduleRes.data.schedule.meeting_link || null
           }));
         }
+        setLoading(false);
       } catch (err) {
         console.error("Error fetching course:", err);
+        setLoading(false);
       }
     };
 
@@ -356,48 +354,77 @@ const CourseDetailsAdmin = () => {
 
         {/* CONTENT TAB */}
         {activeTab === "content" && (
-          <div className="space-y-6">
-            <div className="flex justify-end items-end">
-              <button
-                onClick={openContentModal}
-                className="w-52 py-3 bg-[#1e3a8a] text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-3 transition hover:scale-105 cursor-pointer"
-              >
-                <Plus className="w-6 h-6" />
-                Add New Section
-              </button>
+          <div className="space-y-8">
+            <div className="flex items-center justify-between ml-1">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <Layers className="w-7 h-7 text-[#1e3a8a]" />
+                Course Contents
+              </h2>
             </div>
-            {sections.map((section) => (
-              <div key={section.id} className="bg-white rounded-xl shadow-xl border border-gray-100 p-8">
-                <div className="flex justify-between items-start mb-5">
-                  <h3 className="text-xl font-bold text-gray-800">{section.name}</h3>
-                  <button className="text-red-600 hover:text-red-800 cursor-pointer">
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {section.modules.map((module) => (
-                    <div key={module.id} className="bg-gray-50 rounded-xl p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900">{module.name}</h4>
-                        <button className="text-red-600 hover:text-red-800 cursor-pointer">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="space-y-3">
-                        {module.chapters.map((chapter, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                            <span className="text-gray-800">{chapter}</span>
-                            <button className="text-red-600 hover:text-red-800 cursor-pointer">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+
+            {sections.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
+                No course content structure available yet.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {sections.map((section, sectionIndex) => (
+                  <div
+                    key={section.id}
+                    className="bg-white rounded-xl shadow-sm overflow-hidden"
+                  >
+                    {/* Section / Week Header */}
+                    <div className="bg-gradient-to-r from-[#1e3a8a]/10 to-[#1e40af]/5 px-6 py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <h3 className="font-semibold text-[#1e3a8a] text-lg">
+                            {section.name}
+                          </h3>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Modules inside section */}
+                    <div className="p-6">
+                      {section.modules?.length === 0 ? (
+                        <p className="text-gray-500 italic text-center py-8">
+                          No modules in this section yet
+                        </p>
+                      ) : (
+                        <div className="space-y-6">
+                          {section.modules.map((module) => (
+                            <div key={module.id} className="border-l-4 border-[#1e3a8a]/40 pl-5 py-2">
+                              <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                <BookOpen size={18} className="text-[#1e3a8a]" />
+                                {module.name}
+                              </h4>
+
+                              <div className="space-y-2.5 ml-2">
+                                {module.chapters?.map((chapter, idx) => (
+                                  <div
+                                    key={chapter.id || idx}
+                                    className="flex items-center gap-3 py-2.5 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group"
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
+                                      {idx + 1}
+                                    </div>
+                                    <span className="flex-1 font-medium text-gray-800">
+                                      {chapter.title}
+                                    </span>
+                                    {/* You can show type icon here later */}
+                                    {/* <Video size={16} className="text-gray-500" /> */}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 

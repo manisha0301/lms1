@@ -1,10 +1,10 @@
 // frontend/src/pages/superAdmin/CourseDetails.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { 
-  Play, FileText, Calendar, Clock, CheckCircle, 
+import {
+  Play, FileText, Calendar, Clock, CheckCircle,
   Lock, CreditCard, Users, Video, BookOpen, Award,
-  Download, X 
+  Download, X, Plus, Trash2, ChevronRight, Edit3
 } from "lucide-react";
 
 export default function CourseDetails() {
@@ -12,22 +12,48 @@ export default function CourseDetails() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Model states 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingModule, setEditingModule] = useState(null);
-
-  // Form states
-  const [newModuleTitle, setNewModuleTitle] = useState("");
-  const [newChapters, setNewChapters] = useState([]);
-  const [editModuleTitle, setEditModuleTitle] = useState("");
-  const [editChapters, setEditChapters] = useState([]);
-
   // Assign Course modal 
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState([]);
   const [academicAdmins, setAcademicAdmins] = useState([]);
 
+  // New Content Modal (Add Section)
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [newSection, setNewSection] = useState({
+    name: "",
+    week: "",
+    customTitle: "",
+    modules: [{ name: "", chapters: [""] }],
+  });
+
+  // Edit Section Modal
+  const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
+  const [editingSection, setEditingSection] = useState(null);
+
+  // Course content sections (now fetched from backend and mutable)
+  const [sections, setSections] = useState([]);
+
+  const openContentModal = () => {
+    setNewSection({ name: "", week: "", customTitle: "", modules: [{ name: "", chapters: [""] }] });
+    setShowContentModal(true);
+  };
+
+  const openEditSectionModal = (section) => {
+    // Parse name to week and customTitle if needed
+    let week = section.week || "";
+    let customTitle = section.customTitle || "";
+    if (!week && section.name.startsWith("Week ")) {
+      const parts = section.name.split(" - ");
+      week = parts[0].replace("Week ", "").trim();
+      customTitle = parts[1] || "";
+    }
+    setEditingSection({
+      ...section,
+      week,
+      customTitle,
+    });
+    setIsEditSectionModalOpen(true);
+  };
 
   const handleOrgToggle = (adminId) => {
     setSelectedOrgs((prev) =>
@@ -38,71 +64,65 @@ export default function CourseDetails() {
   };
 
   const handleAssignSubmit = async () => {
-  if (selectedOrgs.length === 0) {
-    alert("Please select at least one institution.");
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("superAdminToken");
-    const res = await fetch("http://localhost:5000/api/auth/superadmin/courses/assign", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        courseId: course.id,
-        adminIds: selectedOrgs
-      }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      alert(data.message);
-      setIsAssignModalOpen(false);
-      setSelectedOrgs([]);
-    } else {
-      alert("Error: " + data.error);
+    if (selectedOrgs.length === 0) {
+      alert("Please select at least one institution.");
+      return;
     }
-  } catch (err) {
-    console.error("Assign error:", err);
-    alert("Network error");
-  }
-};
 
-const openAssignModal = async () => {
-  try {
-    const token = localStorage.getItem("superAdminToken");
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      const res = await fetch("http://localhost:5000/api/auth/superadmin/courses/assign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          courseId: course.id,
+          adminIds: selectedOrgs
+        }),
+      });
 
-    // Fetch all academic admins
-    const adminsRes = await fetch("http://localhost:5000/api/auth/superadmin/academic-admins-assign", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const adminsData = await adminsRes.json();
-
-    // Fetch current assignments for this course
-    const assignRes = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${course.id}/assignments`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const assignData = await assignRes.json();
-
-    if (adminsData.success && assignData.success) {
-      setAcademicAdmins(adminsData.admins);
-      setSelectedOrgs(assignData.assignedIds || []);
-      setIsAssignModalOpen(true);
-    } else {
-      alert("Failed to load data");
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        setIsAssignModalOpen(false);
+        setSelectedOrgs([]);
+      } else {
+        alert("Error: " + data.error);
+      }
+    } catch (err) {
+      console.error("Assign error:", err);
+      alert("Network error");
     }
-  } catch (err) {
-    console.error("Error loading assignment data:", err);
-    alert("Network error");
-  }
-};
+  };
+
+  const openAssignModal = async () => {
+    try {
+      const token = localStorage.getItem("superAdminToken");
+
+      const adminsRes = await fetch("http://localhost:5000/api/auth/superadmin/academic-admins-assign", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const adminsData = await adminsRes.json();
+
+      const assignRes = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${id}/assignments`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const assignData = await assignRes.json();
+
+      if (adminsData.success && assignData.success) {
+        setAcademicAdmins(adminsData.admins);
+        setSelectedOrgs(assignData.assignedIds || []);
+        setIsAssignModalOpen(true);
+      } else {
+        alert("Failed to load data");
+      }
+    } catch (err) {
+      console.error("Error loading assignment data:", err);
+      alert("Network error");
+    }
+  };
 
   useEffect(() => {
     fetchCourse();
@@ -116,7 +136,21 @@ const openAssignModal = async () => {
       });
       const data = await res.json();
       if (data.success) {
+        console.log(data.course);
         setCourse(data.course);
+        // Map backend structure to frontend sections
+        const mappedSections = (data.course.contents || []).map((week, index) => ({
+          id: week.id || index + 1, // Use backend id if available, else local
+          name: week.title,
+          week: week.weekNumber ? week.weekNumber.toString() : "",
+          customTitle: extractCustomTitle(week.title, week.weekNumber),
+          modules: week.modules.map((mod, modIndex) => ({
+            id: mod.id || modIndex + 1,
+            name: mod.title,
+            chapters: mod.chapters.map(chap => chap.title || chap), // Extract titles if objects
+          })),
+        }));
+        setSections(mappedSections);
       }
     } catch (err) {
       console.error(err);
@@ -125,96 +159,109 @@ const openAssignModal = async () => {
     }
   };
 
-  const saveContents = async (updatedContents) => {
+  // Helper to extract customTitle from name/title
+  const extractCustomTitle = (name, week) => {
+    if (week && name.startsWith(`Week ${week} - `)) {
+      return name.replace(`Week ${week} - `, "").trim();
+    }
+    return name;
+  };
+
+  // Function to save entire structure to backend
+  const saveStructureToBackend = async (updatedSections) => {
     try {
       const token = localStorage.getItem("superAdminToken");
+      // Map to backend format: array of {name, week, modules: [{name, chapters: [strings or objects]}]}
+      const backendStructure = updatedSections.map(sec => ({
+        name: sec.name,
+        week: sec.week,
+        modules: sec.modules.map(mod => ({
+          name: mod.name,
+          chapters: mod.chapters, // strings
+        })),
+      }));
       const res = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${id}/contents`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ contents: updatedContents }),
+        body: JSON.stringify({ contents: backendStructure }),
       });
       const data = await res.json();
       if (data.success) {
-        setCourse(data.course);
-        
+        // Refetch to get updated ids etc.
+        await fetchCourse();
+      } else {
+        alert("Error saving structure: " + data.error);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Save structure error:", err);
+      alert("Network error");
     }
   };
 
-  const handleAddModule = () => {
-    if (!newModuleTitle.trim()) {
-      alert("Module title is required.");
+  // Handle Add Section Submit
+  const handleAddSubmit = () => {
+    if (!newSection.name.trim()) {
+      alert("Section name is required");
       return;
     }
-    if (newChapters.some(ch => !ch.title.trim())) {
-      alert("All chapters must have a title.");
+    // Filter empty modules/chapters
+    const cleanedModules = newSection.modules
+      .map(m => ({
+        ...m,
+        chapters: m.chapters.filter(c => c.trim() !== ""),
+      }))
+      .filter(m => m.name.trim() !== "");
+
+    if (cleanedModules.length === 0) {
+      alert("Add at least one module");
       return;
     }
 
-    const newModule = {
-      id: Date.now(),
-      title: newModuleTitle,
-      chapters: newChapters.map((ch, idx) => ({
-        id: Date.now() + idx,
-        title: ch.title,
-        duration: ch.duration || "45 min",
-        type: ch.type || "video",
-      })),
+    const newSec = {
+      ...newSection,
+      id: Math.max(0, ...sections.map(s => s.id || 0)) + 1,
+      modules: cleanedModules,
     };
 
-    const updated = [...(course.contents || []), newModule];
-    saveContents(updated);
-
-    setIsAddModalOpen(false);
-    setNewModuleTitle("");
-    setNewChapters([]);
+    const updatedSections = [...sections, newSec];
+    setSections(updatedSections);
+    setShowContentModal(false);
+    // Save to backend
+    saveStructureToBackend(updatedSections);
   };
 
-  const handleEditModule = () => {
-    if (!editModuleTitle.trim()) {
-      alert("Module title is required.");
-      return;
-    }
+  // Handle Edit Section Submit (already in code, enhanced)
+  const handleEditSubmit = () => {
+    // Filter empty
+    const cleaned = {
+      ...editingSection,
+      modules: editingSection.modules
+        .map(m => ({
+          ...m,
+          chapters: m.chapters.filter(c => c.trim() !== ""),
+        }))
+        .filter(m => m.name.trim() !== ""),
+    };
 
-    const updated = course.contents.map(m =>
-      m.id === editingModule.id
-        ? { ...m, title: editModuleTitle, chapters: editChapters.map((ch, idx) => ({
-            id: m.chapters[idx]?.id || Date.now() + idx,
-            title: ch.title,
-            duration: ch.duration || "45 min",
-            type: ch.type || "video",
-          }))}
-        : m
+    const updatedSections = sections.map(s =>
+      s.id === editingSection.id ? cleaned : s
     );
-    saveContents(updated);
-
-    setIsEditModalOpen(false);
-    setEditingModule(null);
-    setEditModuleTitle("");
-    setEditChapters([]);
+    setSections(updatedSections);
+    setIsEditSectionModalOpen(false);
+    // Save to backend
+    saveStructureToBackend(updatedSections);
   };
 
-  const handleDeleteModule = (moduleId) => {
-    if (window.confirm("Delete this module?")) {
-      const updated = course.contents.filter(m => m.id !== moduleId);
-      saveContents(updated);
-    }
-  };
-
-  const openEditModal = (module) => {
-    setEditingModule(module);
-    setEditModuleTitle(module.title);
-    setEditChapters(module.chapters.map(ch => ({
-      title: ch.title,
-      duration: ch.duration || "45 min",
-      type: ch.type || "video"
-    })));
-    setIsEditModalOpen(true);
+  // Add delete section functionality (optional, but recommended)
+  const handleDeleteSection = (sectionId) => {
+    if (!window.confirm("Delete this section?")) return;
+    const updatedSections = sections.filter(s => s.id !== sectionId);
+    setSections(updatedSections);
+    // Save to backend
+    saveStructureToBackend(updatedSections);
   };
 
   if (loading) return <p className="text-center py-20">Loading course...</p>;
@@ -222,7 +269,7 @@ const openAssignModal = async () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Course Header - Real Data + Assign Button + Rating */}
+      {/* Course Header */}
       <div className="bg-[#1e3a8a] text-white">
         <div className="mx-auto px-20 py-12">
           <div className="grid md:grid-cols-3 gap-10 items-center">
@@ -249,7 +296,6 @@ const openAssignModal = async () => {
                   </div>
                 </div>
 
-                {/* Assign Course Button */}
                 <button
                   onClick={openAssignModal}
                   className="bg-white hover:bg-gray-100 text-[#1e40af] px-8 py-3 rounded-md font-semibold transition-all hover:shadow-lg hover:-translate-y-1 flex items-center gap-2 cursor-pointer"
@@ -278,7 +324,7 @@ const openAssignModal = async () => {
         </div>
       </div>
 
-      {/* Course Content */}
+      {/* Course Content Section */}
       <div className="mx-auto px-6 py-10">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-6">
@@ -286,60 +332,349 @@ const openAssignModal = async () => {
               <BookOpen className="w-6 h-6 text-[#1e40af]" /> Course Content
             </h2>
             <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition shadow-md cursor-pointer"
+              onClick={openContentModal}
+              className="w-52 py-3 bg-[#1e3a8a] text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Play className="w-5 h-5" />
-              Add Content
+              <Plus className="w-5 h-5" /> Add Section
             </button>
           </div>
 
-          <div className="space-y-5">
-            {(course.contents || []).length === 0 ? (
-              <p className="text-center py-8 text-gray-500">No content added yet. Click "Add Content" to start.</p>
-            ) : (
-              course.contents.map((module) => (
-                <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
-                  <div className="bg-gray-50 px-5 py-3 font-semibold text-gray-800 flex justify-between items-center">
-                    <span>{module.title}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openEditModal(module)}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium bg-[#1e40af]/10 px-3 py-1 rounded-md cursor-pointer"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteModule(module.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium bg-[#1e40af]/10 px-3 py-1 rounded-md cursor-pointer"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <div className="divide-y divide-gray-200">
-                    {module.chapters?.map((chapter) => (
-                      <div key={chapter.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition">
-                        <div className="flex items-center gap-4">
-                          {chapter.type === 'video' && <Video className="w-5 h-5 text-[#1e40af]" />}
-                          {chapter.type === 'quiz' && <Award className="w-5 h-5 text-green-600" />}
-                          {chapter.type === 'assignment' && <FileText className="w-5 h-5 text-orange-600" />}
-                          <div>
-                            <p className="font-medium text-gray-900">{chapter.title}</p>
-                            <p className="text-sm text-gray-500">{chapter.duration}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+          {/* Render Sections */}
+          <div className="space-y-6">
+            {sections.map((section) => (
+              <div key={section.id} className="border border-gray-200 rounded-xl p-5">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold">{section.name}</h3>
+                  <div className="flex gap-2">
+                    <button onClick={() => openEditSectionModal(section)} className="text-blue-600">
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => handleDeleteSection(section.id)} className="text-red-600">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-              ))
-            )}
+                {section.modules.map((module) => (
+                  <div key={module.id} className="bg-gray-50 rounded-xl p-6 mb-2">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">{module.name}</h4>
+                    <ul className="space-y-2">
+                      {module.chapters.map((chapter, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                          <span className="text-gray-800">{chapter}</span>
+                        </div>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Assign Course Model */}
+      {/* Add Section Modal */}
+      {showContentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center px-8 py-4 border-b border-gray-200">
+              <h2 className="text-2xl font-bold">Add New Section</h2>
+              <button onClick={() => setShowContentModal(false)} className="hover:bg-white/20 p-1 rounded cursor-pointer">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Section Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <select
+                      value={newSection.week}
+                      onChange={(e) => {
+                        const week = e.target.value;
+                        setNewSection({
+                          ...newSection,
+                          week,
+                          name: week ? `Week ${week} - ${newSection.customTitle || ""}`.trim() : newSection.customTitle || "",
+                        });
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="">Select Week</option>
+                      {[...Array(20)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>Week {i + 1}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <input
+                      type="text"
+                      value={newSection.customTitle}
+                      onChange={(e) => {
+                        const customTitle = e.target.value;
+                        setNewSection({
+                          ...newSection,
+                          customTitle,
+                          name: newSection.week ? `Week ${newSection.week} - ${customTitle}`.trim() : customTitle,
+                        });
+                      }}
+                      placeholder="e.g. Fundamentals, Advanced Concepts..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Modules</h3>
+                  <button
+                    onClick={() => setNewSection({ ...newSection, modules: [...newSection.modules, { name: "", chapters: [""] }] })}
+                    className="text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add Module
+                  </button>
+                </div>
+
+                {newSection.modules.map((module, moduleIndex) => (
+                  <div key={moduleIndex} className="mb-6 p-5 border border-gray-200 rounded-xl bg-white">
+                    <div className="flex justify-between items-center mb-3">
+                      <input
+                        type="text"
+                        value={module.name}
+                        onChange={(e) => {
+                          const updated = [...newSection.modules];
+                          updated[moduleIndex].name = e.target.value;
+                          setNewSection({ ...newSection, modules: updated });
+                        }}
+                        placeholder="Module Name"
+                        className="text-lg font-medium px-3 py-2 border-b border-gray-300 bg-transparent outline-none w-full focus:ring-0"
+                      />
+                      <button
+                        onClick={() => {
+                          const updated = newSection.modules.filter((_, i) => i !== moduleIndex);
+                          setNewSection({ ...newSection, modules: updated });
+                        }}
+                        className="text-red-600 hover:text-red-700 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 ml-6">
+                      {module.chapters.map((chapter, chapIndex) => (
+                        <div key={chapIndex} className="flex items-center gap-3">
+                          <ChevronRight className="w-5 h-5 text-[#1e3a8a] mt-1" />
+                          <input
+                            type="text"
+                            placeholder="Chapter / Topic name"
+                            value={chapter}
+                            onChange={(e) => {
+                              const updated = [...newSection.modules];
+                              updated[moduleIndex].chapters[chapIndex] = e.target.value;
+                              setNewSection({ ...newSection, modules: updated });
+                            }}
+                            className="flex-1 px-4 py-3 bg-white/80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                          />
+                          <button
+                            onClick={() => {
+                              const updated = [...newSection.modules];
+                              updated[moduleIndex].chapters.splice(chapIndex, 1);
+                              setNewSection({ ...newSection, modules: updated });
+                            }}
+                            className="text-red-500 hover:text-red-700 transition cursor-pointer"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        onClick={() => {
+                          const updated = [...newSection.modules];
+                          updated[moduleIndex].chapters.push("");
+                          setNewSection({ ...newSection, modules: updated });
+                        }}
+                        className="flex items-center gap-2 text-[#1e3a8a] hover:text-[#1e3a8a]/80 font-medium text-sm mt-4 transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Chapter / Topic
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowContentModal(false)}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddSubmit}
+                  className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                >
+                  Add Section
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Section Modal (already present, updated with handleEditSubmit) */}
+      {isEditSectionModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center px-8 py-4 border-b border-gray-200">
+              <h2 className="text-2xl font-bold">Edit Section</h2>
+              <button onClick={() => setIsEditSectionModalOpen(false)} className="hover:bg-white/20 p-1 rounded cursor-pointer">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Section Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <select
+                      value={editingSection.week || ""}
+                      onChange={(e) => {
+                        const week = e.target.value;
+                        setEditingSection({
+                          ...editingSection,
+                          week,
+                          name: week ? `Week ${week} - ${editingSection.customTitle || ""}`.trim() : editingSection.customTitle || "",
+                        });
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="">Select Week</option>
+                      {[...Array(20)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>Week {i + 1}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <input
+                      type="text"
+                      value={editingSection.customTitle || ""}
+                      onChange={(e) => {
+                        const customTitle = e.target.value;
+                        setEditingSection({
+                          ...editingSection,
+                          customTitle,
+                          name: editingSection.week ? `Week ${editingSection.week} - ${customTitle}`.trim() : customTitle,
+                        });
+                      }}
+                      placeholder="e.g. Fundamentals, Advanced Concepts..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Modules</h3>
+                  <button
+                    onClick={() => setEditingSection({ ...editingSection, modules: [...editingSection.modules, { name: "", chapters: [""] }] })}
+                    className="text-[#1e3a8a] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add Module
+                  </button>
+                </div>
+
+                {editingSection.modules.map((module, moduleIndex) => (
+                  <div key={moduleIndex} className="mb-6 p-5 border border-gray-200 rounded-xl bg-white">
+                    <div className="flex justify-between items-center mb-3">
+                      <input
+                        type="text"
+                        value={module.name}
+                        onChange={(e) => {
+                          const updated = [...editingSection.modules];
+                          updated[moduleIndex].name = e.target.value;
+                          setEditingSection({ ...editingSection, modules: updated });
+                        }}
+                        placeholder="Module Name"
+                        className="text-lg font-medium px-3 py-2 border-b border-gray-300 bg-transparent outline-none w-full focus:ring-0"
+                      />
+                      <button
+                        onClick={() => {
+                          const updated = editingSection.modules.filter((_, i) => i !== moduleIndex);
+                          setEditingSection({ ...editingSection, modules: updated });
+                        }}
+                        className="text-red-600 hover:text-red-700 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 ml-6">
+                      {module.chapters.map((chapter, chapIndex) => (
+                        <div key={chapIndex} className="flex items-center gap-3">
+                          <ChevronRight className="w-5 h-5 text-[#1e3a8a] mt-1" />
+                          <input
+                            type="text"
+                            placeholder="Chapter / Topic name"
+                            value={chapter}
+                            onChange={(e) => {
+                              const updated = [...editingSection.modules];
+                              updated[moduleIndex].chapters[chapIndex] = e.target.value;
+                              setEditingSection({ ...editingSection, modules: updated });
+                            }}
+                            className="flex-1 px-4 py-3 bg-white/80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                          />
+                          <button
+                            onClick={() => {
+                              const updated = [...editingSection.modules];
+                              updated[moduleIndex].chapters.splice(chapIndex, 1);
+                              setEditingSection({ ...editingSection, modules: updated });
+                            }}
+                            className="text-red-500 hover:text-red-700 transition cursor-pointer"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        onClick={() => {
+                          const updated = [...editingSection.modules];
+                          updated[moduleIndex].chapters.push("");
+                          setEditingSection({ ...editingSection, modules: updated });
+                        }}
+                        className="flex items-center gap-2 text-[#1e3a8a] hover:text-[#1e3a8a]/80 font-medium text-sm mt-4 transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Chapter / Topic
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => setIsEditSectionModalOpen(false)}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditSubmit}
+                  className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Modal (unchanged) */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAssignModalOpen(false)} />
@@ -348,27 +683,19 @@ const openAssignModal = async () => {
               <h2 className="text-2xl font-bold text-gray-900">
                 Assign Course to Academic Partners
               </h2>
-              <button
-                onClick={() => setIsAssignModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition cursor-pointer"
-              >
+              <button onClick={() => setIsAssignModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition cursor-pointer">
                 <X className="w-6 h-6" />
               </button>
             </div>
-
             <p className="text-gray-600 mb-6">
               Select one or more educational institutions to assign <strong>{course.name}</strong>:
             </p>
-
             <div className="space-y-3 max-h-96 overflow-y-auto mb-8">
               {academicAdmins.length === 0 ? (
                 <p className="text-center text-gray-500 py-8">No institutions found</p>
               ) : (
                 academicAdmins.map((admin) => (
-                  <label
-                    key={admin.id}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition"
-                  >
+                  <label key={admin.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition">
                     <input
                       type="checkbox"
                       checked={selectedOrgs.includes(admin.id)}
@@ -382,254 +709,19 @@ const openAssignModal = async () => {
                 ))
               )}
             </div>
-
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setIsAssignModalOpen(false)}
-                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
-              >
+              <button onClick={() => setIsAssignModalOpen(false)} className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer">
                 Cancel
               </button>
               <button
                 onClick={handleAssignSubmit}
                 disabled={selectedOrgs.length === 0}
                 className={`px-6 py-2.5 rounded-lg font-medium text-white cursor-pointer transition ${selectedOrgs.length === 0
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-md'
-                }`}
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-[#1e40af] hover:bg-[#1e3a8a] shadow-md'
+                  }`}
               >
                 Assign to {selectedOrgs.length} Selected
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Content Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-8 overflow-y-auto max-h-[90vh]">
-            <h2 className="text-2xl font-bold mb-6">Add New Module</h2>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Module Title</label>
-                <input
-                  type="text"
-                  value={newModuleTitle}
-                  onChange={(e) => setNewModuleTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e40af] focus:border-transparent"
-                  placeholder="e.g., Advanced React Patterns"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="text-sm font-medium text-gray-700">Chapters</label>
-                  <button
-                    type="button"
-                    onClick={() => setNewChapters(prev => [...prev, { title: '', duration: '45 min', type: 'video' }])}
-                    className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
-                  >
-                    <Play className="w-4 h-4" /> Add Chapter
-                  </button>
-                </div>
-
-                {newChapters.length === 0 && (
-                                    <p className="text-gray-500 text-sm italic">No chapters added yet. Click "Add Chapter" to start.</p>
-                )}
-
-                <div className="space-y-4">
-                  {newChapters.map((chapter, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Chapter Title</label>
-                          <input
-                            type="text"
-                            value={chapter.title}
-                            onChange={(e) => {
-                              const updated = [...newChapters];
-                              updated[index].title = e.target.value;
-                              setNewChapters(updated);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
-                                                        placeholder="e.g., Custom Hooks"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
-                          <input
-                            type="text"
-                            value={chapter.duration}
-                            onChange={(e) => {
-                              const updated = [...newChapters];
-                              updated[index].duration = e.target.value;
-                              setNewChapters(updated);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
-                                                        placeholder="45 min"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between">
-                        <select
-                          value={chapter.type}
-                          onChange={(e) => {
-                            const updated = [...newChapters];
-                            updated[index].type = e.target.value;
-                            setNewChapters(updated);
-                          }}
-                          className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                        >
-                          <option value="video">Video Lesson</option>
-                          <option value="quiz">Quiz</option>
-                          <option value="assignment">Assignment</option>
-                        </select>
-
-                        <button
-                          type="button"
-                          onClick={() => setNewChapters(prev => prev.filter((_, i) => i !== index))}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-8">
-              <button
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setNewModuleTitle('');
-                  setNewChapters([]);
-                }}
-                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddModule}
-                className="px-6 py-2.5 bg-[#1e40af] text-white rounded-lg font-medium"
-              >
-                Add Module
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {isEditModalOpen && editingModule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-8 overflow-y-auto max-h-[90vh]">
-            <h2 className="text-2xl font-bold mb-6">Edit Module</h2>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Module Title</label>
-                <input
-                  type="text"
-                  value={editModuleTitle}
-                  onChange={(e) => setEditModuleTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e40af]"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="text-sm font-medium text-gray-700">Chapters</label>
-                  <button
-                    type="button"
-                    onClick={() => setEditChapters(prev => [...prev, { title: '', duration: '45 min', type: 'video' }])}
-                    className="text-[#1e40af] hover:text-[#1e3a8a] text-sm font-medium flex items-center gap-1 cursor-pointer"
-                  >
-                    <Play className="w-4 h-4" /> Add Chapter
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {editChapters.map((chapter, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Chapter Title</label>
-                          <input
-                            type="text"
-                            value={chapter.title}
-                            onChange={(e) => {
-                              const updated = [...editChapters];
-                              updated[index].title = e.target.value;
-                              setEditChapters(updated);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Duration</label>
-                          <input
-                            type="text"
-                            value={chapter.duration}
-                            onChange={(e) => {
-                              const updated = [...editChapters];
-                              updated[index].duration = e.target.value;
-                              setEditChapters(updated);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#1e40af]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between">
-                        <select
-                          value={chapter.type}
-                          onChange={(e) => {
-                            const updated = [...editChapters];
-                            updated[index].type = e.target.value;
-                            setEditChapters(updated);
-                          }}
-                          className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                        >
-                          <option value="video">Video Lesson</option>
-                          <option value="quiz">Quiz</option>
-                          <option value="assignment">Assignment</option>
-                        </select>
-
-                        <button
-                          type="button"
-                          onClick={() => setEditChapters(prev => prev.filter((_, i) => i !== index))}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-8">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                                className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEditModule}
-                className="px-6 py-2.5 bg-[#1e40af] text-white rounded-lg font-medium"
-              >
-                Save Changes
               </button>
             </div>
           </div>

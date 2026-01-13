@@ -4,7 +4,9 @@ import {
   addCourse,
   getAllCourses,
   getCourseById,
-  updateCourseContents,
+  getCourseStructure,
+  replaceCourseStructure,
+  // updateCourseContents,
   getAcademicCourseSchedule,
   updateAcademicCourseSchedule
 } from '../models/courseModel.js';
@@ -77,6 +79,7 @@ export const getCourse = async (req, res) => {
     if (!course) {
       return res.status(404).json({ success: false, error: 'Course not found' });
     }
+    course.contents = await getCourseStructure(course.id);
     res.json({ success: true, course });
   } catch (error) {
     console.error('Get single course error:', error);
@@ -84,18 +87,34 @@ export const getCourse = async (req, res) => {
   }
 };
 
-// Update course contents
+// Update course contents (now relational)
 export const updateContents = async (req, res) => {
   try {
-    const { contents } = req.body;
-    const updatedCourse = await updateCourseContents(req.params.id, contents);
-    if (!updatedCourse) {
-      return res.status(404).json({ success: false, error: 'Course not found' });
+    const { contents } = req.body;   // expect array of modules [{title, chapters: [...]}]
+
+    if (!Array.isArray(contents)) {
+      return res.status(400).json({ success: false, error: 'Contents must be an array of modules' });
     }
-    res.json({ success: true, course: updatedCourse });
+
+    const updatedStructure = await replaceCourseStructure(req.params.id, contents);
+
+    // Optional: notify
+    await addNotificationForSuperAdmin(
+      pool,
+      `Course structure updated for course ID ${req.params.id}`,
+      'course',
+      'low'
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Course structure updated successfully',
+      contents: updatedStructure   // return the fresh structure
+    });
+
   } catch (error) {
     console.error('Update contents error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update contents' });
+    res.status(500).json({ success: false, error: 'Failed to update course structure' });
   }
 };
 

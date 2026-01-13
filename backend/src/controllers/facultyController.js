@@ -15,6 +15,7 @@ import {
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { getCourseById, getCourseStructure } from '../models/courseModel.js';
 
 // Ensure uploads/faculty folder exists
 const uploadDir = path.join(process.cwd(), 'uploads/faculty');
@@ -315,7 +316,7 @@ export const facultyLogin = async (req, res) => {
     const token = jwt.sign(
       { id: faculty.id, role: 'faculty' },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.json({
@@ -417,6 +418,37 @@ export const getFacultyDashboard = async (req, res) => {
   } catch (error) {
     console.error('Get faculty dashboard error:', error);
     res.status(500).json({ success: false, error: 'Failed to load dashboard' });
+  }
+};
+
+// Get detailed course info for a faculty (protected)
+export const getCourseDetails = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+    const courseId = req.params.id;
+
+    if (!courseId) {
+      return res.status(400).json({ success: false, error: 'Course ID required' });
+    }
+
+    const course = await getCourseById(courseId);
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+
+    // Ensure this faculty teaches this course
+    if (!course.teachers || !Array.isArray(course.teachers) || !course.teachers.includes(facultyId)) {
+      return res.status(403).json({ success: false, error: 'Not authorized to access this course' });
+    }
+
+    const contents = await getCourseStructure(course.id);
+    course.contents = contents;
+
+    // Optionally shape data for client
+    res.json({ success: true, course });
+  } catch (error) {
+    console.error('Get course details error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch course details' });
   }
 };
 

@@ -145,7 +145,7 @@ const academicAdminLogin = async (req, res) => {
         fullName: admin.full_name
       },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '12h' }
     );
 
     res.json({
@@ -364,13 +364,12 @@ const getAssignedCourses = async (req, res) => {
     const adminId = req.user.id;
 
     const { rows } = await pool.query(`
-      SELECT c.id, c.name, c.price , c.description , c.teachers
+      SELECT c.id, c.name, c.price , c.description , c.teachers, c.created_at
       FROM courses c
       JOIN course_academic_assignments ca ON c.id = ca.course_id
       WHERE ca.academic_admin_id = $1
       ORDER BY c.created_at DESC
     `, [adminId]);
-
     res.json({ success: true, courses: rows });
   } catch (error) {
     console.error('Get Assigned Courses Error →', error.message);
@@ -385,16 +384,27 @@ const getCourseDetails = async (req, res) => {
     const courseId = req.params.id;
 
     const { rows } = await pool.query(`
-      SELECT c.id, c.name, c.price, c.description, c.type, c.duration, c.image, c.contents
-      FROM courses c
-      JOIN course_academic_assignments ca ON c.id = ca.course_id
-      WHERE ca.academic_admin_id = $1 AND c.id = $2
+      SELECT 
+    c.id, c.name, c.price, c.description, c.type, c.duration, c.image,
+    w.id AS week_id, w.title AS week_title, w.week_number, w."order" AS week_order,
+    m.id AS module_id, m.title AS module_name, m."order" AS module_order,
+    mc.id AS content_id, mc.title AS content_title, mc.title AS content_data
+FROM courses c
+LEFT JOIN course_weeks w ON c.id = w.course_id
+LEFT JOIN course_modules m ON w.id = m.week_id
+LEFT JOIN module_contents mc ON m.id = mc.module_id
+JOIN course_academic_assignments ca ON c.id = ca.course_id
+WHERE ca.academic_admin_id = $1 
+  AND c.id = $2
     `, [adminId, courseId]);
 
     if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Course not found or not assigned' });
     }
 
+    // Return the full result set (array of rows) so the frontend can reconstruct
+    // the nested structure (weeks → modules → contents)
+    
     res.json({ success: true, course: rows[0] });
   } catch (error) {
     console.error('Get Course Details Error →', error.message);

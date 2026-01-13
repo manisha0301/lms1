@@ -10,7 +10,9 @@ import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAd
 import { 
   createCourseAcademicRelationTable, 
   createCoursesTable,
-  createAcademicCourseSchedulesTable  // ← ADDED THIS IMPORT
+  createAcademicCourseSchedulesTable,  // ← ADDED THIS IMPORT
+  createCourseWeeksTable,
+  createCourseModulesTables
 } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
@@ -51,11 +53,13 @@ const initDatabase = async () => {
     await createSuperAdminTable(pool);
     await createDefaultSuperAdmin(pool);
     await createAcademicAdminsTable(pool);
+    await createAcademicAdminDetailsTable(pool);
     await createCoursesTable(pool);
     await createCourseAcademicRelationTable(pool);
-    await createAcademicAdminDetailsTable(pool);
-    await createFacultyTable();
+    await createCourseWeeksTable(pool);
+    await createCourseModulesTables(pool);
     await createNotificationsTable(pool);
+    await createFacultyTable();
 
     // NEW: Create students table
     await createStudentsTable();
