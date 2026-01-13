@@ -339,36 +339,61 @@ export default function CourseDetails() {
             </button>
           </div>
 
-          {/* Render Sections */}
-          <div className="space-y-6">
-            {sections.map((section) => (
-              <div key={section.id} className="border border-gray-200 rounded-xl p-5">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">{section.name}</h3>
-                  <div className="flex gap-2">
-                    <button onClick={() => openEditSectionModal(section)} className="text-blue-600">
-                      <Edit3 className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => handleDeleteSection(section.id)} className="text-red-600">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+          {sections.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
+          No course content structure available yet.
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {sections.map((section) => (
+            <div key={section.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-[#1e3a8a]/10 to-[#1e40af]/5 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <h3 className="font-semibold text-[#1e3a8a] text-lg">{section.name}</h3>
                   </div>
                 </div>
-                {section.modules.map((module) => (
-                  <div key={module.id} className="bg-gray-50 rounded-xl p-6 mb-2">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">{module.name}</h4>
-                    <ul className="space-y-2">
-                      {module.chapters.map((chapter, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                          <span className="text-gray-800">{chapter}</span>
-                        </div>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                <div className="flex gap-2">
+                  <button onClick={() => openEditSectionModal(section)} className="text-blue-600">
+                    <Edit3 className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => handleDeleteSection(section.id)} className="text-red-600">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
+
+              <div className="p-6">
+                {(!section.modules || section.modules.length === 0) ? (
+                  <p className="text-gray-500 italic text-center py-8">No modules in this section yet</p>
+                ) : (
+                  <div className="space-y-6">
+                    {section.modules.map((module) => (
+                      <div key={module.id} className="border-l-4 border-[#1e3a8a]/40 pl-5 py-2">
+                        <h4 className="text-gray-800 mb-3 flex items-center gap-2 font-bold text-lg text-black">
+                          <BookOpen size={18} className="text-[#1e3a8a]" />
+                          {module.name}
+                        </h4>
+
+                        <div className="space-y-2.5 ml-2">
+                          {module.chapters?.map((chapter, idx) => (
+                            <div key={chapter?.id || idx} className="flex items-center gap-3 py-2.5 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group">
+                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
+                                {idx + 1}
+                              </div>
+                              <span className="flex-1 font-medium text-gray-800">{(chapter && (chapter.title || chapter)) || 'Untitled'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
         </div>
       </div>
 

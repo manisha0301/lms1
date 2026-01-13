@@ -466,7 +466,7 @@ const CourseDetailsAdmin = () => {
                         <div className="space-y-6">
                           {section.modules.map((module) => (
                             <div key={module.id} className="border-l-4 border-[#1e3a8a]/40 pl-5 py-2">
-                              <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-black text-lg">
                                 <BookOpen size={18} className="text-[#1e3a8a]" />
                                 {module.name}
                               </h4>

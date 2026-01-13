@@ -132,18 +132,25 @@ export default function CourseDetailsFaculty() {
       {/* Header */}
       <div className="bg-[#1e3a8a] text-white py-12">
         <div className="mx-auto px-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button onClick={() => navigate(-1)} className="text-white hover:bg-white/10 p-2 rounded-lg transition">
-                <ChevronLeft className="w-8 h-8" />
-              </button>
-              <div>
-                <h1 className="text-3xl font-semibold">{course.title}</h1>
-                <p className="mt-2 text-blue-100">
-                  Course ID: #{course.id} • {course.code} • {course.totalStudents} students
-                </p>
-              </div>
-            </div>
+          <div className="flex flex-row items-center justify-between">
+              {/* <div className="flex flex-row items-center justify-between"> */}
+                <div className="md:flex-1">
+                  <h1 className="text-4xl font-semibold">{course.title}</h1>
+                  <p className="mt-2 text-blue-100 max-w-2xl">
+                    {course.description}
+                  </p>
+                </div>
+                <div className="w-80 flex-shrink-0">
+                  <div className="relative">
+                    <img
+                      src={course.thumbnail}
+                      alt="Course Thumbnail"
+                      onError={(e) => { e.target.onerror = null; e.target.src = node; }}
+                      className="w-full h-36 md:h-56 object-cover rounded-lg border-4 border-white shadow-md"
+                    />
+                  </div>
+                </div>
+              {/* </div> */}
           </div>
         </div>
       </div>
@@ -206,15 +213,14 @@ export default function CourseDetailsFaculty() {
               })}
             </div>
 
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <p className="text-gray-700 leading-relaxed">{course.description}</p>
-              <div className="mt-6 flex flex-wrap gap-8 text-gray-600">
+            <div className="mt-8 border-t border-gray-200">
+              <div className="mt-6 flex flex-wrap gap-8 text-gray-600 justify-between">
                 <span className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
                   {course.schedule}
                 </span>
                 <span className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
+                  <Clock className="w-5 h-5" />
                   {course.room}
                 </span>
               </div>
