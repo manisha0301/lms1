@@ -7,7 +7,11 @@ import { fileURLToPath } from 'url';
 
 import pool from './config/db.js';
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
-import { createCourseAcademicRelationTable, createCoursesTable } from './models/courseModel.js';
+import { 
+  createCourseAcademicRelationTable, 
+  createCoursesTable,
+  createAcademicCourseSchedulesTable  // ← ADDED THIS IMPORT
+} from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -55,6 +59,9 @@ const initDatabase = async () => {
 
     // NEW: Create students table
     await createStudentsTable();
+
+    // NEW: Create per-admin batch schedule + meeting link table
+    await createAcademicCourseSchedulesTable();
 
     console.log('All database tables initialized');
     

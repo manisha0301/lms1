@@ -19,7 +19,11 @@ import { createFaculty,
         rejectPendingFaculty
  } from '../controllers/facultyController.js';
 
-import { updateCourseTeachers } from '../controllers/courseController.js';
+import { 
+  updateCourseTeachers,
+  getAcademicCourseScheduleCtrl,
+  saveAcademicCourseScheduleCtrl
+} from '../controllers/courseController.js';
 
 const router = express.Router();
 
@@ -38,5 +42,9 @@ router.patch('/faculty/:facultyId/approve', protectAcademicAdmin, approvePending
 router.patch('/faculty/:facultyId/reject', protectAcademicAdmin, rejectPendingFaculty);
 
 router.patch('/courses/:courseId/teachers', protectAcademicAdmin, updateCourseTeachers);
+
+// NEW: Academic admin specific course schedule (batch timings + meeting link)
+router.get('/courses/:id/schedule', protectAcademicAdmin, getAcademicCourseScheduleCtrl);
+router.post('/courses/:id/schedule', protectAcademicAdmin, saveAcademicCourseScheduleCtrl);
 
 export default router;

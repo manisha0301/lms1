@@ -13,6 +13,8 @@ import {
   Users,
   FileText,
 } from "lucide-react";
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig.js'; // Adjust path if needed
 
 const CourseDetailsAdmin = () => {
   const { id } = useParams();
@@ -21,12 +23,25 @@ const CourseDetailsAdmin = () => {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showContentModal, setShowContentModal] = useState(false);
 
-  // This will hold real name & description + dummy data
+  // Batch schedule form state (controlled)
+  const [batchForm, setBatchForm] = useState({
+    startDate: '',
+    endDate: '',
+    startTime: '',
+    endTime: ''
+  });
+
+  // Meeting link form state (controlled)
+  const [meetingLinkForm, setMeetingLinkForm] = useState({
+    meetingLink: ''
+  });
+
+  // Real course data + real schedule
   const [course, setCourse] = useState({
     name: "Loading...",
     description: "Loading course details...",
-    batch: { startDate: "2025-01-10", endDate: "2025-04-10", startTime: "07:00 PM", endTime: "09:00 PM" },
-    meetingLink: "https://zoom.us/j/987654321",
+    batch: null,
+    meetingLink: null,
     students: [
       { id: 1, name: "Aarav Sharma", phone: "+91 98765 43210", email: "aarav@gmail.com", assignments: 8, exams: 3 },
       { id: 2, name: "Priya Singh", phone: "+91 87654 32109", email: "priya@yahoo.com", assignments: 10, exams: 3 },
@@ -74,11 +89,13 @@ const CourseDetailsAdmin = () => {
     setShowContentModal(true);
   };
 
-  // Fetch real name and description only
+  // Fetch real data
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
         const token = localStorage.getItem("token");
+
+        // Fetch course basic info
         const res = await fetch(`http://localhost:5000/api/auth/admin/courses/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -91,18 +108,134 @@ const CourseDetailsAdmin = () => {
             description: data.course.description || "No description available.",
           }));
         }
+
+        // Fetch real per-admin schedule (batch + meeting link)
+        const scheduleRes = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/schedule`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (scheduleRes.data.success && scheduleRes.data.schedule) {
+          setCourse(prev => ({
+            ...prev,
+            batch: scheduleRes.data.schedule,
+            meetingLink: scheduleRes.data.schedule.meeting_link || null
+          }));
+        }
       } catch (err) {
         console.error("Error fetching course:", err);
-        setCourse(prev => ({
-          ...prev,
-          name: "Error loading course",
-          description: "Could not fetch course details.",
-        }));
       }
     };
 
     if (id) fetchCourseDetails();
   }, [id]);
+
+  // Save batch schedule
+  const handleSaveBatch = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!batchForm.startDate || !batchForm.endDate || !batchForm.startTime || !batchForm.endTime) {
+        alert('Please fill all fields');
+        return;
+      }
+
+      const res = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/schedule`,
+        {
+          ...batchForm,
+          meetingLink: course.meetingLink // Preserve existing meeting link
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        setCourse(prev => ({
+          ...prev,
+          batch: res.data.schedule,
+          meetingLink: res.data.schedule.meeting_link || null
+        }));
+        setShowBatchModal(false);
+        alert('Batch schedule updated successfully!');
+      }
+    } catch (err) {
+      console.error('Failed to save batch:', err);
+      alert('Failed to update batch schedule');
+    }
+  };
+
+  // Save meeting link
+  const handleSaveLink = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!meetingLinkForm.meetingLink.trim()) {
+        alert('Please enter a meeting link');
+        return;
+      }
+      const res = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/schedule`,
+        { meetingLink: meetingLinkForm.meetingLink.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        setCourse(prev => ({
+          ...prev,
+          meetingLink: res.data.schedule.meeting_link
+        }));
+        setShowLinkModal(false);
+        alert('Meeting link updated successfully!');
+      }
+    } catch (err) {
+      console.error('Failed to save link:', err);
+      alert('Failed to update meeting link');
+    }
+  };
+
+  // Improved version - better prefill handling for all date formats
+  const openBatchModal = () => {
+    const formatDateForInput = (dateValue) => {
+      if (!dateValue) return '';
+
+      // Already in YYYY-MM-DD format → perfect for input type="date"
+      if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        return dateValue;
+      }
+
+      // Try to parse various common formats
+      try {
+        const date = new Date(dateValue);
+
+        if (isNaN(date.getTime())) return '';
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+      } catch (e) {
+        console.warn('Could not parse date:', dateValue);
+        return '';
+      }
+    };
+
+    setBatchForm({
+      startDate: formatDateForInput(course.batch?.start_date) || '',
+      endDate: formatDateForInput(course.batch?.end_date) || '',
+      // Most time inputs expect HH:mm, so we cut seconds if present
+      startTime: course.batch?.start_time?.slice(0, 5) || '',
+      endTime: course.batch?.end_time?.slice(0, 5) || ''
+    });
+
+    setShowBatchModal(true);
+  };
+
+  // Open meeting link modal + pre-fill
+  const openLinkModal = () => {
+    setMeetingLinkForm({
+      meetingLink: course.meetingLink || ''
+    });
+    setShowLinkModal(true);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -147,24 +280,33 @@ const CourseDetailsAdmin = () => {
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-3">
                   <Calendar className="w-6 h-6 text-[#1e3a8a]" /> Batch Schedule
                 </h3>
-                <button onClick={() => setShowBatchModal(true)} className="text-[#1e3a8a] cursor-pointer">
+                <button onClick={openBatchModal} className="text-[#1e3a8a] cursor-pointer">
                   <Edit3 className="w-5 h-5" />
                 </button>
               </div>
-              <div className="space-y-4 text-gray-600">
-                <p className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-[#1e3a8a]" />
-                  Start Date: {course.batch.startDate}
-                </p>
-                <p className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-[#1e3a8a]" />
-                  End Date: {course.batch.endDate}
-                </p>
-                <p className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-[#1e3a8a]" />
-                  Time: {course.batch.startTime} - {course.batch.endTime}
-                </p>
-              </div>
+
+              {course.batch ? (
+                <div className="space-y-4 text-gray-600">
+                  <p className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-[#1e3a8a]" />
+                    Start Date: {new Date(course.batch.start_date).toLocaleDateString('en-IN')}
+                  </p>
+                  <p className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-[#1e3a8a]" />
+                    End Date: {new Date(course.batch.end_date).toLocaleDateString('en-IN')}
+                  </p>
+                  <p className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-[#1e3a8a]" />
+                    Time: {course.batch.start_time} - {course.batch.end_time}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-lg font-medium">Batch is not scheduled yet</p>
+                  <p className="text-sm mt-2">Click the edit icon to schedule the batch</p>
+                </div>
+              )}
             </div>
 
             {/* Meeting Link */}
@@ -173,14 +315,28 @@ const CourseDetailsAdmin = () => {
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-3">
                   <Link2 className="w-6 h-6 text-[#1e3a8a]" /> Class Meeting Link
                 </h3>
-                <button onClick={() => setShowLinkModal(true)} className="text-[#1e3a8a] cursor-pointer">
+                <button onClick={openLinkModal} className="text-[#1e3a8a] cursor-pointer">
                   <Edit3 className="w-5 h-5" />
                 </button>
               </div>
-              <a href={course.meetingLink} target="_blank" rel="noopener noreferrer" className="text-[#1e3a8a] hover:underline flex items-center gap-2">
-                <Link2 className="w-5 h-5" />
-                {course.meetingLink}
-              </a>
+
+              {course.meetingLink ? (
+                <a 
+                  href={course.meetingLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-[#1e3a8a] hover:underline flex items-center gap-2 break-all"
+                >
+                  <Link2 className="w-5 h-5" />
+                  {course.meetingLink}
+                </a>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Link2 className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-lg font-medium">Class Meeting Link is not available yet</p>
+                  <p className="text-sm mt-2">Click the edit icon to add a meeting link</p>
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -242,8 +398,6 @@ const CourseDetailsAdmin = () => {
                 </div>
               </div>
             ))}
-
-            
           </div>
         )}
 
@@ -297,26 +451,49 @@ const CourseDetailsAdmin = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                    <input type="date" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" />
+                    <input 
+                      type="date" 
+                      value={batchForm.startDate}
+                      onChange={(e) => setBatchForm(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                    <input type="date" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" />
+                    <input 
+                      type="date" 
+                      value={batchForm.endDate}
+                      onChange={(e) => setBatchForm(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-                    <input type="time" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" />
+                    <input 
+                      type="time" 
+                      value={batchForm.startTime}
+                      onChange={(e) => setBatchForm(prev => ({ ...prev, startTime: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-                    <input type="time" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" />
+                    <input 
+                      type="time" 
+                      value={batchForm.endTime}
+                      onChange={(e) => setBatchForm(prev => ({ ...prev, endTime: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end gap-4">
                   <button onClick={() => setShowBatchModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
                     Cancel
                   </button>
-                  <button className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
+                  <button 
+                    onClick={handleSaveBatch}
+                    className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                  >
                     Save Schedule
                   </button>
                 </div>
@@ -336,12 +513,21 @@ const CourseDetailsAdmin = () => {
                 </button>
               </div>
               <div className="p-6 space-y-6">
-                <input type="url" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://zoom.us/j/..." />
+                <input 
+                  type="url" 
+                  value={meetingLinkForm.meetingLink}
+                  onChange={(e) => setMeetingLinkForm({ meetingLink: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
+                  placeholder="https://zoom.us/j/..." 
+                />
                 <div className="flex justify-end gap-4">
                   <button onClick={() => setShowLinkModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
                     Cancel
                   </button>
-                  <button className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
+                  <button 
+                    onClick={handleSaveLink}
+                    className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                  >
                     Save Link
                   </button>
                 </div>

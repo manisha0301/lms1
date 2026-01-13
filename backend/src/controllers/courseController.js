@@ -4,7 +4,9 @@ import {
   addCourse,
   getAllCourses,
   getCourseById,
-  updateCourseContents
+  updateCourseContents,
+  getAcademicCourseSchedule,
+  updateAcademicCourseSchedule
 } from '../models/courseModel.js';
 import { addNotificationForSuperAdmin } from '../models/notificationModel.js';
 
@@ -295,5 +297,68 @@ export const updateCourseTeachers = async (req, res) => {
   } catch (error) {
     console.error('Update teachers error:', error);
     res.status(500).json({ success: false, error: 'Failed to update teachers' });
+  }
+};
+
+// Get schedule for logged-in admin + course
+export const getAcademicCourseScheduleCtrl = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const academicAdminId = req.user.id;
+
+    const schedule = await getAcademicCourseSchedule(id, academicAdminId);
+    res.json({ success: true, schedule });
+  } catch (error) {
+    console.error('Get academic course schedule error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch schedule' });
+  }
+};
+
+// Save schedule for logged-in admin + course
+export const saveAcademicCourseScheduleCtrl = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const academicAdminId = req.user.id;
+    const { startDate, endDate, startTime, endTime, meetingLink } = req.body;
+
+    // If only meetingLink is provided, fetch existing schedule and update only meeting link
+    if (meetingLink !== undefined && !startDate && !endDate && !startTime && !endTime) {
+      const existingSchedule = await getAcademicCourseSchedule(id, academicAdminId);
+      if (!existingSchedule) {
+        return res.status(400).json({ success: false, error: 'No existing schedule found. Please set batch timings first.' });
+      }
+
+      const schedule = await updateAcademicCourseSchedule({
+        courseId: id,
+        academicAdminId,
+        startDate: existingSchedule.start_date,
+        endDate: existingSchedule.end_date,
+        startTime: existingSchedule.start_time,
+        endTime: existingSchedule.end_time,
+        meetingLink: meetingLink || null
+      });
+
+      return res.json({ success: true, schedule });
+    }
+
+    // Full schedule update (batch timings + optional meeting link)
+    if (!startDate || !endDate || !startTime || !endTime) {
+      return res.status(400).json({ success: false, error: 'Batch timings required' });
+    }
+
+    const schedule = await updateAcademicCourseSchedule({
+      courseId: id,
+      academicAdminId,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      meetingLink: meetingLink || null
+    });
+
+    res.json({ success: true, schedule });
+  } catch (error) {
+    console.error('Save academic course schedule error:', error);
+    res.status(500).json({ success: false, error: 'Failed to save schedule' });
   }
 };
