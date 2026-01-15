@@ -341,7 +341,7 @@ export default function CourseDetails() {
 
           {sections.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
-          No course content structure available yet.
+          No course content available yet.
         </div>
       ) : (
         <div className="space-y-6">

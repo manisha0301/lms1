@@ -233,98 +233,109 @@ export default function CourseDetailsFaculty() {
               </h2>
             </div>
 
-            <div className="space-y-10">
-              {weeks.map((week) => (
-                <div key={week.week} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition">
-                  {/* Week Title */}
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-                    <Calendar className="w-7 h-7 text-[#1e40af]" />
-                    {week.title}
-                  </h3>
-
-                  {/* Modules under Week */}
-                  <div className="space-y-6 ml-4">
-                    {week.modules.map((module) => (
-                      <div key={module.id} className="border-l-4 border-[#1e40af] pl-4">
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                          <BookOpen className="w-5 h-5" />
-                          {module.title}
-                        </h4>
-
-                        {/* Chapters under Module */}
-                        <ul className="space-y-3 ml-6">
-                          {module.chapters.map((chapter) => (
-                            <li key={chapter.id} className="bg-gray-50 p-3 rounded">
-                              <div className="font-medium text-gray-800">
-                                {chapter.title}
-                              </div>
-                              <p className="text-sm text-gray-600 mt-1">
-                                {chapter.description}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
+            {weeks.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
+                No course content available yet.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {weeks.map((section) => (
+                  <div key={section.week} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#1e3a8a]/10 to-[#1e40af]/5 px-6 py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <h3 className="font-semibold text-[#1e3a8a] text-lg">{section.title}</h3>
+                          <p className="text-sm text-gray-600">Week {section.week}</p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
 
-                  {/* Assessment Section for the Week */}
-                  <div className="mt-8 pt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold flex items-center gap-2">
-                        <Settings className="w-5 h-5 text-gray-600" />
-                        Week Assessment
-                      </h4>
+                    <div className="p-6">
+                      {(!section.modules || section.modules.length === 0) ? (
+                        <p className="text-gray-500 italic text-center py-8">No modules in this section yet</p>
+                      ) : (
+                        <div className="space-y-6">
+                          {section.modules.map((module) => (
+                            <div key={module.id || module.title} className="border-l-4 border-[#1e3a8a]/40 pl-5 py-2">
+                              <h4 className="text-gray-800 mb-3 flex items-center gap-2 font-bold text-lg text-black">
+                                <BookOpen size={18} className="text-[#1e3a8a]" />
+                                {module.title || module.name}
+                              </h4>
 
-                      {!week.assessment && (
-                        <button
-                          onClick={() => openAddAssessment(week.week)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
-                        >
-                          <Plus className="w-4 h-4" /> Add Assessment
-                        </button>
+                              <div className="space-y-2.5 ml-2">
+                                {module.chapters?.map((chapter, idx) => (
+                                  <div key={chapter?.id || idx} className="flex items-center gap-3 py-2.5 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group">
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
+                                      {idx + 1}
+                                    </div>
+                                    <span className="flex-1 font-medium text-gray-800">{(chapter && (chapter.title || chapter)) || 'Untitled'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
 
-                    {week.assessment ? (
-                      <div className="bg-gray-50 rounded-lg p-5">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-semibold text-lg">
-                              {week.assessment.title}
-                              <span className="ml-3 text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
-                                {week.assessment.type}
-                              </span>
-                            </h5>
-                            <div className="mt-2 text-sm text-gray-600 space-y-1">
-                              <div>Total Marks: <strong>{week.assessment.totalMarks}</strong></div>
-                              <div>Due: <strong>{new Date(week.assessment.dueDate).toLocaleDateString()}</strong></div>
-                              <div>Submissions: <strong>{week.assessment.submissions}/{week.assessment.totalStudents}</strong></div>
+                    {/* Assessment Section for the Week */}
+                    <div className="mt-4 pt-4 px-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold flex items-center gap-2">
+                          <Settings className="w-5 h-5 text-gray-600" />
+                          Week Assessment
+                        </h4>
+
+                        {!section.assessment && (
+                          <button
+                            onClick={() => openAddAssessment(section.week)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
+                          >
+                            <Plus className="w-4 h-4" /> Add Assessment
+                          </button>
+                        )}
+                      </div>
+
+                      {section.assessment ? (
+                        <div className="bg-gray-50 rounded-lg p-5">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h5 className="font-semibold text-lg">
+                                {section.assessment.title}
+                                <span className="ml-3 text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                                  {section.assessment.type}
+                                </span>
+                              </h5>
+                              <div className="mt-2 text-sm text-gray-600 space-y-1">
+                                <div>Total Marks: <strong>{section.assessment.totalMarks}</strong></div>
+                                <div>Due: <strong>{new Date(section.assessment.dueDate).toLocaleDateString()}</strong></div>
+                                <div>Submissions: <strong>{section.assessment.submissions}/{section.assessment.totalStudents}</strong></div>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => openViewSubmissions(section.week)}
+                                className="px-4 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] text-sm"
+                              >
+                                View Submissions
+                              </button>
+                              <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                                Edit
+                              </button>
                             </div>
                           </div>
-
-                          <div className="flex gap-3">
-                            <button
-                              onClick={() => openViewSubmissions(week.week)}
-                              className="px-4 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] text-sm"
-                            >
-                              View Submissions
-                            </button>
-                            <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
-                              Edit
-                            </button>
-                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 italic text-center py-4">
-                        No assessment created for this week yet.
-                      </p>
-                    )}
+                      ) : (
+                        <p className="text-gray-500 italic text-center py-4">
+                          No assessment created for this week yet.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
