@@ -11,6 +11,15 @@ import {
 
 import node from '../../assets/node.webp';
 
+const formatDateToYYYYMMDD = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function CourseDetailsFaculty() {
   const { id: courseId } = useParams();
   const navigate = useNavigate();
@@ -37,8 +46,11 @@ export default function CourseDetailsFaculty() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
+        console.log('Course fetch response:', res.data);
+
         if (res.data && res.data.success) {
           const c = res.data.course;
+          const s = res.data.schedules ;
 
           // map fields to UI-friendly names
           setCourse({
@@ -52,8 +64,9 @@ export default function CourseDetailsFaculty() {
             duration: c.duration || 'N/A',
             status: 'Active',
             description: c.description || '',
-            schedule: c.schedule || 'TBD',
-            room: c.room || 'TBD'
+            schedule: s.map(sc => `${formatDateToYYYYMMDD(sc.start_date)}-${formatDateToYYYYMMDD(sc.end_date)} `).join(', ') || 'TBD',
+            room: s.map(sc => `${sc.start_time}-${sc.end_time}`).join(', ') || 'TBD',
+            classLink: s.map(sc => sc.meeting_link).join(', ') || 'TBD',
           });
 
           // Map backend structure to the expected weeks/modules/chapters shape
@@ -163,31 +176,20 @@ export default function CourseDetailsFaculty() {
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <LinkIcon className="w-5 h-5 text-[#1e40af]" /> Live Class Link
               </h2>
-              {!isEditingLink && (
-                <button onClick={() => setIsEditingLink(true)} className="text-[#1e40af] hover:bg-blue-50 p-2 rounded-md">
-                  <Edit2 className="w-5 h-5" />
-                </button>
-              )}
             </div>
-            <input
-              type="url"
-              value={isEditingLink ? tempLink : classLink}
-              onChange={(e) => setTempLink(e.target.value)}
-              disabled={!isEditingLink}
-              className="w-full px-4 py-3 rounded-md focus:ring-2 focus:ring-[#1e40af] disabled:bg-gray-100"
-            />
-            {isEditingLink && (
-              <div className="mt-6 flex gap-4">
-                <button onClick={handleSaveLink} className="px-6 py-3 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" /> Save
-                </button>
-                <button
-                  onClick={() => { setIsEditingLink(false); setTempLink(classLink); }}
-                  className="px-6 py-3 rounded-md hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              </div>
+            {course.classLink && course.classLink !== 'TBD' ? (
+              <a
+                href={course.classLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block w-full px-4 py-3 rounded-md text-[#1e40af] hover:underline break-words"
+              >
+                {course.classLink}
+              </a>
+            ) : (
+              <p className="w-full px-4 py-3 rounded-md text-gray-600">
+                {course.classLink}
+              </p>
             )}
           </div>
 

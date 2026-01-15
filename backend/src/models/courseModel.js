@@ -95,6 +95,27 @@ export const createCourseModulesTables = async () => {
   console.log('course_modules & module_contents tables ready');
 };
 
+// Create table for per-admin batch schedule + meeting link
+export const createAcademicCourseSchedulesTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS academic_course_schedules (
+      id SERIAL PRIMARY KEY,
+      course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+      academic_admin_id INTEGER REFERENCES academic_admins(id) ON DELETE CASCADE,
+      start_date DATE NOT NULL,
+      end_date DATE NOT NULL,
+      start_time TIME NOT NULL,
+      end_time TIME NOT NULL,
+      meeting_link TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(course_id, academic_admin_id)  -- One entry per admin per course
+    );
+  `;
+  await pool.query(query);
+  console.log('academic_course_schedules table created or already exists');
+};
+
 export const addCourse = async ({
   image,
   name,
@@ -196,27 +217,6 @@ export const addContentToModule = async (moduleId, {title, type, duration, url, 
   return rows[0];
 };
 
-// Create table for per-admin batch schedule + meeting link
-export const createAcademicCourseSchedulesTable = async () => {
-  const query = `
-    CREATE TABLE IF NOT EXISTS academic_course_schedules (
-      id SERIAL PRIMARY KEY,
-      course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
-      academic_admin_id INTEGER REFERENCES academic_admins(id) ON DELETE CASCADE,
-      start_date DATE NOT NULL,
-      end_date DATE NOT NULL,
-      start_time TIME NOT NULL,
-      end_time TIME NOT NULL,
-      meeting_link TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(course_id, academic_admin_id)  -- One entry per admin per course
-    );
-  `;
-  await pool.query(query);
-  console.log('academic_course_schedules table created or already exists');
-};
-
 // Get schedule for specific admin + course
 export const getAcademicCourseSchedule = async (courseId, academicAdminId) => {
   const { rows } = await pool.query(
@@ -253,7 +253,9 @@ export const updateAcademicCourseSchedule = async ({
   `, [courseId, academicAdminId, startDate, endDate, startTime, endTime, meetingLink || null]);
 
   return rows[0];
-};export const deleteModule = async (moduleId) => {
+};
+
+export const deleteModule = async (moduleId) => {
   await pool.query('DELETE FROM course_modules WHERE id = $1', [moduleId]);
   // cascade will delete contents
 };

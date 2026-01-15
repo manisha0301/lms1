@@ -444,8 +444,17 @@ export const getCourseDetails = async (req, res) => {
     const contents = await getCourseStructure(course.id);
     course.contents = contents;
 
+    //get course schedule for thiis course in this admin from academic_course_schedules table
+    const { rows: scheduleRows } = await pool.query(`
+      SELECT id, academic_admin_id, start_date, end_date, start_time, end_time, meeting_link
+      FROM academic_course_schedules
+      WHERE course_id = $1
+    `, [course.id]);
+    course.schedules = scheduleRows;
+    
+
     // Optionally shape data for client
-    res.json({ success: true, course });
+    res.json({ success: true, course, schedules: course.schedules });
   } catch (error) {
     console.error('Get course details error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch course details' });
