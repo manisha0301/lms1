@@ -20,6 +20,14 @@ const formatDateToYYYYMMDD = (dateString) => {
   return `${year}-${month}-${day}`;
 };
 
+const formatTimeToHHMM = (timeString) => {
+  if (!timeString) return '';
+  const date = new Date(`1970-01-01T${timeString}Z`);
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 export default function CourseDetailsFaculty() {
   const { id: courseId } = useParams();
   const navigate = useNavigate();
@@ -65,7 +73,7 @@ export default function CourseDetailsFaculty() {
             status: 'Active',
             description: c.description || '',
             schedule: s.map(sc => `${formatDateToYYYYMMDD(sc.start_date)}-${formatDateToYYYYMMDD(sc.end_date)} `).join(', ') || 'TBD',
-            room: s.map(sc => `${sc.start_time}-${sc.end_time}`).join(', ') || 'TBD',
+            room: s.map(sc => `${formatTimeToHHMM(sc.start_time)}-${formatTimeToHHMM(sc.end_time)}`).join(', ') || 'TBD',
             classLink: s.map(sc => sc.meeting_link).join(', ') || 'TBD',
           });
 
@@ -100,19 +108,18 @@ export default function CourseDetailsFaculty() {
 
     fetchCourse();
   }, [courseId, navigate]);
-  const [classLink, setClassLink] = useState("https://zoom.us/j/1234567890");
-  const [isEditingLink, setIsEditingLink] = useState(false);
-  const [tempLink, setTempLink] = useState(classLink);
 
   // Modal states
   const [showAddAssessmentModal, setShowAddAssessmentModal] = useState(false);
   const [showViewSubmissionsModal, setShowViewSubmissionsModal] = useState(false);
   const [selectedWeekForModal, setSelectedWeekForModal] = useState(null);
 
-  const handleSaveLink = () => {
-    setClassLink(tempLink);
-    setIsEditingLink(false);
-  };
+  // Assessment form states
+  const [assessmentTitle, setAssessmentTitle] = useState('');
+  const [assessmentDesc, setAssessmentDesc] = useState('');
+  const [totalMarks, setTotalMarks] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [selectedPdfFile, setSelectedPdfFile] = useState(null);
 
   if (loadingCourse) {
     return (
@@ -130,14 +137,137 @@ export default function CourseDetailsFaculty() {
     );
   }
 
-  const openAddAssessment = (week) => {
+  const openViewSubmissions = (week) => {
+    setSelectedWeekForModal(week);
+    setShowViewSubmissionsModal(true);
+  };
+
+  const handleCreateAssessment = async () => {
+    // Validate form inputs
+    if (!assessmentTitle.trim()) {
+      alert('Please enter an assessment title');
+      return;
+    }
+    if (!selectedPdfFile) {
+      alert('Please upload a PDF file');
+      return;
+    }
+    if (!totalMarks || isNaN(totalMarks) || parseInt(totalMarks) <= 0) {
+      alert('Please enter valid total marks');
+      return;
+    }
+    if (!dueDate) {
+      alert('Please select a due date');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('assessmentPdf', selectedPdfFile);
+    formData.append('title', assessmentTitle);
+    formData.append('description', assessmentDesc);
+    formData.append('totalMarks', totalMarks);
+    formData.append('dueDate', dueDate);
+    formData.append('weekId', selectedWeekForModal);
+
+    const token = localStorage.getItem('token');
+    if (!token) return navigate('/login');
+
+    try {
+      const res = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}/assessments`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      if (res.data && res.data.success) {
+        alert('Assessment created successfully!');
+        // Reset form
+        setAssessmentTitle('');
+        setAssessmentDesc('');
+        setTotalMarks('');
+        setDueDate('');
+        setSelectedPdfFile(null);
+        setShowAddAssessmentModal(false);
+
+        // Refresh course data
+        if (courseId) {
+          const refreshRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          console.log('Course refresh response:', refreshRes.data);
+          if (refreshRes.data && refreshRes.data.success) {
+            const c = refreshRes.data.course;
+            const s = refreshRes.data.schedules;
+            setCourse({
+              id: c.id,
+              title: c.name || c.title || `Course ${c.id}`,
+              code: c.code || `C-${c.id}`,
+              thumbnail: c.image ? `${apiConfig.API_BASE_URL}/uploads/${c.image}` : node,
+              instructor: (c.facultyNames && c.facultyNames.join(', ')) || 'TBD',
+              semester: c.semester || 'N/A',
+              totalStudents: c.totalStudents || 0,
+              duration: c.duration || 'N/A',
+              status: 'Active',
+              description: c.description || '',
+              schedule: s.map(sc => `${formatDateToYYYYMMDD(sc.start_date)}-${formatDateToYYYYMMDD(sc.end_date)} `).join(', ') || 'TBD',
+              room: s.map(sc => `${formatTimeToHHMM(sc.start_time)}-${formatTimeToHHMM(sc.end_time)}`).join(', ') || 'TBD',
+              classLink: s.map(sc => sc.meeting_link).join(', ') || 'TBD',
+            });
+            const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
+            const mappedWeeks = apiWeeks.map((w, idx) => ({
+              week: w.weekNumber || idx + 1,
+              title: w.title || `Week ${idx + 1}`,
+              modules: (w.modules || []).map(m => ({
+                id: m.id,
+                title: m.title,
+                chapters: (m.chapters || []).map(ch => ({
+                  id: ch.id,
+                  title: ch.title,
+                  description: ch.type ? `${ch.type}${ch.duration ? ' · ' + ch.duration : ''}` : (ch.url || '')
+                }))
+              })),
+              assessment: w.assessment || null
+            }));
+            setWeeks(mappedWeeks);
+          }
+        }
+      } else {
+        alert(res.data?.error || 'Failed to create assessment');
+      }
+    } catch (err) {
+      console.error('Error creating assessment:', err);
+      alert('Failed to create assessment. Please try again.');
+    }
+  };
+
+  const handlePdfChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedPdfFile(file);
+    } else if (file) {
+      alert('Please select a valid PDF file');
+      e.target.value = '';
+    }
+  };
+
+  const openAddAssessmentModal = (week) => {
     setSelectedWeekForModal(week);
     setShowAddAssessmentModal(true);
   };
 
-  const openViewSubmissions = (week) => {
-    setSelectedWeekForModal(week);
-    setShowViewSubmissionsModal(true);
+  const closeAddAssessmentModal = () => {
+    setShowAddAssessmentModal(false);
+    setAssessmentTitle('');
+    setAssessmentDesc('');
+    setTotalMarks('');
+    setDueDate('');
+    setSelectedPdfFile(null);
   };
 
   return (
@@ -247,7 +377,6 @@ export default function CourseDetailsFaculty() {
                       <div className="flex items-center gap-4">
                         <div>
                           <h3 className="font-semibold text-[#1e3a8a] text-lg">{section.title}</h3>
-                          <p className="text-sm text-gray-600">Week {section.week}</p>
                         </div>
                       </div>
                     </div>
@@ -290,7 +419,7 @@ export default function CourseDetailsFaculty() {
 
                         {!section.assessment && (
                           <button
-                            onClick={() => openAddAssessment(section.week)}
+                            onClick={() => openAddAssessmentModal(section.week)}
                             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
                           >
                             <Plus className="w-4 h-4" /> Add Assessment
@@ -356,27 +485,70 @@ export default function CourseDetailsFaculty() {
                 <input
                   type="text"
                   placeholder="e.g. Week 1 - Node.js Fundamentals Quiz"
+                  value={assessmentTitle}
+                  onChange={(e) => setAssessmentTitle(e.target.value)}
                   className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#1e40af]"
                 />
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  placeholder="e.g. This quiz covers Node.js fundamentals"
+                  value={assessmentDesc}
+                  onChange={(e) => setAssessmentDesc(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                ></textarea>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">Upload File (PDF)</label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <label htmlFor="pdf-file-input" className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-[#1e40af] hover:bg-blue-50 transition block">
                   <Upload className="w-10 h-10 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                  <input type="file" accept=".pdf" className="hidden" />
-                </div>
+                  <p className="text-xs text-gray-500 mt-1">{selectedPdfFile ? `Selected: ${selectedPdfFile.name}` : 'PDF files only'}</p>
+                  <input 
+                    id="pdf-file-input"
+                    type="file" 
+                    accept=".pdf" 
+                    onChange={handlePdfChange}
+                    className="hidden" 
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Total Marks</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 100"
+                  value={totalMarks}
+                  onChange={(e) => setTotalMarks(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Due Date</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#1e40af]"
+                />
               </div>
 
               <div className="flex justify-end gap-4 mt-8">
                 <button
-                  onClick={() => setShowAddAssessmentModal(false)}
+                  onClick={closeAddAssessmentModal}
                   className="px-6 py-2 border rounded-md hover:bg-gray-50"
                 >
                   Cancel
                 </button>
-                <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a]">
+                <button 
+                  className="px-6 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a]" 
+                  onClick={handleCreateAssessment}
+                >
                   Create Assessment
                 </button>
               </div>

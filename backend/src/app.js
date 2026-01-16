@@ -12,7 +12,8 @@ import {
   createCoursesTable,
   createAcademicCourseSchedulesTable,  // ← ADDED THIS IMPORT
   createCourseWeeksTable,
-  createCourseModulesTables
+  createCourseModulesTables,
+  assessmentsTableSetup
 } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
@@ -60,12 +61,9 @@ const initDatabase = async () => {
     await createCourseModulesTables(pool);
     await createNotificationsTable(pool);
     await createFacultyTable();
-
-    // NEW: Create students table
     await createStudentsTable();
-
-    // NEW: Create per-admin batch schedule + meeting link table
     await createAcademicCourseSchedulesTable();
+    await assessmentsTableSetup(pool);
 
     console.log('All database tables initialized');
     
