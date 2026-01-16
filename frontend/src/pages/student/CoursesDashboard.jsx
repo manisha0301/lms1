@@ -262,7 +262,7 @@ export default function CoursesDashboard() {
                 </div>
                 <div className="p-7">
                   <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">{course.title}</h3>
-                  <p className="text-gray-600 mb-5">by {course.instructor}</p>
+                  <p className="text-gray-600 mb-5 line-clamp-1">by {course.instructor}</p>
                   <div className="flex justify-between text-sm text-gray-600 mb-6">
                     <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {course.duration || "N/A"}</span>
                     <span className="flex items-center gap-2"><IndianRupee className="w-4 h-4" /> ₹{course.price?.toLocaleString() || "0"}</span>

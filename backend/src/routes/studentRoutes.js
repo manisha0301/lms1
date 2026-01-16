@@ -1,6 +1,7 @@
 // backend/src/routes/studentRoutes.js
 import express from 'express';
-import { studentSignup, studentLogin, getStudentCourses } from '../controllers/studentController.js';  // ← ADD getStudentCourses
+import { studentSignup, studentLogin, getStudentCourses } from '../controllers/studentController.js';  
+import { getCourse } from '../controllers/courseController.js';
 import { protectStudent } from '../middleware/authMiddleware.js'; 
 
 const router = express.Router();
@@ -13,5 +14,8 @@ router.post('/login', studentLogin);
 
 // Get courses for logged-in student (protected)
 router.get('/courses', protectStudent, getStudentCourses);
+
+// Get course details for students
+router.get('/courses/:id', protectStudent, getCourse);
 
 export default router;

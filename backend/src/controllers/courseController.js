@@ -6,7 +6,6 @@ import {
   getCourseById,
   getCourseStructure,
   replaceCourseStructure,
-  // updateCourseContents,
   getAcademicCourseSchedule,
   updateAcademicCourseSchedule
 } from '../models/courseModel.js';
@@ -18,7 +17,6 @@ export const createCourse = async (req, res) => {
     const { name, type, price, duration, description, originalPrice } = req.body;
     const image = req.file ? req.file.filename : null;
 
-    // Parse optional JSON fields safely
     let teachers = [];
     let batches = [];
     try {
@@ -28,7 +26,6 @@ export const createCourse = async (req, res) => {
       // ignore parse errors
     }
 
-    // Handle originalPrice - only if manually provided (no auto 2x)
     let finalOriginalPrice = null;
     if (originalPrice && originalPrice.trim() !== "") {
       finalOriginalPrice = parseFloat(originalPrice);
@@ -50,7 +47,7 @@ export const createCourse = async (req, res) => {
     await addNotificationForSuperAdmin(
       pool,
       notifyMessage,
-      'course',       // you can define new type if you want different styling
+      'course',
       'medium'
     );
 
@@ -72,14 +69,44 @@ export const getCourses = async (req, res) => {
   }
 };
 
-// Get single course
+// Get single course (NOW WITH REAL INSTRUCTORS & ENROLLED COUNT)
 export const getCourse = async (req, res) => {
   try {
     const course = await getCourseById(req.params.id);
     if (!course) {
       return res.status(404).json({ success: false, error: 'Course not found' });
     }
+
+    // Keep existing course structure
     course.contents = await getCourseStructure(course.id);
+
+    // Fetch real faculty/instructor names
+    let instructors = "No faculty assigned";
+    if (course.teachers && course.teachers.length > 0) {
+      const { rows: facultyRows } = await pool.query(
+        'SELECT full_name FROM faculty WHERE id = ANY($1)',
+        [course.teachers]
+      );
+      instructors = facultyRows.map(f => f.full_name).join(", ") || "No faculty assigned";
+    }
+    course.instructors = instructors;
+
+    // Fetch real number of enrolled students - try multiple approaches
+    let enrolledCount = 0;
+    try {
+      // First try: check if enrollments table exists and has status column
+      const { rows: [countRow] } = await pool.query(
+        'SELECT COUNT(*) as count FROM enrollments WHERE course_id = $1',
+        [course.id]
+      );
+      enrolledCount = parseInt(countRow?.count) || 0;
+    } catch (err) {
+      // If enrollments table doesn't exist, that's okay - just set to 0
+      console.log('Enrollments table query failed (table may not exist yet):', err.message);
+      enrolledCount = 0;
+    }
+    course.enrolledStudents = enrolledCount;
+
     res.json({ success: true, course });
   } catch (error) {
     console.error('Get single course error:', error);
@@ -90,7 +117,7 @@ export const getCourse = async (req, res) => {
 // Update course contents (now relational)
 export const updateContents = async (req, res) => {
   try {
-    const { contents } = req.body;   // expect array of modules [{title, chapters: [...]}]
+    const { contents } = req.body;
 
     if (!Array.isArray(contents)) {
       return res.status(400).json({ success: false, error: 'Contents must be an array of modules' });
@@ -98,7 +125,6 @@ export const updateContents = async (req, res) => {
 
     const updatedStructure = await replaceCourseStructure(req.params.id, contents);
 
-    // Optional: notify
     await addNotificationForSuperAdmin(
       pool,
       `Course structure updated for course ID ${req.params.id}`,
@@ -109,9 +135,8 @@ export const updateContents = async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Course structure updated successfully',
-      contents: updatedStructure   // return the fresh structure
+      contents: updatedStructure
     });
-
   } catch (error) {
     console.error('Update contents error:', error);
     res.status(500).json({ success: false, error: 'Failed to update course structure' });
@@ -141,18 +166,15 @@ export const assignCourseToAdmins = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid data' });
     }
 
-    // Get current assignments for this course
     const { rows: current } = await pool.query(
       'SELECT academic_admin_id FROM course_academic_assignments WHERE course_id = $1',
       [courseId]
     );
     const currentIds = current.map(row => row.academic_admin_id);
 
-    // Find what to add and what to remove
     const toAdd = adminIds.filter(id => !currentIds.includes(id));
     const toRemove = currentIds.filter(id => !adminIds.includes(id));
 
-    // Remove unchecked ones
     if (toRemove.length > 0) {
       await pool.query(
         'DELETE FROM course_academic_assignments WHERE course_id = $1 AND academic_admin_id = ANY($2::int[])',
@@ -160,7 +182,6 @@ export const assignCourseToAdmins = async (req, res) => {
       );
     }
 
-    // Add new checked ones
     if (toAdd.length > 0) {
       const values = toAdd.map(id => `(${courseId}, ${id})`).join(',');
       await pool.query(`
@@ -170,7 +191,6 @@ export const assignCourseToAdmins = async (req, res) => {
       `);
     }
 
-    // Get course name for nice message
     const { rows: [course] } = await pool.query(
       'SELECT name FROM courses WHERE id = $1',
       [courseId]
@@ -204,7 +224,6 @@ export const getCourseAssignments = async (req, res) => {
   }
 };
 
-// FIXED: Now shows REAL faculty names instead of dummy
 export const getCoursesForManagement = async (req, res) => {
   try {
     const { rows: academicsData } = await pool.query(`
@@ -237,7 +256,7 @@ export const getCoursesForManagement = async (req, res) => {
               'completionRate', 87,
               'topPerformer', 'Rohan Mehta',
               'lastActivity', '2 hours ago',
-              'teachers', c.teachers  -- Get real teacher IDs
+              'teachers', c.teachers
             )
           ) FILTER (WHERE c.id IS NOT NULL),
           '[]'::jsonb
@@ -250,7 +269,6 @@ export const getCoursesForManagement = async (req, res) => {
       ORDER BY aa.full_name ASC
     `);
 
-    // Convert teacher IDs to real names
     const allTeacherIds = new Set();
     academicsData.forEach(ac => {
       ac.courses.forEach(course => {
@@ -266,10 +284,9 @@ export const getCoursesForManagement = async (req, res) => {
         'SELECT id, full_name FROM faculty WHERE id = ANY($1)',
         [Array.from(allTeacherIds)]
       );
-      facultyMap = Object.fromEntries(faculties.map(f => [f.id, f.name]));
+      facultyMap = Object.fromEntries(faculties.map(f => [f.id, f.full_name])); 
     }
 
-    // Set real faculty names
     academicsData.forEach(ac => {
       ac.courses.forEach(course => {
         if (course.teachers && course.teachers.length > 0) {
@@ -279,7 +296,7 @@ export const getCoursesForManagement = async (req, res) => {
         } else {
           course.faculty = 'No faculty assigned';
         }
-        delete course.teachers; // clean up
+        delete course.teachers;
       });
     });
 
@@ -290,7 +307,6 @@ export const getCoursesForManagement = async (req, res) => {
   }
 };
 
-// Update only teachers for a course
 export const updateCourseTeachers = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -319,7 +335,6 @@ export const updateCourseTeachers = async (req, res) => {
   }
 };
 
-// Get schedule for logged-in admin + course
 export const getAcademicCourseScheduleCtrl = async (req, res) => {
   try {
     const { id } = req.params;
@@ -333,14 +348,12 @@ export const getAcademicCourseScheduleCtrl = async (req, res) => {
   }
 };
 
-// Save schedule for logged-in admin + course
 export const saveAcademicCourseScheduleCtrl = async (req, res) => {
   try {
     const { id } = req.params;
     const academicAdminId = req.user.id;
     const { startDate, endDate, startTime, endTime, meetingLink } = req.body;
 
-    // If only meetingLink is provided, fetch existing schedule and update only meeting link
     if (meetingLink !== undefined && !startDate && !endDate && !startTime && !endTime) {
       const existingSchedule = await getAcademicCourseSchedule(id, academicAdminId);
       if (!existingSchedule) {
@@ -360,7 +373,6 @@ export const saveAcademicCourseScheduleCtrl = async (req, res) => {
       return res.json({ success: true, schedule });
     }
 
-    // Full schedule update (batch timings + optional meeting link)
     if (!startDate || !endDate || !startTime || !endTime) {
       return res.status(400).json({ success: false, error: 'Batch timings required' });
     }
