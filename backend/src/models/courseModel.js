@@ -163,40 +163,46 @@ export const getCourseById = async (id) => {
 };
 
 export const getCourseStructure = async (courseId) => {
-  const weeksRes = await pool.query(`
-    SELECT id, title, week_number AS "weekNumber", "order"
-    FROM course_weeks
-    WHERE course_id = $1
-    ORDER BY "order" ASC, id ASC
-  `, [courseId]);
-
-  const weeks = weeksRes.rows;
-
-  for (const week of weeks) {
-    // Modules
-    const modulesRes = await pool.query(`
-      SELECT id, title, "order"
-      FROM course_modules
-      WHERE week_id = $1
+  try {
+    const weeksRes = await pool.query(`
+      SELECT id, title, week_number AS "weekNumber", "order"
+      FROM course_weeks
+      WHERE course_id = $1
       ORDER BY "order" ASC, id ASC
-    `, [week.id]);
+    `, [courseId]);
 
-    week.modules = modulesRes.rows;
+    const weeks = weeksRes.rows;
 
-    for (const module of week.modules) {
-      // Chapters / Contents
-      const contentsRes = await pool.query(`
-        SELECT id, title, type, duration, "order", url
-        FROM module_contents
-        WHERE module_id = $1
+    for (const week of weeks) {
+      // Modules
+      const modulesRes = await pool.query(`
+        SELECT id, title, "order"
+        FROM course_modules
+        WHERE week_id = $1
         ORDER BY "order" ASC, id ASC
-      `, [module.id]);
+      `, [week.id]);
 
-      module.chapters = contentsRes.rows;
+      week.modules = modulesRes.rows;
+
+      for (const module of week.modules) {
+        // Chapters / Contents
+        const contentsRes = await pool.query(`
+          SELECT id, title, type, duration, "order", url
+          FROM module_contents
+          WHERE module_id = $1
+          ORDER BY "order" ASC, id ASC
+        `, [module.id]);
+
+        module.chapters = contentsRes.rows;
+      }
     }
-  }
 
-  return weeks;
+    return weeks;
+  } catch (error) {
+    // If course structure tables don't exist yet, just return empty array
+    console.log('Course structure query failed (tables may not exist yet):', error.message);
+    return [];
+  }
 };
 
 export const addModule = async (courseId, title, order = 0) => {
