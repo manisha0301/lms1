@@ -51,21 +51,23 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem('superAdminToken');  // Assuming token is stored in localStorage
-        const response = await fetch('http://localhost:5000/api/auth/superadmin/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-        if (data.success) {
-          setStats(data.stats);
-        }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
+  try {
+    const token = localStorage.getItem('superAdminToken');
+    const response = await fetch('http://localhost:5000/api/auth/superadmin/stats', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (data.success) {
+      setStats(data.stats);
+    } else {
+      console.error('Failed to load stats:', data.error);
+    }
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+  }
+};
 
     // NEW: Fetch notifications
   const fetchNotifications = async () => {
@@ -116,11 +118,15 @@ const SuperAdminDashboard = () => {
   }, []);
 
   // Regular stats (non-clickable)
+  const safeLocaleString = (val) => {
+    if (typeof val === 'number' && !isNaN(val)) return val.toLocaleString();
+    return '0';
+  };
   const regularStats = [
-    { label: "Total Students", value: stats.totalStudents.toLocaleString(), icon: Users },
-    { label: "Faculties", value: stats.totalFaculties, icon: UserCheck },
-    { label: "Centres", value: stats.totalCentres, icon: Building2 },
-    { label: "Exams Conducted", value: stats.totalExams.toLocaleString(), icon: FileCheck },
+    { label: "Total Students", value: safeLocaleString(stats.totalStudents), icon: Users },
+    { label: "Faculties", value: safeLocaleString(stats.totalFaculties), icon: UserCheck },
+    { label: "Centres", value: safeLocaleString(stats.totalCentres), icon: Building2 },
+    { label: "Exams Conducted", value: safeLocaleString(stats.totalExams), icon: FileCheck },
   ];
 
   const handleLogOut = () => {

@@ -1,3 +1,16 @@
+// Get total user count (students + faculty + academic admins)
+export const getTotalUserCount = async (req, res) => {
+  try {
+    const { rows: studentsCount } = await pool.query('SELECT COUNT(*) FROM students');
+    const { rows: facultiesCount } = await pool.query('SELECT COUNT(*) FROM faculty');
+    const { rows: adminsCount } = await pool.query('SELECT COUNT(*) FROM academic_admins');
+    const total = parseInt(studentsCount[0].count, 10) + parseInt(facultiesCount[0].count, 10) + parseInt(adminsCount[0].count, 10);
+    res.json({ success: true, totalUsers: total });
+  } catch (error) {
+    console.error('Get total user count error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch user count' });
+  }
+};
 // backend/src/controllers/superAdminController.js
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -148,29 +161,42 @@ const superAdminChangePassword = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
-    // Query for total academic admins
+    // 1. Total Students (real)
+    const { rows: studentsCount } = await pool.query('SELECT COUNT(*) FROM students');
+    const totalStudents = parseInt(studentsCount[0].count, 10);
+
+    // 2. Total Active Faculties (real)
+    const { rows: facultiesCount } = await pool.query(
+      "SELECT COUNT(*) FROM faculty WHERE status = 'Active'"
+    );
+    const totalFaculties = parseInt(facultiesCount[0].count, 10);
+
+    // 3. Total Centres (unique academic_name / universities)
+    const { rows: centresCount } = await pool.query(
+      'SELECT COUNT(DISTINCT academic_name) FROM academic_admins WHERE academic_name IS NOT NULL AND academic_name != \'\''
+    );
+    const totalCentres = parseInt(centresCount[0].count, 10);
+
+    // 4. Exams Conducted – kept as dummy (0) as per your request
+    const examsConducted = 0;
+
+    // Optional: Keep your existing counts if you still want them
     const academicsResult = await pool.query('SELECT COUNT(*) FROM academic_admins');
     const totalAcademics = parseInt(academicsResult.rows[0].count, 10);
 
-    // Query for total courses
     const coursesResult = await pool.query('SELECT COUNT(*) FROM courses');
     const totalCourses = parseInt(coursesResult.rows[0].count, 10);
 
-    const stats = {
-      totalAcademics,
-      totalCourses,
-      totalStudents: 0,
-      totalFaculties: 0,
-      totalCentres: 0,
-      totalAdmins: 0,
-      totalExams: 0,
-      totalAssignments: 0,
-      totalRevenue: 0,
-    };
-
     res.json({
       success: true,
-      stats
+      stats: {
+        totalStudents,
+        totalFaculties,
+        totalCentres,
+        examsConducted,
+        totalAcademics,     // optional
+        totalCourses        // optional
+      }
     });
   } catch (error) {
     console.error('Get dashboard stats error:', error);
@@ -180,16 +206,22 @@ export const getDashboardStats = async (req, res) => {
 
 export const getSuperAdminProfile = async (req, res) => {
   try {
-    const superAdmin = await findSuperAdminByEmail(pool, req.user.email);
-    if (!superAdmin) {
+    const { rows } = await pool.query(
+      `SELECT id, email, full_name, phone, created_at FROM super_admins WHERE email = $1`,
+      [req.user.email]
+    );
+    if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Super Admin not found' });
     }
-
+    const superAdmin = rows[0];
     res.json({
       success: true,
       user: {
         id: superAdmin.id,
         email: superAdmin.email,
+        full_name: superAdmin.full_name || 'Super Admin',
+        phone: superAdmin.phone || '',
+        created_at: superAdmin.created_at,
         role: "superadmin"
       }
     });
@@ -238,3 +270,54 @@ export const getAcademicInstitutes = async (req, res) => {
 };
 
 export { superAdminLogin, superAdminChangePassword };
+
+export const updateSuperAdminProfile = async (req, res) => {
+  try {
+    const { fullName, phone } = req.body;
+    const userId = req.user.id;
+
+    // Build dynamic SET clause
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (fullName) {
+      updates.push(`full_name = $${paramIndex}`);
+      values.push(fullName.trim());
+      paramIndex++;
+    }
+    if (phone) {
+      updates.push(`phone = $${paramIndex}`);
+      values.push(phone.trim());
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, error: 'No fields to update' });
+    }
+
+    values.push(userId);
+
+    const query = `
+      UPDATE super_admins
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, email, full_name, phone, created_at
+    `;
+
+    const { rows } = await pool.query(query, values);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: rows[0]
+    });
+  } catch (error) {
+    console.error('Update super admin profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+};

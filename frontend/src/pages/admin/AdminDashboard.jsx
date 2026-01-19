@@ -7,7 +7,7 @@ import {
   LogOut,
   Settings
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
@@ -18,15 +18,35 @@ export default function AdminDashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   // Mock Data
-  const stats = {
-    totalStudents: 2847,
-    totalFaculty: 89,
-    totalCourses: 42,
-    totalBranches: 6,
-    activeBatches: 24,
-    revenueThisMonth: "₹48.2L",
-    completionRate: 87
+  const [stats, setStats] = useState({
+  totalStudents: 0,
+  totalFaculty: 0,
+  totalCourses: 0,
+});
+const [loadingStats, setLoadingStats] = useState(true);
+
+useEffect(() => {
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem('token'); // or your admin token key
+      const response = await fetch('http://localhost:5000/api/auth/admin/courses', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
   };
+
+  fetchStats();
+}, []);
 
   const branchHierarchy = [
     { id: 1, name: "Mumbai Main Campus", dean: "Dr. Anita Sharma", students: 892, faculty: 28 },
@@ -180,18 +200,32 @@ export default function AdminDashboard() {
           {/* Statistics Grid - Same Style */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {[
-              { label: "Total Students", value: stats.totalStudents.toLocaleString(), icon: Users, growth: "+12%" },
-              { label: "Active Courses", value: stats.totalCourses, icon: BookOpen, growth: "+3" },
-              { label: "Faculty Members", value: stats.totalFaculty, icon: GraduationCap, growth: "+8" },
-              // { label: "Revenue (Month)", value: stats.revenueThisMonth, icon: TrendingUp, growth: "+18%" },
+              { 
+                label: "Total Students", 
+                value: loadingStats ? '...' : stats.totalStudents.toLocaleString(), 
+                icon: Users, 
+                growth: "+12%" 
+              },
+              { 
+                label: "Active Courses", 
+                value: loadingStats ? '...' : stats.totalCourses, 
+                icon: BookOpen, 
+                growth: "+3" 
+              },
+              { 
+                label: "Faculty Members", 
+                value: loadingStats ? '...' : stats.totalFaculty, 
+                icon: GraduationCap, 
+                growth: "+8" 
+              },
             ].map((stat, i) => (
               <div
                 key={i}
                 className="bg-white rounded-xl shadow-xl border border-gray-100 p-8 cursor-pointer transition-all hover:-translate-y-4 hover:shadow-2xl group"
                 onClick={() => navigate(
                   stat.label.includes("Students") ? "/students" :
-                    stat.label.includes("Courses") ? "/courses" :
-                      stat.label.includes("Faculty") ? "/faculty" : "/revenue"
+                  stat.label.includes("Courses") ? "/courses" :
+                  stat.label.includes("Faculty") ? "/faculty" : "/revenue"
                 )}
               >
                 <div className="flex justify-between items-start mb-6">

@@ -6,6 +6,7 @@ export const createStudentsTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS students (
       id SERIAL PRIMARY KEY,
+      student_id VARCHAR(20) UNIQUE,           -- NEW: STU-YYYY-NNNN
       first_name VARCHAR(100) NOT NULL,
       last_name VARCHAR(100) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -17,7 +18,14 @@ export const createStudentsTable = async () => {
     );
   `;
   await pool.query(query);
-  console.log('students table created or already exists');
+
+  // Safe migration: add student_id column if it doesn't exist yet
+  await pool.query(`
+    ALTER TABLE students 
+    ADD COLUMN IF NOT EXISTS student_id VARCHAR(20) UNIQUE;
+  `);
+
+  console.log('students table created/updated with student_id column');
 };
 
 export const createStudent = async ({
@@ -30,14 +38,35 @@ export const createStudent = async ({
 }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Generate student_id: STU-YYYY-NNNN
+  const year = new Date().getFullYear();
+
+  // Get count of students created in this year (for sequential number)
+  const { rows: countRes } = await pool.query(
+    `SELECT COUNT(*) FROM students 
+     WHERE EXTRACT(YEAR FROM created_at) = $1`,
+    [year]
+  );
+  const count = parseInt(countRes[0].count, 10) + 1;
+  const studentId = `STU-${year}-${String(count).padStart(4, '0')}`;
+
   const query = `
     INSERT INTO students (
-      first_name, last_name, email, mobile_number, password, graduation_university
-    ) VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id, first_name, last_name, email, mobile_number, graduation_university, created_at;
+      student_id, first_name, last_name, email, mobile_number, password, graduation_university
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING 
+      id, 
+      student_id, 
+      first_name, 
+      last_name, 
+      email, 
+      mobile_number, 
+      graduation_university, 
+      created_at;
   `;
 
   const values = [
+    studentId,
     firstName,
     lastName,
     email,

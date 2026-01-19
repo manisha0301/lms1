@@ -69,7 +69,9 @@ export const getCourses = async (req, res) => {
   }
 };
 
-// Get single course (NOW WITH REAL INSTRUCTORS & ENROLLED COUNT)
+
+// Get single course – NOW WITH REAL BATCH SCHEDULE & MEETING LINK
+// Get single course – DYNAMIC DAILY SESSIONS (same time/link, different dates)
 export const getCourse = async (req, res) => {
   try {
     const course = await getCourseById(req.params.id);
@@ -77,10 +79,9 @@ export const getCourse = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Course not found' });
     }
 
-    // Keep existing course structure
     course.contents = await getCourseStructure(course.id);
 
-    // Fetch real faculty/instructor names
+    // Real faculty/instructor names
     let instructors = "No faculty assigned";
     if (course.teachers && course.teachers.length > 0) {
       const { rows: facultyRows } = await pool.query(
@@ -91,21 +92,80 @@ export const getCourse = async (req, res) => {
     }
     course.instructors = instructors;
 
-    // Fetch real number of enrolled students - try multiple approaches
+    // Real enrolled students count (safe fallback)
     let enrolledCount = 0;
     try {
-      // First try: check if enrollments table exists and has status column
       const { rows: [countRow] } = await pool.query(
-        'SELECT COUNT(*) as count FROM enrollments WHERE course_id = $1',
-        [course.id]
+        'SELECT COUNT(*) as count FROM enrollments WHERE course_id = $1 AND status = $2',
+        [course.id, 'PAID']
       );
       enrolledCount = parseInt(countRow?.count) || 0;
     } catch (err) {
-      // If enrollments table doesn't exist, that's okay - just set to 0
-      console.log('Enrollments table query failed (table may not exist yet):', err.message);
-      enrolledCount = 0;
+      console.log('Enrollments count failed (table may not exist):', err.message);
     }
     course.enrolledStudents = enrolledCount;
+
+    // ── DYNAMIC DAILY LIVE SESSIONS: Generate from start_date to end_date ────────────────────────────────
+    const { rows: [schedule] } = await pool.query(`
+      SELECT start_date, end_date, start_time, end_time, meeting_link
+      FROM academic_course_schedules
+      WHERE course_id = $1
+      LIMIT 1
+    `, [course.id]);
+
+    let liveClasses = [];
+    const today = new Date();
+
+    if (schedule && schedule.start_date && schedule.end_date) {
+      const start = new Date(schedule.start_date);
+      const end = new Date(schedule.end_date);
+      const timeSlot = schedule.start_time && schedule.end_time 
+        ? `${schedule.start_time.slice(0, 5)} - ${schedule.end_time.slice(0, 5)}` 
+        : 'Time TBA';
+      const meetingLink = schedule.meeting_link || '#';
+
+      // If course has already ended
+      if (today > end) {
+        liveClasses = [{
+          topic: 'Live classes for this course have ended',
+          instructor: instructors,
+          date: 'Course Completed',
+          time: '',
+          link: '#'
+        }];
+      } else {
+        // Generate one daily session from start to end
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const currentDate = new Date(d);
+
+          liveClasses.push({
+            topic: `Daily Live Class - ${course.name}`,
+            instructor: instructors,
+            date: currentDate.toLocaleDateString('en-IN', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            time: timeSlot,
+            link: meetingLink
+          });
+        }
+      }
+    }
+
+    // Fallback if no schedule exists
+    if (liveClasses.length === 0) {
+      liveClasses = [{
+        topic: 'No live classes scheduled for this course',
+        instructor: 'TBA',
+        date: 'TBA',
+        time: 'TBA',
+        link: '#'
+      }];
+    }
+
+    course.liveClasses = liveClasses;
 
     res.json({ success: true, course });
   } catch (error) {
@@ -113,6 +173,7 @@ export const getCourse = async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
+
 
 // Update course contents (now relational)
 export const updateContents = async (req, res) => {

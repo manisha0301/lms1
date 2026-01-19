@@ -1,9 +1,22 @@
 // src/routes/superAdminRoutes.js
 import express from 'express';
-import { getDashboardStats, getSuperAdminNotifications, getSuperAdminProfile, superAdminChangePassword, superAdminLogin, getAcademicInstitutes } from '../controllers/superAdminController.js';
-import {protectSuperAdmin} from '../middleware/authMiddleware.js';
+
+// Correct import: updateSuperAdminProfile belongs here
+import { 
+  getDashboardStats, 
+  getSuperAdminNotifications, 
+  getSuperAdminProfile, 
+  superAdminChangePassword, 
+  superAdminLogin, 
+  getAcademicInstitutes,
+  updateSuperAdminProfile ,
+  getTotalUserCount  // ← FIXED: from superAdminController.js
+} from '../controllers/superAdminController.js';
+
+import { protectSuperAdmin } from '../middleware/authMiddleware.js';
 import { createNewAcademicAdmin, getAllAcademicAdmins } from '../controllers/academicAdminController.js';
 
+// Course controller imports (kept separate, no overlap)
 import { 
   createCourse, 
   getCourses, 
@@ -100,5 +113,11 @@ router.get('/notifications', protectSuperAdmin, getSuperAdminNotifications);
 
 // NEW: Public endpoint for student signup dropdown (no auth needed)
 router.get('/institutes', getAcademicInstitutes);
+
+// Profile update route (now correctly imported)
+router.put('/profile', protectSuperAdmin, updateSuperAdminProfile);
+
+// Route to get total user count (students + faculty + academic admins)
+router.get('/user-count', protectSuperAdmin, getTotalUserCount);
 
 export default router;

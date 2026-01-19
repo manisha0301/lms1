@@ -1,5 +1,5 @@
 // src/pages/faculty/AssignmentManagement.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -13,56 +13,91 @@ import {
   X,
   Filter
 } from 'lucide-react';
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
 
 export default function AssignmentManagement() {
-  const [assignments, setAssignments] = useState([
-    {
-      id: 1,
-      topic: "Build REST API with Node.js",
-      course: "Advanced Node.js (CSE-405)",
-      description: "Create a complete RESTful API using Express and MongoDB with authentication.",
-      uploadedAt: "2025-11-10",
-      fileName: "Assignment-1-REST-API.pdf",
-      totalAssigned: 48,
-      submitted: 42,
-      pending: 6
-    },
-    {
-      id: 2,
-      topic: "Machine Learning Model Deployment",
-      course: "Machine Learning A-Z (CSE-601)",
-      description: "Deploy a trained ML model using Flask or FastAPI.",
-      uploadedAt: "2025-11-05",
-      fileName: "ML-Deployment-Task.pdf",
-      totalAssigned: 36,
-      submitted: 29,
-      pending: 7
-    }
-  ]);
-
+  const [assignments, setAssignments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(null);
   const [searchStudent, setSearchStudent] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Form state
   const [newAssignment, setNewAssignment] = useState({
-    topic: '',
-    course: 'Advanced Node.js (CSE-405)',
+    title: '',
+    courseId: '',
     description: '',
+    totalMarks: '',
+    dueDate: '',
     file: null
   });
 
-  // Mock students
+  // Mock students (kept as-is for details modal)
   const allStudents = [
     { id: "STU21001", name: "Aarav Sharma", selected: false },
     { id: "STU21002", name: "Diya Patel", selected: false },
     { id: "STU21003", name: "Rohan Verma", selected: false },
     { id: "STU21004", name: "Priya Singh", selected: false },
     { id: "STU21005", name: "Vikram Kumar", selected: false },
-    // ... more students
   ];
-
   const [students, setStudents] = useState(allStudents);
+
+  // Fetch courses on mount
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/faculty/dashboard`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (response.data.success && response.data.dashboard.recentCourses) {
+          const courseList = response.data.dashboard.recentCourses;
+          setCourses(courseList);
+          if (courseList.length > 0) {
+            const firstCourseId = courseList[0].id;
+            setSelectedCourseId(firstCourseId);
+            setNewAssignment(prev => ({ ...prev, courseId: firstCourseId }));
+            fetchAssignments(firstCourseId); // Load assignments for first course
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch courses:', error);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  // Fetch assignments for selected course
+  const fetchAssignments = async (courseId) => {
+    if (!courseId) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}/assessments`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setAssignments(response.data.assessments || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch assessments:', error);
+    }
+  };
+
+  // Handle course change → reload assignments
+  const handleCourseChange = (e) => {
+    const courseId = e.target.value;
+    setSelectedCourseId(courseId);
+    setNewAssignment(prev => ({ ...prev, courseId }));
+    fetchAssignments(courseId);
+  };
 
   const toggleStudent = (id) => {
     setStudents(students.map(s => s.id === id ? { ...s, selected: !s.selected } : s));
@@ -73,13 +108,67 @@ export default function AssignmentManagement() {
     s.id.toLowerCase().includes(searchStudent.toLowerCase())
   );
 
-  // Mock submissions for details modal
-  const submissions = {
-    1: [
-      { id: "STU21001", name: "Aarav Sharma", submittedAt: "2025-11-15", file: "aarav-rest-api.zip", marks: 88, remarks: "Excellent implementation" },
-      { id: "STU21002", name: "Diya Patel", submittedAt: "2025-11-14", file: "diya-api-project.zip", marks: 92, remarks: "Outstanding work" },
-      { id: "STU21003", name: "Rohan Verma", submittedAt: null, file: null, marks: null, remarks: null },
-    ]
+  const handleFileChange = (e) => {
+    setNewAssignment({ ...newAssignment, file: e.target.files[0] });
+  };
+
+  const handleSubmitAssignment = async () => {
+    try {
+      if (!newAssignment.title || !newAssignment.courseId || !newAssignment.totalMarks || !newAssignment.dueDate) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      const marks = parseInt(newAssignment.totalMarks, 10);
+      if (isNaN(marks) || marks <= 0) {
+        alert('Total marks must be a positive number');
+        return;
+      }
+
+      setLoading(true);
+      const token = localStorage.getItem('token');
+
+      const formData = new FormData();
+      formData.append('title', newAssignment.title.trim());
+      formData.append('description', newAssignment.description.trim() || '');
+      formData.append('totalMarks', marks.toString());
+      formData.append('dueDate', newAssignment.dueDate);
+
+      if (newAssignment.file) {
+        formData.append('assessmentPdf', newAssignment.file);
+      }
+
+      const response = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/faculty/courses/${newAssignment.courseId}/assessments`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        alert('Assignment created successfully!');
+        setShowAddModal(false);
+        setNewAssignment({
+          title: '',
+          courseId: selectedCourseId,
+          description: '',
+          totalMarks: '',
+          dueDate: '',
+          file: null
+        });
+        // Refresh the list
+        fetchAssignments(selectedCourseId);
+      }
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      alert(error.response?.data?.error || 'Failed to create assignment');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,63 +179,101 @@ export default function AssignmentManagement() {
         <p className="text-gray-600">Create, assign, and evaluate student assignments</p>
       </div>
 
-      {/* Add New Assignment Button */}
-      <div className="mb-8 text-right">
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition transform hover:scale-105"
+      {/* Course Selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Select Course</label>
+        <select
+          value={selectedCourseId}
+          onChange={handleCourseChange}
+          className="w-full md:w-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
         >
-          <Plus className="w-5 h-5" />
-          Add New Assignment
-        </button>
+          <option value="">-- Select Course --</option>
+          {courses.map(course => (
+            <option key={course.id} value={course.id}>
+              {course.title || course.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Assignments Grid */}
-      <div className="grid gap-6">
-        {assignments.map((assignment) => (
-          <div key={assignment.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-6">
-            <div className="flex flex-col lg:flex-row justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-indigo-100 rounded-xl">
-                    <FileText className="w-8 h-8 text-indigo-600" />
-                  </div>
+      {/* Add New Assignment Button */}
+      {selectedCourseId && (
+        <div className="mb-8 text-right">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition transform hover:scale-105"
+          >
+            <Plus className="w-5 h-5" />
+            Add New Assignment
+          </button>
+        </div>
+      )}
+
+      {/* Assignments List */}
+      {selectedCourseId ? (
+        <div className="grid gap-6">
+          {assignments.length === 0 ? (
+            <p className="text-center text-gray-500 py-10">
+              No assignments created for this course yet.
+            </p>
+          ) : (
+            assignments.map((assignment) => (
+              <div key={assignment.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-6">
+                <div className="flex flex-col lg:flex-row justify-between gap-6">
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-800">{assignment.topic}</h3>
-                    <p className="text-indigo-600 font-medium mt-1">{assignment.course}</p>
-                    <p className="text-gray-600 text-sm mt-2 line-clamp-2">{assignment.description}</p>
-                    
-                    <div className="flex items-center gap-6 mt-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Uploaded: {assignment.uploadedAt}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        {assignment.submitted}/{assignment.totalAssigned} Submitted
-                      </span>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-indigo-100 rounded-xl">
+                        <FileText className="w-8 h-8 text-indigo-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-800">{assignment.title}</h3>
+                        <p className="text-indigo-600 font-medium mt-1">Course ID: {assignment.course_id}</p>
+                        <p className="text-gray-600 text-sm mt-2 line-clamp-2">
+                          {assignment.description || 'No description provided'}
+                        </p>
+                        
+                        <div className="flex items-center gap-6 mt-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            Due: {assignment.due_date}
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            Marks: {assignment.total_marks}
+                          </span>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {assignment.pdf_path && (
+                      <a
+                        href={`http://localhost:5000/uploads/${assignment.pdf_path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download PDF
+                      </a>
+                    )}
+                    <button
+                      onClick={() => setShowDetailsModal(assignment.id)}
+                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </button>
                   </div>
                 </div>
               </div>
-
-              <div className="flex flex-col gap-3">
-                <button className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-                <button
-                  onClick={() => setShowDetailsModal(assignment.id)}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
-                >
-                  <Eye className="w-4 h-4" />
-                  View Details
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 py-10">Please select a course to view or create assignments</p>
+      )}
 
       {/* Add New Assignment Modal */}
       {showAddModal && (
@@ -163,23 +290,54 @@ export default function AssignmentManagement() {
 
             <div className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Assignment Topic</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Assignment Title *</label>
                 <input
                   type="text"
-                  value={newAssignment.topic}
-                  onChange={(e) => setNewAssignment({...newAssignment, topic: e.target.value})}
+                  value={newAssignment.title}
+                  onChange={(e) => setNewAssignment({...newAssignment, title: e.target.value})}
                   placeholder="e.g., Build a REST API"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                  <option>Advanced Node.js (CSE-405)</option>
-                  <option>Machine Learning A-Z (CSE-601)</option>
-                  <option>Data Structures (CSE-201)</option>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Course *</label>
+                <select 
+                  value={newAssignment.courseId}
+                  onChange={(e) => setNewAssignment({...newAssignment, courseId: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Select a course</option>
+                  {courses.map(course => (
+                    <option key={course.id} value={course.id}>{course.name || course.title}</option>
+                  ))}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Total Marks *</label>
+                  <input
+                    type="number"
+                    value={newAssignment.totalMarks}
+                    onChange={(e) => setNewAssignment({...newAssignment, totalMarks: e.target.value})}
+                    placeholder="e.g., 100"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
+                  <input
+                    type="date"
+                    value={newAssignment.dueDate}
+                    onChange={(e) => setNewAssignment({...newAssignment, dueDate: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
@@ -194,14 +352,21 @@ export default function AssignmentManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Assignment File</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Assessment PDF</label>
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 transition">
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">Click to upload or drag and drop</p>
-                  <input type="file" className="mt-4" />
+                  <input 
+                    type="file" 
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="mt-4"
+                  />
+                  {newAssignment.file && <p className="text-green-600 mt-2">File: {newAssignment.file.name}</p>}
                 </div>
               </div>
 
+              {/* Student selection kept as-is */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-4">Assign to Students</label>
                 <div className="relative mb-4">
@@ -241,15 +406,19 @@ export default function AssignmentManagement() {
               <button onClick={() => setShowAddModal(false)} className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
-              <button className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg">
-                Assign to Selected Students
+              <button 
+                onClick={handleSubmitAssignment}
+                disabled={loading}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Creating...' : 'Create Assignment'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Assignment Details Modal */}
+      {/* Assignment Details Modal - kept exactly as-is */}
       {showDetailsModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-screen overflow-y-auto">
@@ -264,7 +433,7 @@ export default function AssignmentManagement() {
 
             <div className="p-6">
               <h3 className="text-xl font-bold text-gray-800 mb-2">
-                {assignments.find(a => a.id === showDetailsModal)?.topic}
+                {assignments.find(a => a.id === showDetailsModal)?.title}
               </h3>
               <p className="text-gray-600 mb-6">
                 {assignments.find(a => a.id === showDetailsModal)?.description}

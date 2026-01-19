@@ -367,7 +367,7 @@ const CourseDetailsAdmin = () => {
                   </p>
                   <p className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-[#1e3a8a]" />
-                    Time: {course.batch.start_time} - {course.batch.end_time}
+                    Time: {course.batch.start_time.slice(0, 5)} - {course.batch.end_time.slice(0, 5)}
                   </p>
                 </div>
               ) : (

@@ -6,7 +6,7 @@ import {
   FileText, Users, ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
+ 
 export default function ProfileDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState({
@@ -17,52 +17,54 @@ export default function ProfileDashboard() {
     university: 'Delhi University',
     avatar: null
   });
-
+ 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ ...user });
-
+ 
   const upcomingClasses = [
     { id: 1, course: 'React Masterclass', date: '2025-11-20', time: '7:00 PM', instructor: 'John Doe' },
-    { id: 2, course: 'Node.js Advanced', date: '2025-11-22', time: '6:30 PM', instructor: 'Jane Smith' }
+    { id: 2, course: 'Node.js Advanced', date: '2025-11-22', time: '6:30 PM', instructor: 'Jane Smith' },
+    { id: 3, course: 'Python Basics', date: '2025-11-25', time: '5:00 PM', instructor: 'Alice Johnson' },
+    { id: 4, course: 'Java Enterprise', date: '2025-11-28', time: '4:00 PM', instructor: 'Bob Wilson' },
   ];
-
+ 
   const pendingAssignments = 3;
-
+ 
   const registeredCourses = [
-    { id: 'react-101', title: 'React Masterclass', progress: 80, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop', 
+    { id: 'react-101', title: 'React Masterclass', progress: 80, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop',
       exams: { completed: 1, total: 3, next: { name: 'Midterm Quiz', date: '2025-11-25', link: 'https://exam.kristellar.com/react-midterm' } } },
-    { id: 'vue-301', title: 'Vue.js Essentials', progress: 100, thumbnail: 'https://images.unsplash.com/photo-1619410283995-43d9134e7656?w=200&h=200&fit=crop', 
+    { id: 'vue-301', title: 'Vue.js Essentials', progress: 100, thumbnail: 'https://images.unsplash.com/photo-1619410283995-43d9134e7656?w=200&h=200&fit=crop',
       exams: { completed: 3, total: 3, next: null } },
-    { id: 'node-201', title: 'Node.js Advanced', progress: 45, thumbnail: 'https://images.unsplash.com/photo-1610986603166-f78428624e76?w=200&h=200&fit=crop', 
+    { id: 'node-201', title: 'Node.js Advanced', progress: 45, thumbnail: 'https://images.unsplash.com/photo-1610986603166-f78428624e76?w=200&h=200&fit=crop',
       exams: { completed: 0, total: 4, next: { name: 'API Project Review', date: '2025-12-01', link: 'https://exam.kristellar.com/node-review' } } },
-    { id: 'python-401', title: 'Python Basics', progress: 60, thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f65d4af39a5?w=200&h=200&fit=crop', 
+    { id: 'python-401', title: 'Python Basics', progress: 60, thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f65d4af39a5?w=200&h=200&fit=crop',
       exams: { completed: 2, total: 5, next: { name: 'Data Structures Exam', date: '2025-11-28', link: 'https://exam.kristellar.com/python-ds' } } },
-    { id: 'java-501', title: 'Java Enterprise', progress: 30, thumbnail: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=200&h=200&fit=crop', 
+    { id: 'java-501', title: 'Java Enterprise', progress: 30, thumbnail: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=200&h=200&fit=crop',
       exams: { completed: 1, total: 4, next: { name: 'Spring Boot Test', date: '2025-12-10', link: 'https://exam.kristellar.com/java-spring' } } }
   ];
-
+ 
   // Calculate overall progress from registered courses
-  const overallProgress = registeredCourses.length > 0 
+  const overallProgress = registeredCourses.length > 0
     ? Math.round(registeredCourses.reduce((sum, c) => sum + c.progress, 0) / registeredCourses.length)
     : 0;
-
+ 
   // Calculate exam progress from registered courses
   const examProgress = registeredCourses.reduce((acc, c) => ({
     completed: acc.completed + c.exams.completed,
     total: acc.total + c.exams.total,
     nextExams: [...acc.nextExams, c.exams.next].filter(Boolean)
   }), { completed: 0, total: 0, nextExams: [] });
-
+ 
   // Get the soonest upcoming exam
   const upcomingExam = examProgress.nextExams
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
-
+ 
   const handleSave = () => {
     setUser(editForm);
     setIsEditing(false);
     alert('Profile updated successfully!');
   };
-
+ 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -70,216 +72,167 @@ export default function ProfileDashboard() {
     navigate('/login');
     // In real app: navigate('/login')
   };
-
+ 
   const goToCourse = (id) => {
     alert(`Navigating to course: ${id}`);
     // In real app: navigate(`/student/course/${id}`)
   };
-
+ 
   return (
-    <div className="min-h-screen bg-white ">
-      <header className="mb-10">
-  <div className="bg-[#1e3a8a] border border-gray-200 shadow-sm p-8">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">
-          {user.firstName} {user.lastName}
-        </h1>
-        <p className="mt-2 text-lg text-white">
-          Hello, <span className="font-semibold text-green-400">{user.firstName}</span>
-        </p>
+  <div className="min-h-screen bg-gray-50 pb-12">
+    {/* Consistent Blue Header with breadcrumb-style text */}
+    <div className="bg-[#1e3a8a] text-white p-8 mb-8">
+      <div className="mx-auto">
+        <h1 className="text-3xl font-bold text-white">My Profile</h1>
+        <p className="text-white mt-1 opacity-90">Manage your academic journey and track your milestones</p>
       </div>
-      
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-2 px-6 py-3 text-white hover:text-red-600 hover:bg-red-50 rounded-lg transition font-medium cursor-pointer"
-      >
-        <LogOut className="w-5 h-5" />
-        Logout
-      </button>
     </div>
-  </div>
-</header>
-
-      <div className="mx-auto gap-8 p-4">
-        {/* ==== LEFT COLUMN ==== */}
-        <div className="space-y-6">
-          {/* Profile */}
-          <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all p-4 sm:p-6 border border-gray-100">
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <User className="w-5 h-5 text-blue-600" />
-                </div>
-                Profile Details
-              </h2>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-              >
-                <Edit2 className="w-5 h-5 text-blue-600" />
-              </button>
+ 
+    <div className="mx-auto px-4 flex flex-col lg:flex-row gap-8">
+     
+      {/* LEFT COLUMN: Profile Sidebar */}
+      <div className="lg:w-1/3 space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="relative inline-block mb-4">
+            <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg mx-auto">
+              {user.firstName[0]}{user.lastName[0]}
             </div>
-
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md">
-                {user.firstName[0]}{user.lastName[0]}
-              </div>
-              <div>
-                <p className="text-xl font-semibold text-gray-800">{user.firstName} {user.lastName}</p>
-                <p className="text-sm text-gray-600">{user.university}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center gap-2 text-gray-700 p-2 hover:bg-gray-50 rounded-lg transition">
-                <Mail className="w-4 h-4 text-gray-500" />
-                <span>{user.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-700 p-2 hover:bg-gray-50 rounded-lg transition">
-                <Phone className="w-4 h-4 text-gray-500" />
-                <span>{user.phone}</span>
-              </div>
+            {/* Active Status Badge */}
+            <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              Active
             </div>
           </div>
-
-          {/* ii. Upcoming Classes */}
-          <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-purple-600" />
-              </div>
-              Upcoming Classes
-            </h2>
-            <div className="space-y-3">
-              {upcomingClasses.map(cls => (
-                <div key={cls.id} className="p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition flex items-start gap-3">
-                  <div className="mt-1">
-                    <Users className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{cls.course}</p>
-                    <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
-                      <Calendar className="w-3 h-3" /> {cls.date}
-                    </p>
-                    <p className="text-xs text-gray-600 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {cls.time}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">with {cls.instructor}</p>
-                  </div>
-                </div>
-              ))}
-              {upcomingClasses.length === 0 && (
-                <p className="text-center text-gray-500 text-sm py-4">No upcoming classes</p>
-              )}
-            </div>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-800">{user.firstName} {user.lastName}</h2>
+          <p className="text-blue-600 font-medium mb-2">Student</p>
+          <p className="text-xs text-gray-400 mb-6">Joined 26 Dec 2025</p>
+         
+          <button
+            onClick={() => setIsEditing(true)}
+            className="w-full py-2.5 px-4 bg-[#1e3a8a] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-800 transition-shadow shadow-md"
+          >
+            <Edit2 className="w-4 h-4" /> Edit Profile
+          </button>
         </div>
-
-        {/* Middle Column: Progress & Exams */}
-        <div className="space-y-6">
-          {/* iii. Overall Progress & Pending Assignments */}
-          <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Overall Progress</h2>
-            <div className="mb-6">
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-gray-700">Course Completion</span>
-                <span className="text-gray-800">{overallProgress}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${overallProgress}%` }}
-                />
-              </div>
+ 
+        {/* Upcoming Classes Sidebar Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+           <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
+            <div className="p-1.5 bg-purple-100 rounded-md">
+              <Calendar className="w-4 h-4 text-purple-600" />
             </div>
-            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-                <span className="font-medium text-orange-800">Pending Assignments</span>
-              </div>
-              <span className="text-2xl font-bold text-orange-600">{pendingAssignments}</span>
-            </div>
-          </div>
-
-          {/* iv. Exam Progress */}
-          <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Award className="w-5 h-5 text-green-600" />
-              </div>
-              Exam Progress
-            </h2>
-            <div className="text-center mb-6">
-              <p className="text-3xl font-bold text-gray-800">{examProgress.completed}/{examProgress.total}</p>
-              <p className="text-sm text-gray-600">Exams Completed</p>
-            </div>
-            {/* vi. Upcoming Exam */}
-            <div className="p-4 bg-green-50 rounded-xl">
-              <h3 className="font-medium text-sm mb-2">Next Upcoming Exam:</h3>
-              {upcomingExam ? (
-                <>
-                  <p className="text-sm text-gray-800 font-semibold">{upcomingExam.name}</p>
-                  <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
-                    <Calendar className="w-3 h-3" /> {upcomingExam.date}
-                  </p>
-                  <a
-                    href={upcomingExam.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block mt-3 bg-green-600 text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
-                  >
-                    Start Exam
-                  </a>
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">No upcoming exams</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Registered Courses */}
-        <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 self-start">
-          {/* v. Registered Courses - Horizontal Scroll */}
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <BookOpen className="w-5 h-5 text-indigo-600" />
-            </div>
-            Registered Courses
-          </h2>
-          <div className="flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            {registeredCourses.map(course => (
-              <div
-                key={course.id}
-                onClick={() => goToCourse(course.id)}
-                className="flex-shrink-0 w-64 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 cursor-pointer transition-all duration-300 snap-start hover:scale-105"
-              >
-                <img
-                  src={course.thumbnail}
-                  alt={course.title}
-                  className="w-full h-36 object-cover rounded-lg mb-3 shadow-sm"
-                />
-                <h3 className="font-medium text-base text-gray-800 mb-1 line-clamp-1">{course.title}</h3>
-                <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                  <span>Progress: {course.progress}%</span>
-                  <div className="flex-1 bg-gray-300 rounded-full h-1.5 ml-2">
-                    <div
-                      className="bg-indigo-600 h-1.5 rounded-full"
-                      style={{ width: `${course.progress}%` }}
-                    />
-                  </div>
+            Upcoming Classes
+          </h3>
+          <div className="space-y-4 h-75 overflow-y-auto pr-2">
+            {upcomingClasses.map(cls => (
+              <div key={cls.id} className="p-3 border border-gray-50 bg-gray-50/50 rounded-lg hover:bg-purple-50 transition-colors">
+                <p className="font-semibold text-sm text-gray-800">{cls.course}</p>
+                <div className="flex flex-col gap-1 mt-2">
+                  <span className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3"/> {cls.time}</span>
+                  <span className="text-xs text-gray-500 flex items-center gap-1"><User className="w-3 h-3"/> {cls.instructor}</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />
               </div>
             ))}
           </div>
         </div>
       </div>
-
-      {/* Edit Profile Modal */}
+ 
+      {/* RIGHT COLUMN: Content Area */}
+      <div className="lg:w-2/3 space-y-6">
+       
+        {/* Section 1: Personal Information Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <div className="flex items-center gap-2 mb-8 pb-3 border-b border-gray-50">
+            <User className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
+          </div>
+         
+          <div className="grid md:grid-cols-2 gap-y-8 gap-x-12">
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Full Name</p>
+              <p className="text-gray-800 font-medium">{user.firstName} {user.lastName}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Email Address</p>
+              <p className="text-gray-800 font-medium">{user.email}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Phone Number</p>
+              <p className="text-gray-800 font-medium">{user.phone}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">University</p>
+              <p className="text-gray-800 font-medium">{user.university}</p>
+            </div>
+          </div>
+        </div>
+ 
+        {/* Section 2: Overall Progress Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-blue-100 rounded-md">
+                <CheckCircle className="w-4 h-4 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Overall Progress</h3>
+            </div>
+            <span className="text-blue-600 font-bold">{overallProgress}%</span>
+          </div>
+         
+          <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden mb-6">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-700"
+              style={{ width: `${overallProgress}%` }}
+            />
+          </div>
+ 
+          <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-orange-500" />
+              <div>
+                <p className="text-sm font-bold text-orange-900">Pending Assignments</p>
+                <p className="text-xs text-orange-700">Submit these before the deadline</p>
+              </div>
+            </div>
+            <span className="text-3xl font-black text-orange-600">{pendingAssignments}</span>
+          </div>
+        </div>
+ 
+        {/* Section 3: Exam Progress Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-1.5 bg-green-100 rounded-md">
+              <Award className="w-4 h-4 text-green-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">Exam Progress</h3>
+          </div>
+ 
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="flex flex-col justify-center items-center p-6 border border-gray-100 rounded-xl">
+              <p className="text-4xl font-black text-gray-800">{examProgress.completed}<span className="text-gray-300 text-2xl mx-1">/</span>{examProgress.total}</p>
+              <p className="text-xs text-gray-500 font-bold uppercase mt-2">Exams Completed</p>
+            </div>
+ 
+            <div className="bg-green-50 p-6 rounded-xl border border-green-100 flex flex-col justify-between">
+              <div>
+                <p className="text-xs text-green-700 font-bold uppercase mb-1">Next Upcoming Exam</p>
+                <p className="text-gray-900 font-bold">{upcomingExam?.name || "None Scheduled"}</p>
+                <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> {upcomingExam?.date}
+                </p>
+              </div>
+              <button className="mt-4 w-full py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm">
+                Start Exam
+              </button>
+            </div>
+          </div>
+        </div>
+ 
+      </div>
+    </div>
+ 
+    {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform scale-100 transition-transform duration-300">
             <h3 className="text-xl font-bold mb-6 text-gray-800">Edit Profile</h3>
             <div className="space-y-4">
@@ -336,6 +289,6 @@ export default function ProfileDashboard() {
           </div>
         </div>
       )}
-    </div>
-  );
+  </div>
+);
 }

@@ -363,14 +363,56 @@ const getAssignedCourses = async (req, res) => {
   try {
     const adminId = req.user.id;
 
-    const { rows } = await pool.query(`
-      SELECT c.id, c.name, c.price , c.description , c.teachers, c.created_at
+    // Get the admin's academic_name (university)
+    const { rows: adminInfo } = await pool.query(
+      'SELECT academic_name FROM academic_admins WHERE id = $1',
+      [adminId]
+    );
+
+    if (adminInfo.length === 0) {
+      return res.status(404).json({ success: false, error: 'Admin not found' });
+    }
+
+    const universityName = adminInfo[0].academic_name;
+
+    // 1. Total Students in this university (filtered by graduation_university)
+    const { rows: studentCount } = await pool.query(`
+      SELECT COUNT(*) AS total 
+      FROM students 
+      WHERE graduation_university ILIKE $1
+    `, [`%${universityName}%`]); // ILIKE for case-insensitive partial match
+
+    const totalStudents = parseInt(studentCount[0].total || 0, 10);
+
+    // 2. Total Assigned Courses for this admin
+    const { rows: courses } = await pool.query(`
+      SELECT c.id, c.name, c.price, c.description, c.teachers, c.created_at
       FROM courses c
       JOIN course_academic_assignments ca ON c.id = ca.course_id
       WHERE ca.academic_admin_id = $1
       ORDER BY c.created_at DESC
     `, [adminId]);
-    res.json({ success: true, courses: rows });
+
+    const totalCourses = courses.length;
+
+    // 3. Total Active Faculties for this admin
+    const { rows: facultyCount } = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM faculty
+      WHERE academic_admin_id = $1 AND status = 'Active'
+    `, [adminId]);
+
+    const totalFaculty = parseInt(facultyCount[0].total || 0, 10);
+
+    res.json({ 
+      success: true, 
+      courses,
+      stats: {
+        totalStudents,
+        totalCourses,
+        totalFaculty
+      }
+    });
   } catch (error) {
     console.error('Get Assigned Courses Error →', error.message);
     res.status(500).json({ success: false, error: 'Server error' });
@@ -389,13 +431,13 @@ const getCourseDetails = async (req, res) => {
     w.id AS week_id, w.title AS week_title, w.week_number, w."order" AS week_order,
     m.id AS module_id, m.title AS module_name, m."order" AS module_order,
     mc.id AS content_id, mc.title AS content_title, mc.title AS content_data
-FROM courses c
-LEFT JOIN course_weeks w ON c.id = w.course_id
-LEFT JOIN course_modules m ON w.id = m.week_id
-LEFT JOIN module_contents mc ON m.id = mc.module_id
-JOIN course_academic_assignments ca ON c.id = ca.course_id
-WHERE ca.academic_admin_id = $1 
-  AND c.id = $2
+    FROM courses c
+    LEFT JOIN course_weeks w ON c.id = w.course_id
+    LEFT JOIN course_modules m ON w.id = m.week_id
+    LEFT JOIN module_contents mc ON m.id = mc.module_id
+    JOIN course_academic_assignments ca ON c.id = ca.course_id
+    WHERE ca.academic_admin_id = $1 
+    AND c.id = $2
     `, [adminId, courseId]);
 
     if (rows.length === 0) {
@@ -412,6 +454,74 @@ WHERE ca.academic_admin_id = $1
   }
 };
 
+// NEW: Get all students enrolled in this admin's university
+const getUniversityStudents = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+
+    // Get the admin's university name
+    const { rows: admin } = await pool.query(
+      'SELECT academic_name FROM academic_admins WHERE id = $1',
+      [adminId]
+    );
+
+    if (admin.length === 0) {
+      return res.status(404).json({ success: false, error: 'Admin not found' });
+    }
+
+    const university = admin[0].academic_name;
+
+    // Fetch students where graduation_university matches (case-insensitive partial match)
+    const { rows: students } = await pool.query(`
+      SELECT 
+        id,
+        first_name || ' ' || last_name AS name,
+        email,
+        mobile_number AS phone,
+        created_at AS joined_at
+      FROM students
+      WHERE graduation_university ILIKE $1
+      ORDER BY created_at DESC
+    `, [`%${university}%`]);
+
+    res.json({
+      success: true,
+      students
+    });
+  } catch (error) {
+    console.error('Get university students error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch students' });
+  }
+};
+
+// NEW: Get a single student by ID (for admin view)
+const getStudentByIdForAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      `SELECT 
+        id,
+        student_id,
+        first_name,
+        last_name,
+        email,
+        mobile_number,
+        graduation_university,
+        created_at
+      FROM students
+      WHERE id = $1`,
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+    res.json({ success: true, student: rows[0] });
+  } catch (error) {
+    console.error('Get student by ID (admin) error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load student profile' });
+  }
+};
+
 export { 
   getAllAcademicAdmins, 
   createNewAcademicAdmin, 
@@ -420,5 +530,7 @@ export {
   getAcademicAdminProfile,
   updateAcademicAdminProfile,
   getAssignedCourses,
-  getCourseDetails
+  getCourseDetails,
+  getUniversityStudents
+  ,getStudentByIdForAdmin
 };

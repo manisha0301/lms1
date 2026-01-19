@@ -30,16 +30,26 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const fullName = (req.body.fullName || req.body.firstName && req.body.lastName 
-      ? `${req.body.firstName} ${req.body.lastName}` 
-      : 'faculty').trim();
+    // Prefer fullName from body (admin form sends this)
+    let fullName = req.body.fullName || '';
+
+    // If fullName not present, fallback to firstName + lastName (for other forms)
+    if (!fullName && req.body.firstName && req.body.lastName) {
+      fullName = `${req.body.firstName} ${req.body.lastName}`;
+    }
+
+    // Ultimate fallback
+    if (!fullName.trim()) {
+      fullName = 'faculty';
+    }
 
     let slug = fullName
+      .trim()
       .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+      .replace(/\s+/g, '-')           // spaces to -
+      .replace(/[^a-z0-9-]/g, '')     // remove special chars
+      .replace(/-+/g, '-')            // multiple - to single
+      .replace(/^-|-$/g, '');         // remove leading/trailing -
 
     if (!slug) slug = 'faculty';
 
@@ -66,8 +76,12 @@ export const createFaculty = async (req, res) => {
   try {
     const {
       fullName, email, phone, address,
-      designation, qualification, employmentStatus, password
+      designation, qualification, employmentStatus, password,
+      academicAdminId   // ← NEW: Get academic admin ID from request body
     } = req.body;
+
+    console.log('Logged in user ID (req.user.id):', req.user?.id);
+    console.log('Received academicAdminId from form:', academicAdminId);
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, error: 'Name, email and password required' });
@@ -92,7 +106,8 @@ export const createFaculty = async (req, res) => {
       employment_status: employmentStatus,
       password_hash,
       profile_picture,
-      status: 'Active'  // Admin bypasses approval
+      status: 'Active',  // Admin bypasses approval
+      academic_admin_id: academicAdminId || req.user.id  // ← NEW: Set the admin ID
     });
 
     res.status(201).json({ success: true, faculty: newFaculty });
@@ -105,19 +120,44 @@ export const createFaculty = async (req, res) => {
   }
 };
 
-// Get all faculties (active + pending for counts)
+// Get all faculties (active + pending for counts) - FILTERED by current admin
 export const getFacultyList = async (req, res) => {
   try {
+    const currentAdminId = req.user.id; // Logged-in Academic Admin ID
+
+    // Fetch ALL faculties with status (for counts)
     const allFaculties = await getAllFacultyWithStatus();
-    const pending = await getPendingFaculty();
-    const active = allFaculties.filter(f => f.status === 'Active');
+
+    // Fetch ONLY faculties assigned to THIS admin
+    const { rows: myFaculties } = await pool.query(`
+      SELECT 
+        id, code, full_name AS name, email, phone, address,
+        designation, qualification, employment_status,
+        profile_picture, status, created_at
+      FROM faculty
+      WHERE academic_admin_id = $1
+      ORDER BY created_at DESC
+    `, [currentAdminId]);
+
+    // Pending requests - filtered by current admin
+    const { rows: pending } = await pool.query(`
+      SELECT 
+        id, code, full_name AS name, email, phone,
+        designation, qualification
+      FROM faculty
+      WHERE status = 'Pending' AND academic_admin_id = $1
+      ORDER BY created_at DESC
+    `, [currentAdminId]);
+
+    // Active faculties = only mine
+    const active = myFaculties.filter(f => f.status === 'Active');
 
     res.json({
       success: true,
-      faculties: active,
-      pendingRequests: pending,
+      faculties: active,           // ← Only this admin's active faculties
+      pendingRequests: pending,    // ← Only this admin's pending requests
       stats: {
-        total: allFaculties.length,
+        total: myFaculties.length, // ← Total under this admin
         active: active.length,
         pending: pending.length
       }
@@ -234,7 +274,8 @@ export const facultySignup = async (req, res) => {
       instagramUrl,
       facebookUrl,
       password,
-      employmentStatus
+      employmentStatus,
+      university   // ← Changed: Now receiving university NAME from frontend
     } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
@@ -256,6 +297,20 @@ export const facultySignup = async (req, res) => {
     const full_name = `${firstName.trim()} ${lastName.trim()}`;
     const profile_picture = req.file ? req.file.filename : null;
 
+    // NEW: Map university name to actual academic admin ID
+    let assignedAdminId = null;
+    if (university && university.trim()) {
+      const { rows } = await pool.query(
+        `SELECT id FROM academic_admins 
+         WHERE academic_name ILIKE $1 AND status = 'Active' 
+         LIMIT 1`,
+        [`%${university.trim()}%`]
+      );
+      if (rows.length > 0) {
+        assignedAdminId = rows[0].id;
+      }
+    }
+
     const newFaculty = await addFaculty({
       full_name,
       email: email.toLowerCase(),
@@ -266,12 +321,13 @@ export const facultySignup = async (req, res) => {
       employment_status: employmentStatus || 'Employed',
       password_hash,
       profile_picture,
-      status: 'Pending'  // Self-signup always pending approval
+      status: 'Pending',  // Self-signup always pending approval
+      academic_admin_id: assignedAdminId  // ← Now correctly mapped from university name
     });
 
     res.status(201).json({
       success: true,
-      message: 'Signup successful! Your account is pending admin approval.',
+      message: 'Signup successful! Your account is pending approval.',
       faculty: newFaculty
     });
   } catch (error) {
@@ -401,8 +457,6 @@ export const getFacultyDashboard = async (req, res) => {
       delete course.teachers; 
     });
 
-    
-
     res.json({
       success: true,
       dashboard: {
@@ -411,7 +465,6 @@ export const getFacultyDashboard = async (req, res) => {
         faculty: {
           name: faculty.full_name,
           designation: faculty.designation || 'Faculty Member',
-          
         }
       }
     });
@@ -444,7 +497,7 @@ export const getCourseDetails = async (req, res) => {
     const contents = await getCourseStructure(course.id);
     course.contents = contents;
 
-    //get course schedule for thiis course in this admin from academic_course_schedules table
+    //get course schedule for this course in this admin from academic_course_schedules table
     const { rows: scheduleRows } = await pool.query(`
       SELECT id, academic_admin_id, start_date, end_date, start_time, end_time, meeting_link
       FROM academic_course_schedules
@@ -452,7 +505,7 @@ export const getCourseDetails = async (req, res) => {
     `, [course.id]);
     course.schedules = scheduleRows;
 
-    //get assesments for this course
+    //get assessments for this course
     const { rows: assessmentRows } = await pool.query(`
       SELECT id, week_id, title, description, pdf_path, total_marks, due_date, created_at
       FROM course_assessments

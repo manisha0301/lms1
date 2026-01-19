@@ -5,6 +5,7 @@ export const createFacultyTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS faculty (
       id SERIAL PRIMARY KEY,
+      academic_admin_id INTEGER REFERENCES academic_admins(id) ON DELETE SET NULL,
       code VARCHAR(20) UNIQUE,
       full_name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -59,17 +60,18 @@ export const addFaculty = async ({
   employment_status,
   password_hash,
   profile_picture,
-  status  
+  status,
+  academic_admin_id
 }) => {
   const query = `
     INSERT INTO faculty (
       full_name, email, phone, address, designation, qualification,
-      employment_status, password_hash, profile_picture, status
+      employment_status, password_hash, profile_picture, status, academic_admin_id
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING 
       id, code, full_name, email, phone, address, designation, 
-      qualification, employment_status, profile_picture, status, created_at
+      qualification, employment_status, profile_picture, status, academic_admin_id, created_at
   `;
 
   const values = [
@@ -82,7 +84,8 @@ export const addFaculty = async ({
     employment_status || 'Employed',
     password_hash,
     profile_picture || null,
-    status
+    status,
+    academic_admin_id || null
   ];
 
   const { rows } = await pool.query(query, values);

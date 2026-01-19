@@ -6,7 +6,9 @@ import {
   getAcademicAdminProfile, 
   getAssignedCourses, 
   getCourseDetails, 
-  updateAcademicAdminProfile 
+  updateAcademicAdminProfile,
+  getUniversityStudents,
+  getStudentByIdForAdmin
 } from '../controllers/academicAdminController.js';
 
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
@@ -46,5 +48,10 @@ router.patch('/courses/:courseId/teachers', protectAcademicAdmin, updateCourseTe
 // NEW: Academic admin specific course schedule (batch timings + meeting link)
 router.get('/courses/:id/schedule', protectAcademicAdmin, getAcademicCourseScheduleCtrl);
 router.post('/courses/:id/schedule', protectAcademicAdmin, saveAcademicCourseScheduleCtrl);
+
+
+// NEW: Get a single student by ID (for admin view)
+router.get('/students/:id', protectAcademicAdmin, getStudentByIdForAdmin);
+router.get('/university-students', protectAcademicAdmin, getUniversityStudents);
 
 export default router;
