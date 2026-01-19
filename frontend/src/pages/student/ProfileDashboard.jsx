@@ -6,7 +6,7 @@ import {
   FileText, Users, ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
+ 
 export default function ProfileDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState({
@@ -17,54 +17,57 @@ export default function ProfileDashboard() {
     university: 'Delhi University',
     avatar: null
   });
-
+ 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ ...user });
-
+ 
   const upcomingClasses = [
     { id: 1, course: 'React Masterclass', date: '2025-11-20', time: '7:00 PM', instructor: 'John Doe' },
     { id: 2, course: 'Node.js Advanced', date: '2025-11-22', time: '6:30 PM', instructor: 'Jane Smith' },
     { id: 3, course: 'Python Basics', date: '2025-11-25', time: '5:00 PM', instructor: 'Alice Johnson' },
     { id: 4, course: 'Java Enterprise', date: '2025-11-28', time: '4:00 PM', instructor: 'Bob Wilson' },
+    { id: 2, course: 'Node.js Advanced', date: '2025-11-22', time: '6:30 PM', instructor: 'Jane Smith' },
+    { id: 3, course: 'Python Basics', date: '2025-11-25', time: '5:00 PM', instructor: 'Alice Johnson' },
+    { id: 4, course: 'Java Enterprise', date: '2025-11-28', time: '4:00 PM', instructor: 'Bob Wilson' },
   ];
-
+ 
   const pendingAssignments = 3;
-
+ 
   const registeredCourses = [
-    { id: 'react-101', title: 'React Masterclass', progress: 80, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop', 
+    { id: 'react-101', title: 'React Masterclass', progress: 80, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop',
       exams: { completed: 1, total: 3, next: { name: 'Midterm Quiz', date: '2025-11-25', link: 'https://exam.kristellar.com/react-midterm' } } },
-    { id: 'vue-301', title: 'Vue.js Essentials', progress: 100, thumbnail: 'https://images.unsplash.com/photo-1619410283995-43d9134e7656?w=200&h=200&fit=crop', 
+    { id: 'vue-301', title: 'Vue.js Essentials', progress: 100, thumbnail: 'https://images.unsplash.com/photo-1619410283995-43d9134e7656?w=200&h=200&fit=crop',
       exams: { completed: 3, total: 3, next: null } },
-    { id: 'node-201', title: 'Node.js Advanced', progress: 45, thumbnail: 'https://images.unsplash.com/photo-1610986603166-f78428624e76?w=200&h=200&fit=crop', 
+    { id: 'node-201', title: 'Node.js Advanced', progress: 45, thumbnail: 'https://images.unsplash.com/photo-1610986603166-f78428624e76?w=200&h=200&fit=crop',
       exams: { completed: 0, total: 4, next: { name: 'API Project Review', date: '2025-12-01', link: 'https://exam.kristellar.com/node-review' } } },
-    { id: 'python-401', title: 'Python Basics', progress: 60, thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f65d4af39a5?w=200&h=200&fit=crop', 
+    { id: 'python-401', title: 'Python Basics', progress: 60, thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f65d4af39a5?w=200&h=200&fit=crop',
       exams: { completed: 2, total: 5, next: { name: 'Data Structures Exam', date: '2025-11-28', link: 'https://exam.kristellar.com/python-ds' } } },
-    { id: 'java-501', title: 'Java Enterprise', progress: 30, thumbnail: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=200&h=200&fit=crop', 
+    { id: 'java-501', title: 'Java Enterprise', progress: 30, thumbnail: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=200&h=200&fit=crop',
       exams: { completed: 1, total: 4, next: { name: 'Spring Boot Test', date: '2025-12-10', link: 'https://exam.kristellar.com/java-spring' } } }
   ];
-
+ 
   // Calculate overall progress from registered courses
-  const overallProgress = registeredCourses.length > 0 
+  const overallProgress = registeredCourses.length > 0
     ? Math.round(registeredCourses.reduce((sum, c) => sum + c.progress, 0) / registeredCourses.length)
     : 0;
-
+ 
   // Calculate exam progress from registered courses
   const examProgress = registeredCourses.reduce((acc, c) => ({
     completed: acc.completed + c.exams.completed,
     total: acc.total + c.exams.total,
     nextExams: [...acc.nextExams, c.exams.next].filter(Boolean)
   }), { completed: 0, total: 0, nextExams: [] });
-
+ 
   // Get the soonest upcoming exam
   const upcomingExam = examProgress.nextExams
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
-
+ 
   const handleSave = () => {
     setUser(editForm);
     setIsEditing(false);
     alert('Profile updated successfully!');
   };
-
+ 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -72,12 +75,12 @@ export default function ProfileDashboard() {
     navigate('/login');
     // In real app: navigate('/login')
   };
-
+ 
   const goToCourse = (id) => {
     alert(`Navigating to course: ${id}`);
     // In real app: navigate(`/student/course/${id}`)
   };
-
+ 
   return (
   <div className="min-h-screen bg-gray-50 pb-12">
     {/* Consistent Blue Header with breadcrumb-style text */}
@@ -87,9 +90,9 @@ export default function ProfileDashboard() {
         <p className="text-white mt-1 opacity-90">Manage your academic journey and track your milestones</p>
       </div>
     </div>
-
+ 
     <div className="mx-auto px-4 flex flex-col lg:flex-row gap-8">
-      
+     
       {/* LEFT COLUMN: Profile Sidebar */}
       <div className="lg:w-1/3 space-y-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
@@ -105,15 +108,15 @@ export default function ProfileDashboard() {
           <h2 className="text-2xl font-bold text-gray-800">{user.firstName} {user.lastName}</h2>
           <p className="text-blue-600 font-medium mb-2">Student</p>
           <p className="text-xs text-gray-400 mb-6">Joined 26 Dec 2025</p>
-          
-          <button 
+         
+          <button
             onClick={() => setIsEditing(true)}
             className="w-full py-2.5 px-4 bg-[#1e3a8a] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-800 transition-shadow shadow-md"
           >
             <Edit2 className="w-4 h-4" /> Edit Profile
           </button>
         </div>
-
+ 
         {/* Upcoming Classes Sidebar Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
            <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
@@ -135,17 +138,17 @@ export default function ProfileDashboard() {
           </div>
         </div>
       </div>
-
+ 
       {/* RIGHT COLUMN: Content Area */}
       <div className="lg:w-2/3 space-y-6">
-        
+       
         {/* Section 1: Personal Information Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <div className="flex items-center gap-2 mb-8 pb-3 border-b border-gray-50">
             <User className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
           </div>
-          
+         
           <div className="grid md:grid-cols-2 gap-y-8 gap-x-12">
             <div>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Full Name</p>
@@ -165,7 +168,7 @@ export default function ProfileDashboard() {
             </div>
           </div>
         </div>
-
+ 
         {/* Section 2: Overall Progress Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <div className="flex items-center justify-between mb-6">
@@ -177,14 +180,14 @@ export default function ProfileDashboard() {
             </div>
             <span className="text-blue-600 font-bold">{overallProgress}%</span>
           </div>
-          
+         
           <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden mb-6">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-700" 
+            <div
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-700"
               style={{ width: `${overallProgress}%` }}
             />
           </div>
-
+ 
           <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-orange-500" />
@@ -196,7 +199,7 @@ export default function ProfileDashboard() {
             <span className="text-3xl font-black text-orange-600">{pendingAssignments}</span>
           </div>
         </div>
-
+ 
         {/* Section 3: Exam Progress Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <div className="flex items-center gap-2 mb-6">
@@ -205,13 +208,13 @@ export default function ProfileDashboard() {
             </div>
             <h3 className="text-lg font-bold text-gray-800">Exam Progress</h3>
           </div>
-
+ 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="flex flex-col justify-center items-center p-6 border border-gray-100 rounded-xl">
               <p className="text-4xl font-black text-gray-800">{examProgress.completed}<span className="text-gray-300 text-2xl mx-1">/</span>{examProgress.total}</p>
               <p className="text-xs text-gray-500 font-bold uppercase mt-2">Exams Completed</p>
             </div>
-
+ 
             <div className="bg-green-50 p-6 rounded-xl border border-green-100 flex flex-col justify-between">
               <div>
                 <p className="text-xs text-green-700 font-bold uppercase mb-1">Next Upcoming Exam</p>
@@ -226,10 +229,10 @@ export default function ProfileDashboard() {
             </div>
           </div>
         </div>
-
+ 
       </div>
     </div>
-
+ 
     {/* Edit Profile Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">

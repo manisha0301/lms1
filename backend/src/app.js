@@ -66,7 +66,30 @@ const initDatabase = async () => {
     await assessmentsTableSetup(pool);
 
     console.log('All database tables initialized');
-    
+
+    // NEW: One-time migration - Add academic_admin_id column to faculty if it doesn't exist
+    await pool.query(`
+      ALTER TABLE faculty 
+      ADD COLUMN IF NOT EXISTS academic_admin_id INTEGER REFERENCES academic_admins(id) ON DELETE SET NULL;
+    `);
+    console.log('Added academic_admin_id column to faculty if missing');
+
+    // Migration for super_admins table: add full_name and phone columns
+    await pool.query(`
+      ALTER TABLE super_admins
+      ADD COLUMN IF NOT EXISTS full_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
+    `);
+    console.log('Added full_name and phone columns to super_admins if missing');
+
+    // Optional: Set default full_name for existing super admin if missing
+    await pool.query(`
+      UPDATE super_admins
+      SET full_name = 'Super Admin'
+      WHERE full_name IS NULL OR full_name = '';
+    `);
+    console.log('Set default full_name for super admins where missing');
+
   } catch (error) {
     console.error('Database initialization failed:', error.message);
   }

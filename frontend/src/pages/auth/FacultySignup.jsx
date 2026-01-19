@@ -1,6 +1,9 @@
 // src/pages/auth/FacultySignup.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { School, ChevronDown } from 'lucide-react';
+import axios from 'axios';
+import { useRef } from 'react';
 
 const FacultySignup = () => {
   const navigate = useNavigate();
@@ -22,7 +25,43 @@ const FacultySignup = () => {
     password: '',
     confirmPassword: '',
     termsAccepted: false,
+    university: '',
   });
+
+  // University dropdown logic
+  const [universities, setUniversities] = useState([]);
+  const [filteredUniversities, setFilteredUniversities] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [universityLoading, setUniversityLoading] = useState(true);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const fetchUniversities = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/auth/superadmin/institutes');
+        if (res.data.success) {
+          setUniversities(res.data.institutes);
+          setFilteredUniversities(res.data.institutes);
+        }
+      } catch (err) {
+        setUniversities([]);
+        setFilteredUniversities([]);
+      } finally {
+        setUniversityLoading(false);
+      }
+    };
+    fetchUniversities();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
@@ -50,11 +89,9 @@ const FacultySignup = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-
     if (type === 'file') {
       const file = files[0];
       setForm((prev) => ({ ...prev, [name]: file }));
-
       if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => setProfilePreview(reader.result);
@@ -66,7 +103,23 @@ const FacultySignup = () => {
       setForm((prev) => ({ ...prev, [name]: checked }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
+      if (name === 'university') {
+        const filtered = universities.filter(u =>
+          u.toLowerCase().includes(value.toLowerCase())
+        );
+        setFilteredUniversities(filtered);
+        setShowDropdown(true);
+      }
     }
+  };
+
+  const selectUniversity = (university) => {
+    setForm((prev) => ({ ...prev, university }));
+    setShowDropdown(false);
+  };
+
+  const toggleDropdown = () => {
+    setShowDropdown((prev) => !prev);
   };
 
   const countWords = (text) =>
@@ -117,6 +170,7 @@ const FacultySignup = () => {
     formData.append('facebookUrl', form.facebook.trim());
     formData.append('password', form.password);
     formData.append('employmentStatus', form.employmentStatus);
+    formData.append('university', form.university.trim() || '');
 
     if (form.profilePicture) {
       formData.append('profilePicture', form.profilePicture);
@@ -178,6 +232,49 @@ const FacultySignup = () => {
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* University Dropdown */}
+            <div className="relative mb-4" ref={dropdownRef}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">University / Institute</label>
+              <div className="relative">
+                <School className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  name="university"
+                  value={form.university}
+                  onChange={handleChange}
+                  onFocus={() => setShowDropdown(true)}
+                  placeholder="Search your university..."
+                  className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+                <button
+                  type="button"
+                  onClick={toggleDropdown}
+                  className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+                >
+                  <ChevronDown className={`w-5 h-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              {showDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {universityLoading ? (
+                    <p className="p-4 text-center text-gray-500">Loading universities...</p>
+                  ) : filteredUniversities.length === 0 ? (
+                    <p className="p-4 text-center text-gray-500">No universities found</p>
+                  ) : (
+                    filteredUniversities.map((university, i) => (
+                      <div
+                        key={i}
+                        onClick={() => selectUniversity(university)}
+                        className="px-4 py-3 hover:bg-gray-100 cursor-pointer text-gray-800"
+                      >
+                        {university}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Email + Verify */}

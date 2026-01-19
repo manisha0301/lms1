@@ -119,32 +119,36 @@ export const createAcademicCourseSchedulesTable = async () => {
 export const assessmentsTableSetup = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS course_assessments (
-    id                  SERIAL PRIMARY KEY,
-    course_id           INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-    week_id             INTEGER REFERENCES course_weeks(id) ON DELETE SET NULL,  -- optional: link to specific week
-    academic_admin_id   INTEGER NOT NULL REFERENCES academic_admins(id) ON DELETE CASCADE,
-    
-    title               VARCHAR(255) NOT NULL,
-    description         TEXT,                           -- optional instructions
-    pdf_path            VARCHAR(255),                   -- path to uploaded question paper
-    total_marks         INTEGER NOT NULL CHECK (total_marks > 0),
-    due_date            date,                           -- optional due date
-    
-    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Optional: who created it (academic admin or faculty)
-    created_by_type     VARCHAR(20),                    -- 'academicadmin' | 'faculty'
-    created_by_id       INTEGER,                        -- reference depends on type
-    
-    CONSTRAINT unique_assessment_per_week UNIQUE(course_id, week_id, title)
-);
+      id                  SERIAL PRIMARY KEY,
+      
+      -- Core relations
+      course_id           INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+      week_id             INTEGER REFERENCES course_weeks(id) ON DELETE SET NULL,       -- optional (NULL = course-level assessment)
+      academic_admin_id   INTEGER NOT NULL REFERENCES academic_admins(id) ON DELETE CASCADE,
+      faculty_id          INTEGER REFERENCES faculty(id) ON DELETE SET NULL,             -- who created it (NULL if admin creates)
+      
+      -- Assessment details
+      title               VARCHAR(255) NOT NULL,
+      description         TEXT,
+      pdf_path            VARCHAR(255),
+      total_marks         INTEGER NOT NULL CHECK (total_marks > 0),
+      due_date            DATE,
+      
+      created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      
+      -- Prevent duplicate titles in same week/course
+      CONSTRAINT unique_assessment_per_week UNIQUE(course_id, week_id, title)
+    );
 
--- Index for faster lookup
-CREATE INDEX idx_course_assessments_course_week ON course_assessments(course_id, week_id);
+    -- Indexes for fast queries
+    CREATE INDEX IF NOT EXISTS idx_assessments_course_week ON course_assessments(course_id, week_id);
+    CREATE INDEX IF NOT EXISTS idx_assessments_faculty ON course_assessments(faculty_id);
+    CREATE INDEX IF NOT EXISTS idx_assessments_academic ON course_assessments(academic_admin_id);
   `;
+
   await pool.query(query);
-  console.log('course_assessments table created or already exists');
+  console.log('course_assessments table recreated with proper relations');
 };
 
 export const addCourse = async ({

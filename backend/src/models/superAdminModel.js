@@ -7,6 +7,7 @@ export const createSuperAdminTable = async (pool) => {
       id SERIAL PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      phone VARCHAR(20),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -16,7 +17,7 @@ export const createSuperAdminTable = async (pool) => {
 
 export const findSuperAdminByEmail = async (pool, email) => {
   const { rows } = await pool.query(
-    `SELECT * FROM super_admins WHERE email = $1`,
+    `SELECT id, email, phone, password_hash, created_at FROM super_admins WHERE email = $1`,
     [email]
   );
   return rows[0] || null;

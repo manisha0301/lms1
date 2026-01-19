@@ -4,14 +4,14 @@ import path from 'path';
 import fs from 'fs';
 import pool from '../config/db.js';
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
-// Ensure uploads/assessments folder exists
+// Ensure folder exists
 const assessmentUploadDir = path.join(process.cwd(), 'uploads/assessments');
 if (!fs.existsSync(assessmentUploadDir)) {
   fs.mkdirSync(assessmentUploadDir, { recursive: true });
+  console.log('Created uploads/assessments folder');
 }
 
+// Multer config – field name MUST be 'assessmentPdf'
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, assessmentUploadDir);
@@ -21,13 +21,12 @@ const storage = multer.diskStorage({
     const weekId = req.body.weekId || 'general';
     const timestamp = Date.now();
     const ext = path.extname(file.originalname).toLowerCase() || '.pdf';
-    
     const filename = `assessment-course${courseId}-week${weekId}-${timestamp}${ext}`;
     cb(null, filename);
   }
 });
 
-export const uploadAssessmentPdf = multer({
+const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
@@ -36,103 +35,132 @@ export const uploadAssessmentPdf = multer({
       cb(new Error('Only PDF files are allowed'), false);
     }
   },
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
-}).single('assessmentPdf');
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+}).single('assessmentPdf'); // ← exact field name from frontend
 
-
-// backend/src/controllers/assessmentController.js
-
-export const createCourseAssessment = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-    const user = req.user;
-    let creatorId = user.id;
-    let creatorType = user.role; // 'faculty' or 'academicadmin'
-
-    const {
-      weekId,           // optional
-      title,
-      description,
-      totalMarks,
-      dueDate
-    } = req.body;
-
-    if (!title || !totalMarks || !dueDate) {
+// Create assessment – multer runs first
+// Create assessment – multer runs first
+export const createCourseAssessment = (req, res) => {
+  upload(req, res, async function (err) {
+    // Handle multer errors
+    if (err instanceof multer.MulterError) {
+      console.error('Multer error:', err);
       return res.status(400).json({
         success: false,
-        error: 'Title, total marks, and due date are required'
+        error: err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 10MB)' : err.message
       });
+    } else if (err) {
+      console.error('Upload error:', err.stack);
+      return res.status(500).json({ success: false, error: 'File upload failed: ' + err.message });
     }
 
-    // ── Authorization check ───────────────────────────────────────
-    let isAuthorized = false;
+    try {
+      console.log('File uploaded:', req.file ? req.file.filename : 'No file');
+      console.log('Received body:', req.body); // Debug what frontend sent
 
-    if (creatorType === 'academicadmin') {
-      const { rows } = await pool.query(`
-        SELECT 1 FROM course_academic_assignments 
-        WHERE course_id = $1 AND academic_admin_id = $2
-      `, [courseId, creatorId]);
-      isAuthorized = rows.length > 0;
-    } 
-    else if (creatorType === 'faculty') {
-      const { rows } = await pool.query(`
-        SELECT 1 FROM courses 
-        WHERE id = $1 AND $2 = ANY(teachers)
-      `, [courseId, creatorId]);
-      isAuthorized = rows.length > 0;
-    }
+      const { courseId } = req.params;
+      const user = req.user;
 
-    if (!isAuthorized) {
-      return res.status(403).json({
+      if (!user || !user.id) {
+        return res.status(401).json({ success: false, error: 'Unauthorized - no user ID' });
+      }
+
+      const facultyId = user.role === 'faculty' ? user.id : null;
+
+      // Fetch faculty's academic_admin_id (safe)
+      let academicAdminId = null;
+      if (facultyId) {
+        const { rows: facultyRows } = await pool.query(
+          'SELECT academic_admin_id FROM faculty WHERE id = $1',
+          [facultyId]
+        );
+        if (facultyRows.length > 0 && facultyRows[0].academic_admin_id) {
+          academicAdminId = facultyRows[0].academic_admin_id;
+        }
+      }
+
+      const {
+        title,
+        description = '',
+        totalMarks,
+        dueDate
+      } = req.body;
+
+      // Required fields
+      if (!title || !totalMarks || !dueDate) {
+        return res.status(400).json({
+          success: false,
+          error: 'Title, total marks, and due date are required'
+        });
+      }
+
+      // Parse & validate marks
+      const marks = parseInt(totalMarks, 10);
+      if (isNaN(marks) || marks <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Total marks must be a positive integer'
+        });
+      }
+
+      // Authorization: Check if faculty teaches the course
+      const { rows: authCheck } = await pool.query(`
+        SELECT teachers FROM courses WHERE id = $1
+      `, [courseId]);
+
+      if (authCheck.length === 0) {
+        return res.status(404).json({ success: false, error: 'Course not found' });
+      }
+
+      const teachers = authCheck[0].teachers || [];
+      const isTeacher = teachers.includes(facultyId);
+
+      if (!isTeacher && facultyId) {
+        return res.status(403).json({ success: false, error: 'You are not assigned to teach this course' });
+      }
+
+      // PDF path
+      let pdfPath = null;
+      if (req.file) {
+        pdfPath = `assessments/${req.file.filename}`;
+      }
+
+      // Insert (week_id = null since you don't want week selection)
+      const { rows: [newAssessment] } = await pool.query(`
+        INSERT INTO course_assessments (
+          course_id, week_id,
+          academic_admin_id, faculty_id,
+          title, description, pdf_path,
+          total_marks, due_date
+        ) VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `, [
+        courseId,
+        academicAdminId,
+        facultyId,
+        title.trim(),
+        description.trim() || null,
+        pdfPath,
+        marks,
+        dueDate
+      ]);
+
+      res.status(201).json({
+        success: true,
+        message: 'Assessment created successfully',
+        assessment: newAssessment
+      });
+    } catch (error) {
+      console.error('Create assessment FULL ERROR:', error.stack);
+      res.status(500).json({
         success: false,
-        error: 'You are not authorized to create assessments for this course'
+        error: 'Server error during creation: ' + (error.message || 'Unknown error')
       });
     }
-
-    // ── Upload handling ───────────────────────────────────────────
-    let pdfPath = null;
-    if (req.file) {
-      pdfPath = `assessments/${req.file.filename}`;
-    }
-
-    // ── Insert assessment ─────────────────────────────────────────
-    const { rows: [newAssessment] } = await pool.query(`
-      INSERT INTO course_assessments (
-        course_id, week_id,
-        academic_admin_id,           -- can be NULL if created by faculty
-        title, description, pdf_path,
-        total_marks, due_date,
-        created_by_type, created_by_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `, [
-      courseId,
-      weekId || null,
-      creatorType === 'academicadmin' ? creatorId : null,
-      title,
-      description || null,
-      pdfPath,
-      parseInt(totalMarks),
-      dueDate,
-      creatorType,
-      creatorId
-    ]);
-
-    res.status(201).json({
-      success: true,
-      message: 'Assessment created successfully',
-      assessment: newAssessment
-    });
-
-  } catch (error) {
-    console.error('Create assessment error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create assessment: ' + (error.message || 'Internal error')
-    });
-  }
+  });
 };
 
+// Your getCourseAssessments function (unchanged)
 export const getCourseAssessments = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -152,7 +180,7 @@ export const getCourseAssessments = async (req, res) => {
     const { rows } = await pool.query(`
       SELECT 
         a.id, a.title, a.description, a.pdf_path,
-        a.total_marks, a.due_date, a.created_by_type,
+        a.total_marks, a.due_date,
         w.title AS week_title, w."order" AS week_order
       FROM course_assessments a
       JOIN courses c ON a.course_id = c.id
@@ -163,7 +191,7 @@ export const getCourseAssessments = async (req, res) => {
 
     res.json({ success: true, assessments: rows });
   } catch (err) {
-    console.error(err);
+    console.error('Get assessments error:', err);
     res.status(500).json({ success: false, error: 'Failed to fetch assessments' });
   }
 };

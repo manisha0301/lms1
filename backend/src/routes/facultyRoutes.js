@@ -1,9 +1,16 @@
 // backend/src/routes/facultyRoutes.js
 import express from 'express';
-import { facultySignup, facultyLogin, getFacultyDashboard, getFacultyProfile, updateFacultyProfile, getCourseDetails } from '../controllers/facultyController.js';
+import { 
+  facultySignup, 
+  facultyLogin, 
+  getFacultyDashboard, 
+  getFacultyProfile, 
+  updateFacultyProfile, 
+  getCourseDetails 
+} from '../controllers/facultyController.js';
 import { uploadProfilePic } from '../controllers/facultyController.js'; // for photo
 import { protectFaculty } from '../middleware/authMiddleware.js';
-import { createCourseAssessment, getCourseAssessments, uploadAssessmentPdf } from '../controllers/assessmentController.js';
+import { createCourseAssessment, getCourseAssessments } from '../controllers/assessmentController.js';
 
 const router = express.Router();
 
@@ -20,7 +27,8 @@ router.get('/courses/:id', protectFaculty, getCourseDetails);
 router.get('/profile', protectFaculty, getFacultyProfile);
 router.patch('/profile', protectFaculty, uploadProfilePic, updateFacultyProfile);
 
-router.post('/courses/:courseId/assessments', protectFaculty, uploadAssessmentPdf, createCourseAssessment);
+// Create assessment – multer is now inside controller, so no separate upload middleware here
+router.post('/courses/:courseId/assessments', protectFaculty, createCourseAssessment);
 
 // Optional: Get all assessments for a course
 router.get('/courses/:courseId/assessments', protectFaculty, getCourseAssessments);

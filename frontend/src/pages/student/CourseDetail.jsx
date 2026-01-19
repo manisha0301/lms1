@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import apiConfig from '../../config/apiConfig';  
+import apiConfig from '../../config/apiConfig';
+
 
 export default function CourseDetail() {
   const { id } = useParams();
@@ -16,6 +17,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
 
   // Registration Flow States
   const [showSlotModal, setShowSlotModal] = useState(false);
@@ -129,10 +131,36 @@ export default function CourseDetail() {
           description: dbCourse.description || 'Course description not available yet.',
           rating: 4.8,
           students: dbCourse.enrolledStudents || 0,
+          
+          // Real batch schedule from admin
+          liveClasses: dbCourse.liveClasses || [
+            { topic: 'No upcoming sessions', instructor: 'TBA', date: 'TBA', time: 'TBA', link: '#' }
+          ],
+
+          // Real course content from database
           sections: sections,
-          liveClasses: [
-            { date: '2025-11-20', time: '7:00 PM', topic: 'React Hooks Live', instructor: 'John Doe' },
-            { date: '2025-11-27', time: '7:00 PM', topic: 'Performance Optimization', instructor: 'John Doe' }
+
+          // Dummy content remains unchanged
+          modules: [
+            {
+              id: 1,
+              title: 'Module 1: Fundamentals',
+              chapters: [
+                { id: 1, title: 'Introduction to React', duration: '45 min', type: 'video', locked: true },
+                { id: 2, title: 'JSX & Components', duration: '60 min', type: 'video', locked: true },
+                { id: 3, title: 'State & Props', duration: '55 min', type: 'video', locked: true },
+                { id: 4, title: 'Quiz: Basics', type: 'quiz', locked: true }
+              ]
+            },
+            {
+              id: 2,
+              title: 'Module 2: Advanced Concepts',
+              chapters: [
+                { id: 5, title: 'Hooks Deep Dive', duration: '70 min', type: 'video', locked: true },
+                { id: 6, title: 'Context API', duration: '50 min', type: 'video', locked: true },
+                { id: 7, title: 'Assignment: Todo App', type: 'assignment', locked: true }
+              ]
+            }
           ],
           examLink: null,
           notes: []
@@ -148,7 +176,19 @@ export default function CourseDetail() {
     fetchCourse();
   }, [id]);
 
-  // Registration status 
+  // Auto-cycle through daily live classes
+  useEffect(() => {
+    if (course && course.liveClasses && course.liveClasses.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentDayIndex((prevIndex) => 
+          (prevIndex + 1) % course.liveClasses.length
+        );
+      }, 24 * 60 * 60 * 1000); // Change every 24 hours
+
+      return () => clearInterval(interval);
+    }
+  }, [course]);
+
   const isRegistered = true;
 
   const handleRegister = () => setShowSlotModal(true);
@@ -160,10 +200,9 @@ export default function CourseDetail() {
   const handlePayment = () => {
     alert('Payment Successful! You are now registered.');
     setShowPayment(false);
-    navigate(0); // refresh view
+    navigate(0);
   };
 
-  // Loading & Error States
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -186,43 +225,38 @@ export default function CourseDetail() {
       <div className="bg-[#1e3a8a] text-white">
         <div className="mx-auto px-20 py-12">
           <div className="grid md:grid-cols-3 gap-10 items-center">
-            {/* Left: Title & Details */}
             <div className="md:col-span-2">
               <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
-              
               <p className="text-blue-100 text-lg leading-relaxed mb-8 max-w-3xl">
                 {course.description}
               </p>
-
-              {/* Course Meta Info */}
               {!isRegistered && (
-              <div className="flex flex-wrap gap-8 text-blue-50">
-                <div className="flex items-center gap-3">
-                  <Users className="w-6 h-6" />
-                  <div>
-                    <p className="text-sm opacity-80">Enrolled Students</p>
-                    <p className="text-xl font-semibold">{course.students}</p>
+                <div className="flex flex-wrap gap-8 text-blue-50">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-6 h-6" />
+                    <div>
+                      <p className="text-sm opacity-80">Enrolled Students</p>
+                      <p className="text-xl font-semibold">{course.students}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-6 h-6" />
+                    <div>
+                      <p className="text-sm opacity-80">Duration</p>
+                      <p className="text-xl font-semibold">{course.duration}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Award className="w-6 h-6" />
+                    <div>
+                      <p className="text-sm opacity-80">Rating</p>
+                      <p className="text-xl font-semibold">{course.rating} / 5.0</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-6 h-6" />
-                  <div>
-                    <p className="text-sm opacity-80">Duration</p>
-                    <p className="text-xl font-semibold">{course.duration}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Award className="w-6 h-6" />
-                  <div>
-                    <p className="text-sm opacity-80">Rating</p>
-                    <p className="text-xl font-semibold">{course.rating} / 5.0</p>
-                  </div>
-                </div>
-              </div>
               )}
             </div>
 
-            {/* Right: Course Thumbnail */}
             <div className="flex justify-center md:justify-end">
               <div className="relative">
                 <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-2xl -rotate-6 scale-95"></div>
@@ -244,9 +278,7 @@ export default function CourseDetail() {
       {/* Main Content Area */}
       <div className="mx-auto px-6 py-10">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Registration Banner */}
             {!isRegistered ? (
               <div className="bg-amber-50 border border-amber-200 rounded-lg shadow-sm p-8 text-center">
                 <h2 className="text-2xl font-bold text-amber-900 mb-4">Complete Registration to Unlock Full Access</h2>
@@ -278,11 +310,7 @@ export default function CourseDetail() {
                   ) : (
                     <div className="space-y-6">
                       {course.sections.map((section) => (
-                        <div
-                          key={section.id}
-                          className="bg-white rounded-xl shadow-sm overflow-hidden"
-                        >
-                          {/* Section / Week Header */}
+                        <div key={section.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
                           <div className="bg-gradient-to-r from-[#1e3a8a]/10 to-[#1e40af]/5 px-6 py-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <div>
@@ -293,7 +321,6 @@ export default function CourseDetail() {
                             </div>
                           </div>
 
-                          {/* Modules inside section */}
                           <div className="p-6">
                             {!section.modules || section.modules.length === 0 ? (
                               <p className="text-gray-500 italic text-center py-8">
@@ -351,28 +378,39 @@ export default function CourseDetail() {
                   )}
                 </div>
 
-                {/* Live Classes */}
+                {/* Live Classes – NOW REAL */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                     <Users className="w-6 h-6 text-[#1e40af]" /> Live Classes Schedule
                   </h2>
-                  <div className="space-y-4">
-                    {course.liveClasses.map((cls, i) => (
-                      <div key={i} className="flex items-center justify-between p-5 bg-blue-50 rounded-lg border border-blue-100">
-                        <div>
-                          <p className="font-semibold text-gray-900">{cls.topic}</p>
-                          <p className="text-sm text-gray-600">with {cls.instructor}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{cls.date}</p>
-                          <p className="text-sm text-gray-600">{cls.time}</p>
-                        </div>
-                        <button className="ml-6 px-5 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] transition text-sm font-medium cursor-pointer">
-                          Join Live
-                        </button>
+                  {course.liveClasses && course.liveClasses.length > 0 ? (
+                    <div className="flex items-center justify-between p-5 bg-blue-50 rounded-lg border border-blue-100">
+                      <div>
+                        <p className="font-semibold text-gray-900">{course.liveClasses[currentDayIndex].topic}</p>
+                        <p className="text-sm text-gray-600">with {course.liveClasses[currentDayIndex].instructor}</p>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-right">
+                        <p className="font-medium">{course.liveClasses[currentDayIndex].date}</p>
+                        <p className="text-sm text-gray-600">{course.liveClasses[currentDayIndex].time}</p>
+                      </div>
+                      <a
+                        href={course.liveClasses[currentDayIndex].link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`ml-6 px-5 py-2 rounded-md text-sm font-medium transition ${
+                          course.liveClasses[currentDayIndex].link !== '#' 
+                            ? 'bg-[#1e40af] text-white hover:bg-[#1e3a8a] cursor-pointer' 
+                            : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                        }`}
+                      >
+                        {course.liveClasses[currentDayIndex].link !== '#' ? 'Join Live' : 'No Link'}
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="p-5 bg-gray-50 rounded-lg text-center text-gray-500">
+                      No live classes scheduled
+                    </div>
+                  )}
                 </div>
 
                 {/* Notes */}
@@ -419,7 +457,6 @@ export default function CourseDetail() {
               </div>
             </div>
 
-            {/* Exam & Assignments */}
             {isRegistered && (
               <div className="flex flex-col gap-6">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">

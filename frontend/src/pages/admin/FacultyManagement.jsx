@@ -4,7 +4,8 @@ import {
   Users, UserPlus, Search, Calendar, CheckCircle, XCircle,
   Eye, Trash2, Edit, Key, BookOpen, Camera, X, Loader2,
   Mail, Phone, Home, Briefcase, GraduationCap, Lock, UserCheck,
-  MapPin, Shield, AlertCircle, ArrowLeft, Check, X as RejectIcon
+  MapPin, Shield, AlertCircle, ArrowLeft, Check, X as RejectIcon,
+  Calendar1
 } from "lucide-react";
 
 const FacultyManagement = () => {
@@ -17,6 +18,7 @@ const FacultyManagement = () => {
   const [faculties, setFaculties] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -44,6 +46,24 @@ const FacultyManagement = () => {
 
   useEffect(() => {
     fetchFacultyData();
+    // Fetch all courses for course count per faculty
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch('http://localhost:5000/api/auth/admin/courses', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCourses(data.courses || []);
+        } else {
+          setCourses([]);
+        }
+      } catch (err) {
+        setCourses([]);
+      }
+    };
+    fetchCourses();
   }, []);
 
   const filteredFaculties = faculties.filter(f =>
@@ -64,6 +84,7 @@ const FacultyManagement = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log("Selected file:", file.name); // Debug to confirm file is selected
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setFilePreview(reader.result);
@@ -173,12 +194,6 @@ const FacultyManagement = () => {
       <div className="bg-[#1e3a8a] text-white py-12">
         <div className="mx-auto px-6 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            {/* <button
-              onClick={() => window.history.back()}
-              className="p-2.5 hover:bg-white/10 rounded-xl transition-all cursor-pointer"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button> */}
             <div>
               <h1 className="text-3xl font-semibold">Faculty Management</h1>
               <p className="mt-2 text-blue-100">Manage, approve, and monitor all faculty members</p>
@@ -241,7 +256,7 @@ const FacultyManagement = () => {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center gap-3 cursor-pointer"
+            className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center gap-3"
           >
             <UserPlus className="w-6 h-6" />
             Add New Faculty
@@ -337,14 +352,16 @@ const FacultyManagement = () => {
                             </span>
                           </div>
                           <div className="flex justify-end gap-4">
-                          <button
-                          onClick={() => handleApprove(request.id)} 
-                          className="px-6 py-2 bg-[#1e3a8a] text-white rounded-xl font-semibold transition cursor-pointer hover:scale-105">
+                            <button
+                              onClick={() => handleApprove(request.id)}
+                              className="px-6 py-2 bg-[#1e3a8a] text-white rounded-xl font-semibold transition cursor-pointer hover:scale-105"
+                            >
                               Approve
                             </button>
-                          <button 
-                          onClick={() => handleReject(request.id)}
-                          className="px-6 py-2 bg-white text-black rounded-xl font-semibold transition cursor-pointer hover:scale-105 border border-gray-300">
+                            <button
+                              onClick={() => handleReject(request.id)}
+                              className="px-6 py-2 bg-white text-black rounded-xl font-semibold transition cursor-pointer hover:scale-105 border border-gray-300"
+                            >
                               Reject
                             </button>
                           </div>
@@ -388,16 +405,22 @@ const FacultyManagement = () => {
                         <p className="text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4" /> {faculty.email}</p>
                         <p className="text-gray-600 flex items-center gap-2"><Phone className="w-4 h-4" /> {faculty.phone}</p>
                         <p className="text-gray-600 flex items-center gap-2"><MapPin className="w-4 h-4" /> {faculty.address || 'Not provided'}</p>
-                        <p className="text-gray-600 flex items-center gap-2"><BookOpen className="w-4 h-4" /> {faculty.courses || 0} Courses</p>
+                        <p className="text-gray-600 flex items-center gap-2"><BookOpen className="w-4 h-4" /> {
+                          (() => {
+                            if (!courses.length) return '0 Courses';
+                            const count = courses.filter(course => Array.isArray(course.teachers) && course.teachers.includes(faculty.id)).length;
+                            return `${count} Course${count === 1 ? '' : 's'}`;
+                          })()
+                        }</p>
                       </div>
                       <div className="flex justify-end gap-4 px-6 pb-6">
-                      <button onClick={() => openModal("view", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
+                        <button onClick={() => openModal("view", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
                           <Eye className="w-5 h-5 text-[#1e3a8a]" />
                         </button>
-                      <button onClick={() => openModal("edit", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
+                        <button onClick={() => openModal("edit", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
                           <Edit className="w-5 h-5 text-emerald-600" />
                         </button>
-                      <button onClick={() => openModal("delete", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
+                        <button onClick={() => openModal("delete", faculty)} className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer">
                           <Trash2 className="w-5 h-5 text-red-600" />
                         </button>
                       </div>
@@ -407,7 +430,7 @@ const FacultyManagement = () => {
               </div>
             )}
 
-            {/* Pending Tab - WITH WORKING APPROVE/REJECT */}
+            {/* Pending Tab */}
             {activeTab === "pending" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pendingRequests.length === 0 ? (
@@ -481,7 +504,12 @@ const FacultyManagement = () => {
                   <p className="flex items-center gap-3"><MapPin className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.address}</p>
                   <p className="flex items-center gap-3"><Briefcase className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.designation}</p>
                   <p className="flex items-center gap-3"><GraduationCap className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.qualification}</p>
-                  <p className="flex items-center gap-3"><Shield className="w-5 h-5 text-[#1e3a8a]" /> {selectedFaculty.employment}</p>
+                  <p className="flex items-center gap-3"><Calendar1 className="w-5 h-5 text-[#1e3a8a]" />
+                    {selectedFaculty.created_at ?
+                      new Date(selectedFaculty.created_at).toLocaleDateString('en-IN', {
+                        day: '2-digit', month: 'long', year: 'numeric'
+                      }) : 'N/A'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -609,58 +637,78 @@ const FacultyManagement = () => {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              <form className="p-6 space-y-6">
+              <form className="p-6 space-y-6" onSubmit={handleAddFaculty}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Dr. Sarah Johnson" />
+                    <input name="fullName" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Dr. Sarah Johnson" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="sarah@faculty.com" />
+                    <input name="email" type="email" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="sarah@faculty.com" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+91 98765 43210" />
+                    <input name="phone" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+91 98765 43210" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="123 Academic Street, Mumbai" />
+                    <input name="address" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="123 Academic Street, Mumbai" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Current Designation</label>
-                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Professor" />
+                    <input name="designation" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Professor" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Highest Qualification</label>
-                    <input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="PhD in Physics" />
+                    <input name="qualification" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="PhD in Physics" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
-                    <select className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                    <select name="employmentStatus" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
                       <option>Employed</option>
                       <option>Unemployed</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <input type="password" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
+                    <input name="password" type="password" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" required />
                   </div>
                 </div>
 
                 <div className="mt-8">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Profile Picture</label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-indigo-400 transition cursor-pointer group">
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-indigo-400 transition cursor-pointer group"
+                    onClick={() => document.getElementById('profilePicInput').click()}
+                  >
                     <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4 group-hover:text-indigo-400 transition" />
                     <p className="text-gray-500 group-hover:text-indigo-600 transition">Click to upload or drag and drop</p>
+                    <input
+                      id="profilePicInput"
+                      type="file"
+                      name="profilePicture"          // ← This is correct and critical
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
                   </div>
+                  {filePreview && (
+                    <div className="mt-4">
+                      <img src={filePreview} alt="Preview" className="w-32 h-32 object-cover rounded-xl mx-auto border" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
                   <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all">
                     Cancel
                   </button>
-                  <button type="submit" disabled={submitting} className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all disabled:opacity-70">
+                  <button 
+                    type="submit" 
+                    disabled={submitting} 
+                    className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all disabled:opacity-70"
+                  >
                     {submitting ? "Adding..." : "Add Faculty"}
                   </button>
                 </div>
