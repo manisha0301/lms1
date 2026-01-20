@@ -5,10 +5,10 @@ export const createNotificationsTable = async () => {
   const query = `
     CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
-      recipient_type VARCHAR(20) NOT NULL,  -- 'superadmin', 'admin', 'academic', 'faculty', 'student'
-      recipient_id INTEGER NOT NULL,        -- ID from the respective user table (e.g., super_admins.id)
+      recipient_type VARCHAR(20) NOT NULL,  -- 'superadmin', 'admin', 'academicadmin', 'faculty', 'student'
+      recipient_id INTEGER NOT NULL,        -- ID from the respective user table
       message TEXT NOT NULL,
-      type VARCHAR(50),                     -- e.g., 'admin', 'success', 'revenue', 'warning'
+      type VARCHAR(50),                     -- e.g., 'course', 'student', 'faculty', 'alert', 'success'
       priority VARCHAR(20) DEFAULT 'medium',-- 'high', 'medium', 'low'
       status VARCHAR(20) DEFAULT 'unread',  -- 'unread', 'read'
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -46,7 +46,7 @@ export const getNotificationsByUser = async (recipientType, recipientId, limit =
   return rows;
 };
 
-// Optional: Function to add a notification (can be used in controllers for other actions)
+// General function to add a single notification
 export const addNotification = async ({
   recipientType,
   recipientId,
@@ -63,10 +63,8 @@ export const addNotification = async ({
   return rows[0];
 };
 
+// Notify all superadmins (works for one or multiple superadmins)
 export const addNotificationForSuperAdmin = async (pool, message, type = 'info', priority = 'medium') => {
-  // For now we assume there's only one superadmin or we notify ALL superadmins
-  // If you ever have multiple superadmins → change to loop or different logic
-
   const { rows: superAdmins } = await pool.query(
     `SELECT id FROM super_admins`
   );
@@ -89,4 +87,37 @@ export const addNotificationForSuperAdmin = async (pool, message, type = 'info',
       (recipient_type, recipient_id, message, type, priority, status)
     VALUES ${placeholders}
   `, values.flat());
+};
+
+// Notify specific list of academic admins (used for assignments or broadcast)
+export const addNotificationForAcademicAdmins = async (pool, message, type = 'info', priority = 'medium', academicAdminIds = []) => {
+  if (!Array.isArray(academicAdminIds) || academicAdminIds.length === 0) {
+    return; // no one to notify
+  }
+
+  const values = academicAdminIds.map(id => [
+    'academicadmin',
+    id,
+    message,
+    type,
+    priority,
+    'unread'
+  ]);
+
+  const placeholders = values.map((_, i) => `($${i*6+1}, $${i*6+2}, $${i*6+3}, $${i*6+4}, $${i*6+5}, $${i*6+6})`).join(',');
+
+  await pool.query(`
+    INSERT INTO notifications 
+      (recipient_type, recipient_id, message, type, priority, status)
+    VALUES ${placeholders}
+  `, values.flat());
+};
+
+// Optional helper: Get IDs of all active academic admins (useful for broadcast)
+export const getAllActiveAcademicAdminIds = async (customPool) => {
+  const db = customPool || pool;
+  const { rows } = await db.query(
+    "SELECT id FROM academic_admins WHERE status = 'Active'"
+  );
+  return rows.map(r => r.id);
 };

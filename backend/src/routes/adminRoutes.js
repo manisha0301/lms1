@@ -8,7 +8,8 @@ import {
   getCourseDetails, 
   updateAcademicAdminProfile,
   getUniversityStudents,
-  getStudentByIdForAdmin
+  getStudentByIdForAdmin,
+  getAcademicAdminNotifications
 } from '../controllers/academicAdminController.js';
 
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
@@ -53,5 +54,7 @@ router.post('/courses/:id/schedule', protectAcademicAdmin, saveAcademicCourseSch
 // NEW: Get a single student by ID (for admin view)
 router.get('/students/:id', protectAcademicAdmin, getStudentByIdForAdmin);
 router.get('/university-students', protectAcademicAdmin, getUniversityStudents);
+
+router.get('/notifications', protectAcademicAdmin, getAcademicAdminNotifications);
 
 export default router;

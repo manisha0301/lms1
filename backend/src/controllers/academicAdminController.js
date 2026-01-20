@@ -522,6 +522,45 @@ const getStudentByIdForAdmin = async (req, res) => {
   }
 };
 
+// Add at the bottom of academicAdminController.js
+
+export const getAcademicAdminNotifications = async (req, res) => {
+  try {
+    const { limit } = req.query;
+    const adminId = req.user.id;
+
+    let query = `
+      SELECT 
+        id,
+        message,
+        type,
+        priority,
+        status,
+        created_at::text AS created_at
+      FROM notifications 
+      WHERE recipient_type = 'academicadmin' 
+        AND recipient_id = $1
+      ORDER BY created_at DESC
+    `;
+    const values = [adminId];
+
+    if (limit) {
+      query += ' LIMIT $2';
+      values.push(parseInt(limit, 10));
+    }
+
+    const { rows } = await pool.query(query, values);
+
+    res.json({
+      success: true,
+      notifications: rows
+    });
+  } catch (error) {
+    console.error('Get Academic Admin Notifications Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
+  }
+};
+
 export { 
   getAllAcademicAdmins, 
   createNewAcademicAdmin, 

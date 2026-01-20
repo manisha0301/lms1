@@ -16,6 +16,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { getCourseById, getCourseStructure } from '../models/courseModel.js';
+import { addNotificationForAcademicAdmins } from '../models/notificationModel.js';
 
 // Ensure uploads/faculty folder exists
 const uploadDir = path.join(process.cwd(), 'uploads/faculty');
@@ -109,6 +110,22 @@ export const createFaculty = async (req, res) => {
       status: 'Active',  // Admin bypasses approval
       academic_admin_id: academicAdminId || req.user.id  // ← NEW: Set the admin ID
     });
+
+    //Notify the Academic Admin this faculty belongs to
+
+    const targetAdminId = academicAdminId || req.user.id;
+
+    if (targetAdminId) {
+      const message = `New faculty joined: ${newFaculty.full_name} (${newFaculty.designation || 'Faculty'})`;
+
+      await addNotificationForAcademicAdmins(
+        pool,
+        message,
+        'faculty',       // notification type
+        'medium',        // priority
+        [targetAdminId]  // only this one admin gets notified
+      );
+    }
 
     res.status(201).json({ success: true, faculty: newFaculty });
   } catch (error) {
@@ -325,6 +342,32 @@ export const facultySignup = async (req, res) => {
       academic_admin_id: assignedAdminId  // ← Now correctly mapped from university name
     });
 
+
+    // NEW: Notify the matching Academic Admin(s) for approval
+    // ────────────────────────────────────────────────────────────────
+    let targetAdminIds = [];
+
+    // If we found a matching admin from university name
+    if (assignedAdminId) {
+      targetAdminIds = [assignedAdminId];
+    } else {
+      // Fallback: If no university match, notify ALL active admins (or none)
+      // Option: Broadcast to all active admins (recommended for MVP)
+      targetAdminIds = await getAllActiveAcademicAdminIds(pool);
+    }
+
+    if (targetAdminIds.length > 0) {
+      const message = `New faculty approval request: ${full_name} (${email}) is awaiting your approval`;
+
+      await addNotificationForAcademicAdmins(
+        pool,
+        message,
+        'faculty_request',   // Special type so you can style it differently (e.g., yellow/orange)
+        'high',              // High priority — needs action soon
+        targetAdminIds
+      );
+    }
+    
     res.status(201).json({
       success: true,
       message: 'Signup successful! Your account is pending approval.',
