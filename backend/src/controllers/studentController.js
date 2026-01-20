@@ -8,6 +8,8 @@ import {
   findStudentByMobile
 } from '../models/studentModel.js';
 
+import { addNotificationForAcademicAdmins } from '../models/notificationModel.js';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key'; 
 
 export const studentSignup = async (req, res) => {
@@ -46,6 +48,33 @@ export const studentSignup = async (req, res) => {
       graduationUniversity
     });
 
+    // Notify academic admins of the student's graduation university
+    if (graduationUniversity && graduationUniversity.trim()) {
+      const { rows: matchingAdmins } = await pool.query(
+        `
+        SELECT id 
+        FROM academic_admins 
+        WHERE LOWER(academic_name) LIKE LOWER($1)
+          AND status = 'Active'
+        `,
+        [`%${graduationUniversity.trim()}%`]
+      );
+
+      if (matchingAdmins.length > 0) {
+        const adminIds = matchingAdmins.map(a => a.id);
+
+        const message = `New student enrolled: ${firstName} ${lastName} (${email}) in your center`;
+
+        await addNotificationForAcademicAdmins(
+          pool,
+          message,
+          'student',       // type
+          'medium',
+          adminIds
+        );
+      }
+    }
+    
     // Generate JWT token
     const token = jwt.sign(
       { id: student.id, email: student.email, role: 'student' },

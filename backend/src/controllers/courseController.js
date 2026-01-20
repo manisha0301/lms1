@@ -9,7 +9,14 @@ import {
   getAcademicCourseSchedule,
   updateAcademicCourseSchedule
 } from '../models/courseModel.js';
-import { addNotificationForSuperAdmin } from '../models/notificationModel.js';
+
+import { 
+  addNotificationForSuperAdmin ,
+  getAllActiveAcademicAdminIds
+} from '../models/notificationModel.js';
+
+import { addNotificationForAcademicAdmins } from '../models/notificationModel.js';
+
 
 // Create new course
 export const createCourse = async (req, res) => {
@@ -43,14 +50,31 @@ export const createCourse = async (req, res) => {
       originalPrice: finalOriginalPrice
     });
 
-    const notifyMessage = `New course created: "${newCourse.name}" (${newCourse.type}, ₹${newCourse.price})`;
+    // ─── 1. Notify the SuperAdmin who created it ─────────────────────
+    const superNotifyMessage = `New course created: "${newCourse.name}" (${newCourse.type}, ₹${newCourse.price})`;
     await addNotificationForSuperAdmin(
       pool,
-      notifyMessage,
+      superNotifyMessage,
       'course',
       'medium'
     );
 
+    // ─── 2. NEW: Broadcast to ALL active Academic Admins ─────────────
+    const adminIds = await getAllActiveAcademicAdminIds(pool);
+
+    if (adminIds.length > 0) {
+      const broadcastMessage = `New course "${newCourse.name}" has been added. Contact SuperAdmin for more details.`;
+
+      await addNotificationForAcademicAdmins(
+        pool,
+        broadcastMessage,
+        'course',        // type
+        'low',           // lower priority than direct assignment
+        adminIds         // send to everyone active
+      );
+    }
+
+    // ─── Send success response ───────────────────────────────────────
     res.status(201).json({ success: true, course: newCourse });
   } catch (error) {
     console.error('Create course error:', error);
@@ -223,51 +247,53 @@ export const assignCourseToAdmins = async (req, res) => {
   try {
     const { courseId, adminIds } = req.body;
 
-    if (!courseId || !Array.isArray(adminIds)) {
-      return res.status(400).json({ success: false, error: 'Invalid data' });
+    if (!Array.isArray(adminIds) || adminIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'No academic admins selected' });
     }
 
-    const { rows: current } = await pool.query(
-      'SELECT academic_admin_id FROM course_academic_assignments WHERE course_id = $1',
+    // 1. Delete old assignments (if you want to replace, not append)
+    await pool.query(
+      'DELETE FROM course_academic_assignments WHERE course_id = $1',
       [courseId]
     );
-    const currentIds = current.map(row => row.academic_admin_id);
 
-    const toAdd = adminIds.filter(id => !currentIds.includes(id));
-    const toRemove = currentIds.filter(id => !adminIds.includes(id));
+    // 2. Insert new assignments
+    const values = adminIds.map(id => [courseId, id]);
+    const placeholders = values.map((_, i) => `($${i*2+1}, $${i*2+2})`).join(',');
+    
+    await pool.query(`
+      INSERT INTO course_academic_assignments (course_id, academic_admin_id)
+      VALUES ${placeholders}
+      ON CONFLICT DO NOTHING
+    `, values.flat());
 
-    if (toRemove.length > 0) {
-      await pool.query(
-        'DELETE FROM course_academic_assignments WHERE course_id = $1 AND academic_admin_id = ANY($2::int[])',
-        [courseId, toRemove]
-      );
-    }
-
-    if (toAdd.length > 0) {
-      const values = toAdd.map(id => `(${courseId}, ${id})`).join(',');
-      await pool.query(`
-        INSERT INTO course_academic_assignments (course_id, academic_admin_id)
-        VALUES ${values}
-        ON CONFLICT (course_id, academic_admin_id) DO NOTHING
-      `);
-    }
-
+    // 3. Get course name for notification
     const { rows: [course] } = await pool.query(
       'SELECT name FROM courses WHERE id = $1',
       [courseId]
     );
 
     if (course) {
-      const adminCount = Array.isArray(adminIds) ? adminIds.length : 1;
-      const message = `Course "${course.name}" assigned to ${adminCount} academic admin${adminCount !== 1 ? 's' : ''}`;
+      const message = `New course assigned: "${course.name}"`;
 
-      await addNotificationForSuperAdmin(pool, message, 'course', 'medium');
+      // Notify all assigned academic admins
+      await addNotificationForAcademicAdmins(
+        pool,
+        message,
+        'course',       // type
+        'medium',
+        adminIds        // array of academic admin IDs
+      );
     }
 
-    res.json({ success: true, message: 'Assignment updated successfully!' });
+    res.json({ 
+      success: true, 
+      message: `Course assigned to ${adminIds.length} academic admin${adminIds.length !== 1 ? 's' : ''}` 
+    });
+
   } catch (error) {
-    console.error('Assign course error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update assignment' });
+    console.error('Course assignment error:', error);
+    res.status(500).json({ success: false, error: 'Failed to assign course' });
   }
 };
 
@@ -454,3 +480,4 @@ export const saveAcademicCourseScheduleCtrl = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to save schedule' });
   }
 };
+

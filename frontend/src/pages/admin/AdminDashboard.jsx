@@ -13,40 +13,88 @@ import { useNavigate } from 'react-router-dom';
 export default function AdminDashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Mock Data
+  // ─── Real states for notifications ───────────────────────────────
+  const [recentNotifications, setRecentNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+
+  // ─── Stats states (already existed) ──────────────────────────────
   const [stats, setStats] = useState({
-  totalStudents: 0,
-  totalFaculty: 0,
-  totalCourses: 0,
-});
-const [loadingStats, setLoadingStats] = useState(true);
+    totalStudents: 0,
+    totalFaculty: 0,
+    totalCourses: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
-useEffect(() => {
-  const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem('token'); // or your admin token key
-      const response = await fetch('http://localhost:5000/api/auth/admin/courses', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+  // Add this after other useState declarations, before useEffect
+  // const [branchHierarchy, setBranchHierarchy] = useState([]);
+
+  // ─── Fetch both stats and real notifications ─────────────────────
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/auth/admin/courses', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.stats);
         }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.stats);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      } finally {
+        setLoadingStats(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error);
-    } finally {
-      setLoadingStats(false);
-    }
-  };
+    };
 
-  fetchStats();
-}, []);
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/auth/admin/notifications?limit=5', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.notifications) {
+          const formatted = data.notifications.map(notif => ({
+            id: notif.id,
+            type: notif.type || 'info',
+            message: notif.message,
+            time: new Date(notif.created_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }),
+            // Dynamic icon mapping based on notification type
+            icon: notif.type === 'course' ? BookOpen :
+                  notif.type === 'student' || notif.type === 'new-enrollment' ? Users :
+                  notif.type === 'faculty' ? GraduationCap :
+                  notif.type === 'alert' ? AlertCircle :
+                  notif.type === 'achievement' ? Award : Users // fallback
+          }));
+
+          setRecentNotifications(formatted);
+        }
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchStats();
+    fetchNotifications();
+  }, []);
 
   const branchHierarchy = [
     { id: 1, name: "Mumbai Main Campus", dean: "Dr. Anita Sharma", students: 892, faculty: 28 },
@@ -57,13 +105,7 @@ useEffect(() => {
     { id: 6, name: "Chennai", dean: "Prof. Arjun Nair", students: 122, faculty: 3 },
   ];
 
-  const recentNotifications = [
-    { id: 1, type: "new-enrollment", message: "156 new students enrolled today", time: "2 mins ago", icon: Users },
-    { id: 2, type: "course", message: "New course 'Ethical Hacking Pro' published", time: "1 hour ago", icon: BookOpen },
-    { id: 3, type: "faculty", message: "Prof. Sarah Lee joined as Full Stack Mentor", time: "3 hours ago", icon: GraduationCap },
-    { id: 4, type: "alert", message: "Server maintenance scheduled at 2:00 AM", time: "5 hours ago", icon: AlertCircle },
-    { id: 5, type: "achievement", message: "98% students passed React Masterclass!", time: "1 day ago", icon: Award }
-  ];
+  
 
   const handlelogout = () => {
     localStorage.removeItem("token");
@@ -90,7 +132,6 @@ useEffect(() => {
 
             <div className="flex items-center gap-6">
 
-
               {/* Notification Bell */}
               <div className="relative">
                 <button
@@ -116,12 +157,16 @@ useEffect(() => {
                       {recentNotifications.map(notif => (
                         <div key={notif.id} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition">
                           <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${notif.type === 'alert' ? 'bg-red-100' :
-                                notif.type === 'achievement' ? 'bg-emerald-100' : 'bg-indigo-100'
-                              }`}>
-                              <notif.icon className={`w-5 h-5 ${notif.type === 'alert' ? 'text-red-600' :
-                                  notif.type === 'achievement' ? 'text-emerald-600' : 'text-indigo-600'
-                                }`} />
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                              notif.type === 'alert' ? 'bg-red-100' :
+                              notif.type === 'achievement' ? 'bg-emerald-100' :
+                              'bg-indigo-100'
+                            }`}>
+                              <notif.icon className={`w-5 h-5 ${
+                                notif.type === 'alert' ? 'text-red-600' :
+                                notif.type === 'achievement' ? 'text-emerald-600' :
+                                'text-indigo-600'
+                              }`} />
                             </div>
                             <div className="flex-1">
                               <p className="font-semibold text-gray-900">{notif.message}</p>
@@ -298,7 +343,7 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Recent Notifications Panel */}
+            {/* Recent Notifications Panel - Now with REAL data */}
             <div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 ">
                 <div className="bg-white text-[#1e3a8a] px-8 pt-6 rounded-t-xl">
@@ -309,23 +354,40 @@ useEffect(() => {
                   <p className="opacity-90 mt-1">Latest system updates</p>
                 </div>
                 <div className="p-8 space-y-5 overflow-y-auto flex-1 max-h-[525px]">
-                  {recentNotifications.map((notif) => (
-                    <div key={notif.id} className="flex gap-5 p-5 bg-gray-50 rounded-2xl hover:bg-[#1e3a8a]/5 transition group">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.type === 'alert' ? 'bg-red-100' :
-                          notif.type === 'achievement' ? 'bg-emerald-100' : 'bg-indigo-100'
-                        }`}>
-                        <notif.icon className={`w-6 h-6 ${notif.type === 'alert' ? 'text-red-600' :
-                            notif.type === 'achievement' ? 'text-emerald-600' : 'text-indigo-600'
-                          }`} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900">{notif.message}</p>
-                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                          <Clock className="w-4 h-4" /> {notif.time}
-                        </p>
-                      </div>
+                  {notificationsLoading ? (
+                    <div className="text-center py-10 text-gray-500">
+                      Loading notifications...
                     </div>
-                  ))}
+                  ) : recentNotifications.length === 0 ? (
+                    <div className="text-center py-10 text-gray-500">
+                      No new notifications yet
+                    </div>
+                  ) : (
+                    recentNotifications.map((notif) => (
+                      <div 
+                        key={notif.id} 
+                        className="flex gap-5 p-5 bg-gray-50 rounded-2xl hover:bg-[#1e3a8a]/5 transition group"
+                      >
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                          notif.type === 'alert' ? 'bg-red-100' :
+                          notif.type === 'achievement' ? 'bg-emerald-100' :
+                          'bg-indigo-100'
+                        }`}>
+                          <notif.icon className={`w-6 h-6 ${
+                            notif.type === 'alert' ? 'text-red-600' :
+                            notif.type === 'achievement' ? 'text-emerald-600' :
+                            'text-indigo-600'
+                          }`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-900">{notif.message}</p>
+                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                            <Clock className="w-4 h-4" /> {notif.time}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
