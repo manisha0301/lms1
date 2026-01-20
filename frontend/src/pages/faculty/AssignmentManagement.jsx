@@ -35,6 +35,17 @@ export default function AssignmentManagement() {
     file: null
   });
 
+  const [submissions, setSubmissions] = useState({
+    // assignmentId: [ { id, name, submittedAt, file, marks, remarks } ]  
+    1: [
+      { id: "STU21001", name: "Aarav Sharma", submittedAt: "2024-09-10", file: "aarav_assignment1.pdf", marks: 85, remarks: "Good work" },
+      { id: "STU21002", name: "Diya Patel", submittedAt: "2024-09-11", file: "diya_assignment1.pdf", marks: 90, remarks: "Excellent" },
+      { id: "STU21003", name: "Rohan Verma", submittedAt: null, file: null, marks: null, remarks: null },
+      { id: "STU21004", name: "Priya Singh", submittedAt: "2024-09-12", file: "priya_assignment1.pdf", marks: 78, remarks: "Needs improvement" },
+      { id: "STU21005", name: "Vikram Kumar", submittedAt: null, file: null, marks: null, remarks: null },
+    ],
+  });
+
   // Mock students (kept as-is for details modal)
   const allStudents = [
     { id: "STU21001", name: "Aarav Sharma", selected: false },
@@ -172,15 +183,16 @@ export default function AssignmentManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Assignment Management</h1>
-        <p className="text-gray-600">Create, assign, and evaluate student assignments</p>
+      <div className="bg-[#1e3a8a] text-white p-8 mb-8 mx-auto">
+        <h1 className="text-3xl font-bold text-white">Assignment Management</h1>
+        <p className="text-white mt-1 opacity-90">Create, assign, and evaluate student assignments</p>
       </div>
 
       {/* Course Selector */}
-      <div className="mb-6">
+      <div className="mb-6 px-4 md:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="w-full md:w-auto ">
         <label className="block text-sm font-medium text-gray-700 mb-2">Select Course</label>
         <select
           value={selectedCourseId}
@@ -194,24 +206,25 @@ export default function AssignmentManagement() {
             </option>
           ))}
         </select>
+        </div>
+        {/* Add New Assignment Button */}
+        {selectedCourseId && (
+          <div className="mb-8 text-right">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 bg-[#1e3a8a] text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition transform hover:scale-105"
+            >
+              <Plus className="w-5 h-5" />
+              Add New Assignment
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Add New Assignment Button */}
-      {selectedCourseId && (
-        <div className="mb-8 text-right">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition transform hover:scale-105"
-          >
-            <Plus className="w-5 h-5" />
-            Add New Assignment
-          </button>
-        </div>
-      )}
 
       {/* Assignments List */}
       {selectedCourseId ? (
-        <div className="grid gap-6">
+        <div className="grid gap-6 px-4 md:px-8 mb-12">
           {assignments.length === 0 ? (
             <p className="text-center text-gray-500 py-10">
               No assignments created for this course yet.
@@ -260,7 +273,7 @@ export default function AssignmentManagement() {
                     )}
                     <button
                       onClick={() => setShowDetailsModal(assignment.id)}
-                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#1e3a8a] text-white rounded-lg text-sm font-medium hover:shadow-lg"
                     >
                       <Eye className="w-4 h-4" />
                       View Details
@@ -422,7 +435,7 @@ export default function AssignmentManagement() {
       {showDetailsModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-screen overflow-y-auto">
-            <div className="p-6 border-b bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+            <div className="p-6 border-b bg-[#1e3a8a] text-white">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Assignment Details & Submissions</h2>
                 <button onClick={() => setShowDetailsModal(null)} className="p-2 hover:bg-white/20 rounded-lg">
