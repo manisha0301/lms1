@@ -225,3 +225,115 @@ export const getStudentCourses = async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
+
+// Get logged-in student profile (protected)
+export const getStudentProfile = async (req, res) => {
+  try {
+    const studentId = req.user.id; // from JWT (protectStudent middleware)
+
+    const { rows } = await pool.query(`
+      SELECT 
+        id,
+        first_name AS "firstName",
+        last_name AS "lastName",
+        email,
+        mobile_number AS phone,
+        graduation_university AS university,
+        TO_CHAR(created_at, 'YYYY-MM-DD') AS "joinedDate"
+      FROM students
+      WHERE id = $1
+    `, [studentId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+
+    const student = rows[0];
+
+    // Format joined date nicely
+    student.joinedDate = new Date(student.joinedDate).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    res.json({
+      success: true,
+      profile: student
+    });
+  } catch (error) {
+    console.error('Get student profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load profile' });
+  }
+};
+
+// Update student profile (protected)
+export const updateStudentProfile = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { firstName, lastName, email, phone, university } = req.body;
+
+    // Validate required fields (optional - you can make some optional)
+    if (!firstName || !lastName || !email || !phone) {
+      return res.status(400).json({ success: false, error: 'First name, last name, email, and phone are required' });
+    }
+
+    // Check if email is already taken by someone else
+    const { rows: emailCheck } = await pool.query(
+      'SELECT id FROM students WHERE email = $1 AND id != $2',
+      [email, studentId]
+    );
+    if (emailCheck.length > 0) {
+      return res.status(409).json({ success: false, error: 'Email already in use by another account' });
+    }
+
+    // Check phone uniqueness (optional)
+    const { rows: phoneCheck } = await pool.query(
+      'SELECT id FROM students WHERE mobile_number = $1 AND id != $2',
+      [phone, studentId]
+    );
+    if (phoneCheck.length > 0) {
+      return res.status(409).json({ success: false, error: 'Phone number already in use' });
+    }
+
+    const { rows } = await pool.query(`
+      UPDATE students
+      SET 
+        first_name = $1,
+        last_name = $2,
+        email = $3,
+        mobile_number = $4,
+        graduation_university = $5,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $6
+      RETURNING 
+        first_name AS "firstName",
+        last_name AS "lastName",
+        email,
+        mobile_number AS phone,
+        graduation_university AS university,
+        created_at AS joinedDate
+    `, [firstName, lastName, email, phone, university || null, studentId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+
+    // Format joinedDate again
+    const updated = rows[0];
+    updated.joinedDate = new Date(updated.joinedDate).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: updated
+    });
+  } catch (error) {
+    console.error('Update student profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+};

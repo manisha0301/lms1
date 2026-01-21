@@ -655,3 +655,157 @@ export const updateFacultyProfile = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 };
+
+// UPDATED: Get upcoming classes (today + future) for the logged-in faculty
+export const getUpcomingClasses = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+
+    // 1. Get all courses this faculty teaches
+    const { rows: courses } = await pool.query(`
+      SELECT 
+        c.id AS course_id,
+        c.name AS course_name,
+        c.type
+      FROM courses c
+      WHERE $1 = ANY(c.teachers)
+    `, [facultyId]);
+
+    if (courses.length === 0) {
+      return res.json({
+        success: true,
+        upcomingClasses: []
+      });
+    }
+
+    const courseIds = courses.map(c => c.course_id);
+
+    // 2. Get all schedules that are not completely in the past
+    const { rows: schedules } = await pool.query(`
+      SELECT 
+        s.id,
+        s.course_id,
+        s.start_date,
+        s.end_date,
+        s.start_time,
+        s.end_time,
+        s.meeting_link
+      FROM academic_course_schedules s
+      WHERE s.course_id = ANY($1::int[])
+        AND s.end_date >= CURRENT_DATE  -- include today and future
+      ORDER BY s.start_date ASC, s.start_time ASC
+    `, [courseIds]);
+
+    // 3. Generate one entry PER DAY for each schedule
+    const upcomingClasses = [];
+
+    for (const sched of schedules) {
+      const course = courses.find(c => c.course_id === sched.course_id);
+      if (!course) continue;
+
+      let currentDate = new Date(sched.start_date);
+      const endDate = new Date(sched.end_date);
+
+      while (currentDate <= endDate) {
+        const isToday = currentDate.toDateString() === new Date().toDateString();
+
+        upcomingClasses.push({
+          id: `${sched.id}-${currentDate.toISOString().split('T')[0]}`, // unique per day
+          title: course.course_name || 'Course Class',
+          date: currentDate.toLocaleDateString('en-IN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'short'
+          }),
+          datetime: `${sched.start_time?.slice(0,5)} – ${sched.end_time?.slice(0,5)}`,
+          room: "Online", // change this if you add real room field later
+          meetingLink: sched.meeting_link || null,
+          isToday
+        });
+
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    // 4. Sort: today first, then future dates, same day by time
+    upcomingClasses.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB; // earlier dates first
+      }
+
+      // same day → sort by start time
+      const timeA = a.datetime.split(' – ')[0];
+      const timeB = b.datetime.split(' – ')[0];
+      return timeA.localeCompare(timeB);
+    });
+
+    // Optional: limit to next 60 days worth of classes to avoid huge response
+    const maxDaysAhead = 60;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() + maxDaysAhead);
+
+    const limitedClasses = upcomingClasses.filter(cls => {
+      const clsDate = new Date(cls.date);
+      return clsDate <= cutoffDate;
+    });
+
+    res.json({
+      success: true,
+      upcomingClasses: limitedClasses
+    });
+  } catch (error) {
+    console.error('Get upcoming classes error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch upcoming classes' });
+  }
+};
+
+// Get upcoming exams created by this faculty
+export const getUpcomingExams = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+
+    const { rows: exams } = await pool.query(`
+      SELECT 
+        e.id,
+        e.topic AS title,
+        e.exam_link,
+        e.total_marks,
+        s.date AS exam_date,
+        s.start_time,
+        s.end_time
+      FROM exams e
+      JOIN exam_slots s ON e.id = s.exam_id
+      WHERE e.faculty_id = $1
+        AND s.date >= CURRENT_DATE
+      ORDER BY s.date ASC, s.start_time ASC
+      LIMIT 20
+    `, [facultyId]);
+
+    const upcomingExams = exams.map(exam => {
+      const date = new Date(exam.exam_date);
+      return {
+        id: exam.id,
+        title: exam.title,
+        date: date.toLocaleDateString('en-IN', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'short'
+        }),
+        datetime: `${exam.start_time?.slice(0,5)} – ${exam.end_time?.slice(0,5)}`,
+        location: "Online" // change to real location if you add it
+      };
+    });
+
+    res.json({
+      success: true,
+      upcomingExams
+    });
+  } catch (error) {
+    console.error('Get upcoming exams error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch exams' });
+  }
+};

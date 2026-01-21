@@ -27,40 +27,73 @@ const FacultyHome = () => {
 
   // Data state
   const [dashboardData, setDashboardData] = useState(null);
+  const [upcomingClasses, setUpcomingClasses] = useState([]);
+  const [upcomingExams, setUpcomingExams] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingExams, setLoadingExams] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch dashboard data on component mount
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
+  const notifications = [
+    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
+    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
+    { message: "New grading policy update", time: "Yesterday", type: "info" },
+    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
+    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
+    { message: "New grading policy update", time: "Yesterday", type: "info" }
+  ];
 
-        const response = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/dashboard`, {
+  // Fetch dashboard, classes & exams on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        // 1. Dashboard
+        const dashboardRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (response.data.success) {
-          setDashboardData(response.data.dashboard);
+        if (dashboardRes.data.success) {
+          setDashboardData(dashboardRes.data.dashboard);
         } else {
-          setError('Failed to load dashboard data');
+          setError('Failed to load dashboard');
+        }
+
+        // 2. Upcoming classes
+        const classesRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/upcoming-classes`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (classesRes.data.success) {
+          setUpcomingClasses(classesRes.data.upcomingClasses || []);
+        }
+
+        // 3. Upcoming exams created by this faculty (future only)
+        const examsRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/upcoming-exams`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (examsRes.data.success) {
+          setUpcomingExams(examsRes.data.upcomingExams || []);
         }
       } catch (err) {
-        console.error('Dashboard fetch error:', err);
-        setError('Unable to connect to server');
+        console.error('Fetch error:', err);
+        setError('Unable to load data');
       } finally {
         setLoading(false);
+        setLoadingClasses(false);
+        setLoadingExams(false);
       }
     };
 
-    fetchDashboard();
+    fetchData();
   }, [navigate]);
 
-  
   const facultyName = dashboardData?.faculty?.name || '';
   const facultyDesignation = dashboardData?.faculty?.designation || 'Faculty Member';
 
@@ -97,37 +130,51 @@ const FacultyHome = () => {
     navigate(`/course/${courseId}`);
   };
 
-  
-  const upcomingClasses = [
-    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
-    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
-    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
-    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
-    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
-    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
-    { title: "Advanced ML – Lecture 12", datetime: "Tomorrow, 10:00 AM – 11:30 AM", room: "Room A-204" },
-    { title: "DSA – Lab Session", datetime: "Nov 20, 2:00 PM – 4:00 PM", room: "Lab B-12" },
-  ];
+  // Group upcoming classes by date
+  const groupedClasses = useMemo(() => {
+    const groups = {};
 
-  const upcomingExams = [
-    { title: "Mid-term – Advanced ML", datetime: "Nov 25, 9:00 AM – 11:00 AM", location: "Hall C" },
-    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" },
-    { title: "Mid-term – Advanced ML", datetime: "Nov 25, 9:00 AM – 11:00 AM", location: "Hall C" },
-    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" },
-    { title: "Mid-term – Advanced ML", datetime: "Nov 25, 9:00 AM – 11:00 AM", location: "Hall C" },
-    { title: "Quiz – DSA", datetime: "Nov 28, 3:00 PM – 4:00 PM", location: "Online" },
-  ];
+    upcomingClasses.forEach(cls => {
+      if (!groups[cls.date]) {
+        groups[cls.date] = [];
+      }
+      groups[cls.date].push(cls);
+    });
 
-  const notifications = [
-    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
-    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
-    { message: "New grading policy update", time: "Yesterday", type: "info" },
-    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
-    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
-    { message: "New grading policy update", time: "Yesterday", type: "info" }
-  ];
+    // Sort: Today first, then future dates
+    return Object.entries(groups).sort(([dateA], [dateB]) => {
+      const today = new Date().toLocaleDateString('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'short'
+      });
+      if (dateA === today) return -1;
+      if (dateB === today) return 1;
+      return new Date(dateA) - new Date(dateB);
+    });
+  }, [upcomingClasses]);
 
-  // Loading & Error states (after all hooks)
+  // Group upcoming exams by date
+  const groupedExams = useMemo(() => {
+    const groups = {};
+
+    upcomingExams.forEach(exam => {
+      if (!groups[exam.date]) {
+        groups[exam.date] = [];
+      }
+      groups[exam.date].push(exam);
+    });
+
+    // Sort: Today first, then future dates
+    return Object.entries(groups).sort(([dateA], [dateB]) => {
+      const today = new Date().toLocaleDateString('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'short'
+      });
+      if (dateA === today) return -1;
+      if (dateB === today) return 1;
+      return new Date(dateA) - new Date(dateB);
+    });
+  }, [upcomingExams]);
+
+  // Loading & Error states
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -170,7 +217,7 @@ const FacultyHome = () => {
               >
                 <Bell className="w-6 h-6" />
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                  {notifications.length}
+                  6
                 </span>
               </button>
 
@@ -229,10 +276,9 @@ const FacultyHome = () => {
                     </div>
                   </div>
 
-                    {/* Body */}
                   <div className="p-3">
                     <button
-                        onClick={() => navigate('/profile')}
+                      onClick={() => navigate('/profile')}
                       className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
                     >
                       <User className="w-5 h-5 text-[#1e3a8a]" />
@@ -240,7 +286,7 @@ const FacultyHome = () => {
                     </button>
 
                     <button
-                        onClick={() => navigate('/settings')}
+                      onClick={() => navigate('/settings')}
                       className="w-full text-left px-5 py-3 flex items-center gap-4 hover:bg-gray-50 rounded-xl transition cursor-pointer"
                     >
                       <Settings className="w-5 h-5 text-[#1e3a8a]" />
@@ -377,56 +423,76 @@ const FacultyHome = () => {
               Upcoming Classes
             </h2>
             <div className="bg-white rounded-2xl shadow-lg divide-y divide-gray-200 max-h-80 overflow-y-auto">
-              {upcomingClasses.map((cls, i) => (
-                <div key={i} className="p-5 flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-800">{cls.title}</p>
-                    <p className="text-sm text-gray-500">{cls.datetime}</p>
-                  </div>
-                  <span className="text-xs bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full">
-                    {cls.room}
-                  </span>
+              {loadingClasses ? (
+                <div className="p-6 text-center text-gray-500">
+                  Loading upcoming classes...
                 </div>
-              ))}
+              ) : upcomingClasses.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  No upcoming classes scheduled yet
+                </div>
+              ) : (
+                groupedClasses.map(([date, classes]) => (
+                  <div key={date} className="p-4">
+                    <h3 className="font-semibold text-gray-800 mb-2">
+                      {date === new Date().toLocaleDateString('en-IN', {
+                        weekday: 'long', day: 'numeric', month: 'short'
+                      }) ? "Today" : date}
+                    </h3>
+                    {classes.map(cls => (
+                      <div key={cls.id} className="flex justify-between items-center py-2 border-t border-gray-100 first:border-t-0">
+                        <div>
+                          <p className="font-medium text-gray-800">{cls.title}</p>
+                          <p className="text-sm text-gray-500">{cls.datetime}</p>
+                        </div>
+                        <span className="text-xs bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full">
+                          {cls.room}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Upcoming Exams */}
+          {/* Upcoming Exams - REAL DATA */}
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-2">
               <Clock className="w-6 h-6 text-red-600" />
               Upcoming Exams
             </h2>
             <div className="bg-white rounded-2xl shadow-lg divide-y divide-gray-200 max-h-80 overflow-y-auto">
-              {upcomingExams.map((exam, i) => (
-                <div key={i} className="p-5 flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-800">{exam.title}</p>
-                    <p className="text-sm text-gray-500">{exam.datetime}</p>
-                  </div>
-                  <span className="text-xs bg-red-100 text-red-800 px-3 py-1 rounded-full">
-                    {exam.location}
-                  </span>
+              {loadingExams ? (
+                <div className="p-6 text-center text-gray-500">
+                  Loading upcoming exams...
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Analytical Dashboard */}
-        <section className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-indigo-600" />
-            Analytical Dashboard
-          </h2>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl h-64 flex items-center justify-center p-6">
-                <p className="text-gray-400 text-center">Student Performance Analytics<br/>(Chart.js / ApexCharts)</p>
-              </div>
-              <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl h-64 flex items-center justify-center p-6">
-                <p className="text-gray-400 text-center">Attendance & Engagement Trends<br/>(Chart.js / ApexCharts)</p>
-              </div>
+              ) : upcomingExams.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  No upcoming exams scheduled
+                </div>
+              ) : (
+                groupedExams.map(([date, exams]) => (
+                  <div key={date} className="p-4">
+                    <h3 className="font-semibold text-gray-800 mb-2">
+                      {date === new Date().toLocaleDateString('en-IN', {
+                        weekday: 'long', day: 'numeric', month: 'short'
+                      }) ? "Today" : date}
+                    </h3>
+                    {exams.map(exam => (
+                      <div key={exam.id} className="flex justify-between items-center py-2 border-t border-gray-100 first:border-t-0">
+                        <div>
+                          <p className="font-medium text-gray-800">{exam.title}</p>
+                          <p className="text-sm text-gray-500">{exam.datetime}</p>
+                        </div>
+                        <span className="text-xs bg-red-100 text-red-800 px-3 py-1 rounded-full">
+                          {exam.location || 'Online'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </section>

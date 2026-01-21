@@ -1,5 +1,5 @@
 // src/pages/faculty/ExamManagement.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -14,95 +14,61 @@ import {
   X as XIcon,
   Trash2
 } from 'lucide-react';
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
 
 export default function ExamManagement() {
-  const [exams, setExams] = useState([
-    {
-      id: 1,
-      topic: "Mid-Term Examination",
-      course: ".Advanced Node.js (CSE-405)",
-      link: "https://exam.cybernetics.com/midterm-cse405",
-      status: "Approved",
-      dateTimeSlots: [
-        "2025-11-25 09:00 AM - 11:00 AM",
-        "2025-11-25 02:00 PM - 04:00 PM"
-      ],
-      totalStudents: 48,
-      appeared: 45,
-      pending: 3,
-      resultDeclared: true
-    },
-    {
-      id: 2,
-      topic: "Quiz 2 - REST APIs",
-      course: "Advanced Node.js (CSE-405)",
-      link: "https://exam.cybernetics.com/quiz2-cse405",
-      status: "Approved",
-      dateTimeSlots: ["05 Dec 2025, 10:00 AM"],
-      totalStudents: 48,
-      appeared: 31,
-      pending: 17,
-      resultDeclared: false
-    },
-    {
-      id: 3,
-      topic: "Final Project Viva",
-      course: "Machine Learning A-Z (CSE-601)",
-      link: null,
-      status: "Approved",
-      dateTimeSlots: ["15 Dec 2025, 10:00 AM"],
-      totalStudents: 36,
-      appeared: 36,
-      pending: 0,
-      resultDeclared: false
-    }
-  ]);
-
+  const [exams, setExams] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedExam, setSelectedExam] = useState(null);
   const [studentSearch, setStudentSearch] = useState('');
-  const [editingStudentId, setEditingStudentId] = useState(null);
-  const [editMarks, setEditMarks] = useState('');
-  const [editedResults, setEditedResults] = useState({});
-  const [isAddingResult, setIsAddingResult] = useState(false);
-  const [addResultStudent, setAddResultStudent] = useState('');
-  const [addResultMarks, setAddResultMarks] = useState('');
-  const [addResultRemarks, setAddResultRemarks] = useState('');
   const [isAddingExam, setIsAddingExam] = useState(false);
+  const [isAddingResult, setIsAddingResult] = useState(false);
   const [newExamForm, setNewExamForm] = useState({
     topic: '',
-    course: '',
+    courseId: '',
     link: '',
     totalMarks: '',
-    dateTimeSlots: ['']
+    dateTimeSlots: [{ date: '', startTime: '', endTime: '' }]
   });
 
-  const availableCourses = [
-    'Advanced Node.js (CSE-405)',
-    'Machine Learning A-Z (CSE-601)',
-    'Web Development Basics (CSE-101)',
-    'Database Design (CSE-201)',
-    'Cloud Computing (CSE-501)'
-  ];
+  // Fetch faculty's courses and exams on mount
+  useEffect(() => {
+    fetchAllData();
+  }, []);
 
-  // Mock student results
-  const examResults = {
-    1: [
-      { id: "STU21001", name: "Aarav Sharma", slot: "2025-11-25 09:00 AM - 11:00 AM", marks: 78 },
-      { id: "STU21002", name: "Diya Patel", slot: "2025-11-25 09:00 AM - 11:00 AM", marks: 85 },
-      { id: "STU21003", name: "Rohan Verma", slot: "2025-11-25 02:00 PM - 04:00 PM", marks: 62 },
-      { id: "STU21004", name: "Priya Singh", slot: "2025-11-25 09:00 AM - 11:00 AM", marks: 90 },
-      { id: "STU21005", name: "Vikram Kumar", slot: "2025-11-25 02:00 PM - 04:00 PM", marks: 88 }
-    ],
-    2: null, // Result not declared
-    3: null  // Result not declared
+  const fetchAllData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      // 1. Get faculty's assigned courses
+      const coursesRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/my-courses`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (coursesRes.data.success) {
+        setCourses(coursesRes.data.courses || []);
+      }
+      // 2. Get exams created by this faculty
+      const examsRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/exams`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (examsRes.data.success) {
+        setExams(examsRes.data.exams || []);
+      }
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+      setLoadingCourses(false);
+    }
   };
 
   const filteredExams = exams.filter(exam => {
     const matchesSearch = exam.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || exam.status.toLowerCase() === filterStatus;
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
   const currentStudents = selectedExam ? examResults[selectedExam] || [] : [];
@@ -204,7 +170,7 @@ export default function ExamManagement() {
   const handleAddExamClick = () => {
     setIsAddingExam(true);
   };
-
+  
   const handleExamFormChange = (field, value) => {
     setNewExamForm(prev => ({
       ...prev,
@@ -212,9 +178,12 @@ export default function ExamManagement() {
     }));
   };
 
-  const handleDateTimeSlotChange = (index, value) => {
+  const handleDateTimeSlotChange = (index, field, value) => {
     const updatedSlots = [...newExamForm.dateTimeSlots];
-    updatedSlots[index] = value;
+    updatedSlots[index] = {
+      ...updatedSlots[index],
+      [field]: value
+    };
     setNewExamForm(prev => ({
       ...prev,
       dateTimeSlots: updatedSlots
@@ -224,7 +193,7 @@ export default function ExamManagement() {
   const handleAddDateTimeSlot = () => {
     setNewExamForm(prev => ({
       ...prev,
-      dateTimeSlots: [...prev.dateTimeSlots, '']
+      dateTimeSlots: [...prev.dateTimeSlots, { date: '', startTime: '', endTime: '' }]
     }));
   };
 
@@ -235,8 +204,8 @@ export default function ExamManagement() {
     }));
   };
 
-  const handleSaveExam = () => {
-    if (!newExamForm.topic || !newExamForm.course || !newExamForm.link || !newExamForm.totalMarks) {
+  const handleSaveExam = async () => {
+    if (!newExamForm.topic || !newExamForm.courseId || !newExamForm.link || !newExamForm.totalMarks) {
       alert('Please fill in all required fields: Topic, Course, Exam Link, and Total Marks');
       return;
     }
@@ -246,35 +215,50 @@ export default function ExamManagement() {
       return;
     }
 
-    if (newExamForm.dateTimeSlots.some(slot => !slot.trim())) {
-      alert('Please fill in all date/time slots or remove empty ones');
+    if (newExamForm.dateTimeSlots.some(slot => !slot.date.trim() || !slot.startTime.trim() || !slot.endTime.trim())) {
+      alert('Please fill in all date, start time, and end time fields or remove empty slots');
       return;
     }
 
-    const newExam = {
-      id: Math.max(...exams.map(e => e.id), 0) + 1,
-      topic: newExamForm.topic,
-      course: newExamForm.course,
-      link: newExamForm.link,
-      status: 'Approved',
-      dateTimeSlots: newExamForm.dateTimeSlots.filter(s => s.trim()),
-      totalMarks: parseInt(newExamForm.totalMarks),
-      totalStudents: 0,
-      appeared: 0,
-      pending: 0,
-      resultDeclared: false
-    };
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        topic: newExamForm.topic,
+        courseId: newExamForm.courseId, // this is now the real course ID
+        examLink: newExamForm.link,
+        totalMarks: parseInt(newExamForm.totalMarks),
+        slots: newExamForm.dateTimeSlots
+          .filter(s => s.date.trim() && s.startTime.trim() && s.endTime.trim())
+          .map(s => ({
+            date: s.date,
+            startTime: s.startTime,
+            endTime: s.endTime
+          }))
+      };
 
-    setExams([...exams, newExam]);
-    setIsAddingExam(false);
-    setNewExamForm({
-      topic: '',
-      course: '',
-      link: '',
-      totalMarks: '',
-      dateTimeSlots: ['']
-    });
-    alert('Exam added successfully!');
+      const res = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/faculty/exams`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        alert('Exam added successfully!');
+        setIsAddingExam(false);
+        setNewExamForm({
+          topic: '',
+          courseId: '',
+          link: '',
+          totalMarks: '',
+          dateTimeSlots: [{ date: '', startTime: '', endTime: '' }]
+        });
+        // Refresh exams list after adding
+        fetchAllData();
+      }
+    } catch (err) {
+      alert('Failed to create exam');
+      console.error(err);
+    }
   };
 
   const handleCancelAddExam = () => {
@@ -284,7 +268,7 @@ export default function ExamManagement() {
       course: '',
       link: '',
       totalMarks: '',
-      dateTimeSlots: ['']
+      dateTimeSlots: [{ date: '', time: '' }]
     });
   };
 
@@ -310,18 +294,9 @@ export default function ExamManagement() {
                 className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 w-full sm:w-96"
               />
             </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">All Status</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="draft">Draft</option>
-            </select>
+            {/* Status filter removed */}
           </div>
-          <button onClick={handleAddExamClick} className="flex items-center gap-2 bg-[#1e3a8a] text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition">
+          <button onClick={() => setIsAddingExam(true)} className="flex items-center gap-2 bg-[#1e3a8a] text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition">
             <Plus className="w-5 h-5" />
             Add New Exam
           </button>
@@ -330,71 +305,69 @@ export default function ExamManagement() {
 
       {/* Exam Cards */}
       <div className="grid gap-6 mx-8">
-        {filteredExams.map((exam) => (
-          <div key={exam.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition">
-            <div className="p-6">
-              <div className="flex flex-col lg:flex-row justify-between gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-xl font-bold text-gray-800">{exam.topic}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      exam.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                      exam.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {exam.status}
-                    </span>
-                  </div>
-                  <p className="text-lg font-medium text-[#1e3a8a] mb-4">{exam.course}</p>
-
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {exam.dateTimeSlots.map((slot, i) => (
-                      <span key={i} className="flex items-center gap-1 text-sm bg-indigo-50 text-[#1e3a8a] px-3 py-1.5 rounded-lg">
-                        <Calendar className="w-4 h-4" />
-                        {slot}
-                      </span>
-                    ))}
-                  </div>
-
-                  {exam.link ? (
-                    <a href={exam.link} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-[#1e3a8a] hover:text-[#1e3a8a] font-medium text-sm">
-                      {/* <Link2 className="w-4 h-4" /> */}
-                      Open Exam Link
-                    </a>
-                  ) : (
-                    <span className="text-sm text-gray-500 italic">Link not provided</span>
-                  )}
-                </div>
-
-                <div className="text-center lg:text-right">
-                  <div className="grid grid-cols-3 gap-6 mb-5">
-                    <div>
-                      <p className="text-3xl font-bold text-green-600">{exam.appeared}</p>
-                      <p className="text-sm text-gray-600">Appeared</p>
+        {loading ? (
+          <div className="text-center py-12 text-gray-600">Loading exams...</div>
+        ) : exams.length === 0 ? (
+          <div className="text-center py-12 text-gray-600 bg-white rounded-2xl shadow-lg">
+            No exams created yet
+          </div>
+        ) : (
+          filteredExams.map((exam) => (
+            <div key={exam.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition">
+              <div className="p-6">
+                <div className="flex flex-col lg:flex-row justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-xl font-bold text-gray-800">{exam.topic}</h3>
+                      {/* Status removed */}
                     </div>
-                    <div>
-                      <p className="text-3xl font-bold text-orange-600">{exam.pending}</p>
-                      <p className="text-sm text-gray-600">Pending</p>
+                    <p className="text-lg font-medium text-[#1e3a8a] mb-4">{exam.course}</p>
+
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {exam.dateTimeSlots.map((slot, i) => (
+                        <span key={i} className="flex items-center gap-1 text-sm bg-indigo-50 text-[#1e3a8a] px-3 py-1.5 rounded-lg">
+                          <Calendar className="w-4 h-4" />
+                          {slot}
+                        </span>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-3xl font-bold text-gray-800">{exam.totalStudents}</p>
-                      <p className="text-sm text-gray-600">Enrolled</p>
-                    </div>
+
+                    {exam.exam_link ? (
+                      <a href={exam.exam_link} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-[#1e3a8a] hover:text-[#1e3a8a] font-medium text-sm">
+                        Open Exam Link
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-500 italic">Link not provided</span>
+                    )}
                   </div>
 
-                  <button
-                    onClick={() => setSelectedExam(exam.id)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3a8a] text-white rounded-lg text-sm font-medium transition hover:shadow-lg"
-                  >
-                    <Users className="w-4 h-4" />
-                    View Students
-                  </button>
+                  <div className="text-center lg:text-right">
+                    <div className="grid grid-cols-3 gap-6 mb-5">
+                      <div>
+                        <p className="text-3xl font-bold text-green-600">{exam.appeared || 0}</p>
+                        <p className="text-sm text-gray-600">Appeared</p>
+                      </div>
+                      {/* Pending count/status removed */}
+                      <div>
+                        <p className="text-3xl font-bold text-gray-800">{exam.totalStudents || 0}</p>
+                        <p className="text-sm text-gray-600">Enrolled</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedExam(exam.id)}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-[#1e3a8a] text-white rounded-lg text-sm font-medium transition hover:shadow-lg"
+                    >
+                      <Users className="w-4 h-4" />
+                      View Students
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Student Results Modal */}
@@ -669,21 +642,25 @@ export default function ExamManagement() {
                   />
                 </div>
 
-                {/* Course */}
+                {/* Course - REAL DATA */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Course *</label>
-                  <select
-                    value={newExamForm.course}
-                    onChange={(e) => handleExamFormChange('course', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Select a course...</option>
-                    {availableCourses.map(course => (
-                      <option key={course} value={course}>
-                        {course}
-                      </option>
-                    ))}
-                  </select>
+                  {loadingCourses ? (
+                    <p className="text-gray-500">Loading your courses...</p>
+                  ) : (
+                    <select
+                      value={newExamForm.courseId}
+                      onChange={(e) => handleExamFormChange('courseId', e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                      <option value="">Select a course...</option>
+                      {courses.map(course => (
+                        <option key={course.id} value={course.id}>
+                          {course.name} ({course.type})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Link */}
@@ -718,11 +695,25 @@ export default function ExamManagement() {
                     {newExamForm.dateTimeSlots.map((slot, index) => (
                       <div key={index} className="flex gap-2">
                         <input
-                          type="text"
-                          value={slot}
-                          onChange={(e) => handleDateTimeSlotChange(index, e.target.value)}
-                          placeholder="e.g., 2025-12-15 10:00 AM - 12:00 PM"
-                          className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          type="date"
+                          value={slot.date}
+                          onChange={(e) => handleDateTimeSlotChange(index, 'date', e.target.value)}
+                          className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        />
+                        <input
+                          type="time"
+                          value={slot.startTime}
+                          onChange={(e) => handleDateTimeSlotChange(index, 'startTime', e.target.value)}
+                          className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          placeholder="Start Time"
+                        />
+                        <span className="self-center">to</span>
+                        <input
+                          type="time"
+                          value={slot.endTime}
+                          onChange={(e) => handleDateTimeSlotChange(index, 'endTime', e.target.value)}
+                          className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          placeholder="End Time"
                         />
                         {newExamForm.dateTimeSlots.length > 1 && (
                           <button

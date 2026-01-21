@@ -1,6 +1,6 @@
 // backend/src/routes/studentRoutes.js
 import express from 'express';
-import { studentSignup, studentLogin, getStudentCourses } from '../controllers/studentController.js';  
+import { studentSignup, studentLogin, getStudentCourses, getStudentProfile, updateStudentProfile } from '../controllers/studentController.js';  
 import { getCourse } from '../controllers/courseController.js';
 import { protectStudent } from '../middleware/authMiddleware.js'; 
 
@@ -17,5 +17,9 @@ router.get('/courses', protectStudent, getStudentCourses);
 
 // Get course details for students
 router.get('/courses/:id', protectStudent, getCourse);
+
+router.get('/profile', protectStudent, getStudentProfile);
+
+router.put('/profile', protectStudent, updateStudentProfile);
 
 export default router;

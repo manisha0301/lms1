@@ -6,11 +6,17 @@ import {
   getFacultyDashboard, 
   getFacultyProfile, 
   updateFacultyProfile, 
-  getCourseDetails 
+  getCourseDetails, 
+  getUpcomingClasses,
+  getUpcomingExams
+ 
+
 } from '../controllers/facultyController.js';
 import { uploadProfilePic } from '../controllers/facultyController.js'; // for photo
 import { protectFaculty } from '../middleware/authMiddleware.js';
 import { createCourseAssessment, getCourseAssessments } from '../controllers/assessmentController.js';
+
+import { getFacultyCourses, createExam, getFacultyExams } from '../controllers/examController.js';
 
 const router = express.Router();
 
@@ -20,6 +26,9 @@ router.post('/login', facultyLogin);
 
 // Protected routes (require valid faculty JWT)
 router.get('/dashboard', protectFaculty, getFacultyDashboard);
+
+// Upcoming classes for faculty home page
+router.get('/upcoming-classes', protectFaculty, getUpcomingClasses);
 
 // Course detail for faculty
 router.get('/courses/:id', protectFaculty, getCourseDetails);
@@ -32,5 +41,10 @@ router.post('/courses/:courseId/assessments', protectFaculty, createCourseAssess
 
 // Optional: Get all assessments for a course
 router.get('/courses/:courseId/assessments', protectFaculty, getCourseAssessments);
+
+router.get('/my-courses', protectFaculty, getFacultyCourses);
+router.post('/exams', protectFaculty, createExam);
+router.get('/exams', protectFaculty, getFacultyExams);
+router.get('/upcoming-exams', protectFaculty, getUpcomingExams);
 
 export default router;

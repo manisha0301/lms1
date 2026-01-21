@@ -24,6 +24,7 @@ import { createNotificationsTable } from './models/notificationModel.js';
 // NEW: Student imports
 import studentRoutes from './routes/studentRoutes.js';
 import { createStudentsTable } from './models/studentModel.js';
+import { createExamsTables } from './models/examModel.js'; // NEW: Import createExamsTables
 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);         
@@ -64,6 +65,7 @@ const initDatabase = async () => {
     await createStudentsTable();
     await createAcademicCourseSchedulesTable();
     await assessmentsTableSetup(pool);
+    await createExamsTables(); // NEW: Initialize exam tables
 
     console.log('All database tables initialized');
 
