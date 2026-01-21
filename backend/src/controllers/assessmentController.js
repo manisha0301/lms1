@@ -39,7 +39,6 @@ const upload = multer({
 }).single('assessmentPdf'); // ← exact field name from frontend
 
 // Create assessment – multer runs first
-// Create assessment – multer runs first
 export const createCourseAssessment = (req, res) => {
   upload(req, res, async function (err) {
     // Handle multer errors
@@ -66,6 +65,7 @@ export const createCourseAssessment = (req, res) => {
       }
 
       const facultyId = user.role === 'faculty' ? user.id : null;
+      const weekId = req.body.weekId || null;
 
       // Fetch faculty's academic_admin_id (safe)
       let academicAdminId = null;
@@ -132,10 +132,11 @@ export const createCourseAssessment = (req, res) => {
           academic_admin_id, faculty_id,
           title, description, pdf_path,
           total_marks, due_date
-        ) VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, $8)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `, [
         courseId,
+        weekId,
         academicAdminId,
         facultyId,
         title.trim(),
