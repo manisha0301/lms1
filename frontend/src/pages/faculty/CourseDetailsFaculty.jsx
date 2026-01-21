@@ -58,7 +58,8 @@ export default function CourseDetailsFaculty() {
 
         if (res.data && res.data.success) {
           const c = res.data.course;
-          const s = res.data.schedules ;
+          const s = res.data.schedules;
+          const a = res.data.assessments || [];
 
           // map fields to UI-friendly names
           setCourse({
@@ -79,22 +80,39 @@ export default function CourseDetailsFaculty() {
 
           // Map backend structure to the expected weeks/modules/chapters shape
           const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
-          const mappedWeeks = apiWeeks.map((w, idx) => ({
-            week: w.weekNumber || idx + 1,
-            title: w.title || `Week ${idx + 1}`,
-            modules: (w.modules || []).map(m => ({
-              id: m.id,
-              title: m.title,
-              chapters: (m.chapters || []).map(ch => ({
-                id: ch.id,
-                title: ch.title,
-                description: ch.type ? `${ch.type}${ch.duration ? ' · ' + ch.duration : ''}` : (ch.url || '')
-              }))
-            })),
-            assessment: null
-          }));
+          const mappedWeeks = apiWeeks.map((w, idx) => {
+            const weekNum = w.weekNumber || idx + 1;
+            // Find assessment for this week
+            const weekAssessment = a.find(assessment => parseInt(assessment.week_id) === weekNum);
+            
+            return {
+              week: weekNum,
+              title: w.title || `Week ${weekNum}`,
+              modules: (w.modules || []).map(m => ({
+                id: m.id,
+                title: m.title,
+                chapters: (m.chapters || []).map(ch => ({
+                  id: ch.id,
+                  title: ch.title,
+                  description: ch.type ? `${ch.type}${ch.duration ? ' · ' + ch.duration : ''}` : (ch.url || '')
+                }))
+              })),
+              assessment: weekAssessment ? {
+                id: weekAssessment.id,
+                title: weekAssessment.title,
+                type: 'Assessment',
+                description: weekAssessment.description,
+                totalMarks: weekAssessment.total_marks,
+                dueDate: weekAssessment.due_date,
+                submissions: 0,
+                totalStudents: c.totalStudents || 0,
+                studentSubmissions: []
+              } : null
+            };
+          });
 
           setWeeks(mappedWeeks);
+          console.log('Mapped weeks:', mappedWeeks);
         } else {
           setCourseError((res.data && res.data.error) || 'Failed to load course');
         }
@@ -204,6 +222,8 @@ export default function CourseDetailsFaculty() {
           if (refreshRes.data && refreshRes.data.success) {
             const c = refreshRes.data.course;
             const s = refreshRes.data.schedules;
+            const a = refreshRes.data.assessments || [];
+            
             setCourse({
               id: c.id,
               title: c.name || c.title || `Course ${c.id}`,
@@ -220,20 +240,36 @@ export default function CourseDetailsFaculty() {
               classLink: s.map(sc => sc.meeting_link).join(', ') || 'TBD',
             });
             const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
-            const mappedWeeks = apiWeeks.map((w, idx) => ({
-              week: w.weekNumber || idx + 1,
-              title: w.title || `Week ${idx + 1}`,
-              modules: (w.modules || []).map(m => ({
-                id: m.id,
-                title: m.title,
-                chapters: (m.chapters || []).map(ch => ({
-                  id: ch.id,
-                  title: ch.title,
-                  description: ch.type ? `${ch.type}${ch.duration ? ' · ' + ch.duration : ''}` : (ch.url || '')
-                }))
-              })),
-              assessment: w.assessment || null
-            }));
+            const mappedWeeks = apiWeeks.map((w, idx) => {
+              const weekNum = w.weekNumber || idx + 1;
+              // Find assessment for this week
+              const weekAssessment = a.find(assessment => parseInt(assessment.week_id) === weekNum);
+              
+              return {
+                week: weekNum,
+                title: w.title || `Week ${weekNum}`,
+                modules: (w.modules || []).map(m => ({
+                  id: m.id,
+                  title: m.title,
+                  chapters: (m.chapters || []).map(ch => ({
+                    id: ch.id,
+                    title: ch.title,
+                    description: ch.type ? `${ch.type}${ch.duration ? ' · ' + ch.duration : ''}` : (ch.url || '')
+                  }))
+                })),
+                assessment: weekAssessment ? {
+                  id: weekAssessment.id,
+                  title: weekAssessment.title,
+                  type: 'Assessment',
+                  description: weekAssessment.description,
+                  totalMarks: weekAssessment.total_marks,
+                  dueDate: weekAssessment.due_date,
+                  submissions: 0,
+                  totalStudents: c.totalStudents || 0,
+                  studentSubmissions: []
+                } : null
+              };
+            });
             setWeeks(mappedWeeks);
           }
         }
@@ -433,9 +469,6 @@ export default function CourseDetailsFaculty() {
                             <div>
                               <h5 className="font-semibold text-lg">
                                 {section.assessment.title}
-                                <span className="ml-3 text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
-                                  {section.assessment.type}
-                                </span>
                               </h5>
                               <div className="mt-2 text-sm text-gray-600 space-y-1">
                                 <div>Total Marks: <strong>{section.assessment.totalMarks}</strong></div>
@@ -447,11 +480,11 @@ export default function CourseDetailsFaculty() {
                             <div className="flex gap-3">
                               <button
                                 onClick={() => openViewSubmissions(section.week)}
-                                className="px-4 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] text-sm"
+                                className="px-4 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] text-sm cursor-pointer flex items-center gap-2"
                               >
                                 View Submissions
                               </button>
-                              <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                              <button className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm cursor-pointer flex items-center gap-2">
                                 Edit
                               </button>
                             </div>
@@ -546,7 +579,7 @@ export default function CourseDetailsFaculty() {
                   Cancel
                 </button>
                 <button 
-                  className="px-6 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a]" 
+                  className="px-6 py-2 bg-[#1e40af] text-white rounded-md hover:bg-[#1e3a8a] cursor-pointer" 
                   onClick={handleCreateAssessment}
                 >
                   Create Assessment
@@ -565,7 +598,7 @@ export default function CourseDetailsFaculty() {
               <h3 className="text-xl font-bold">
                 Submissions - Week {selectedWeekForModal} Assessment
               </h3>
-              <button onClick={() => setShowViewSubmissionsModal(false)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={() => setShowViewSubmissionsModal(false)} className="text-gray-500 hover:text-gray-700 cursor-pointer text-2xl font-bold">
                 ✕
               </button>
             </div>
@@ -575,8 +608,8 @@ export default function CourseDetailsFaculty() {
                 <tr className="bg-gray-100">
                   <th className="p-3 text-left">Sl.</th>
                   <th className="p-3 text-left">Student Name</th>
-                  <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-center">Action</th>
+                  <th className="p-3 text-center">Submission File</th>
+                  <th className="p-3 text-left">Remarks</th>
                 </tr>
               </thead>
               <tbody>
@@ -586,29 +619,32 @@ export default function CourseDetailsFaculty() {
                     <tr key={student.sl} className="border-t">
                       <td className="p-3">{student.sl}</td>
                       <td className="p-3">{student.name}</td>
-                      <td className="p-3">
-                        <span className={`px-3 py-1 rounded-full text-xs ${
-                          student.submitted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {student.submitted ? 'Submitted' : 'Pending'}
-                        </span>
-                      </td>
                       <td className="p-3 text-center">
-                        {student.submitted && student.fileUrl ? (
+                        {student.submissionFile ? (
                           <a
-                            href={student.fileUrl}
+                            href={student.submissionFile}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[#1e40af] hover:underline flex items-center justify-center gap-1"
+                            className="text-[#1e40af] hover:underline flex items-center justify-center gap-2"
                           >
-                            <File className="w-4 h-4" /> View PDF
+                            <FileText className="w-4 h-4" /> View File
                           </a>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-gray-500 italic">No submission</span>
                         )}
                       </td>
+                      <td className="p-3">{student.remarks || 'N/A'}</td>
                     </tr>
                   ))}
+                  {weeks
+                    .find(w => w.week === selectedWeekForModal)
+                    ?.assessment?.studentSubmissions?.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="p-6 text-center text-gray-500">
+                          No submissions available.
+                        </td>
+                      </tr>
+                    )}
               </tbody>
             </table>
 
