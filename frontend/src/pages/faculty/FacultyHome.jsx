@@ -132,25 +132,15 @@ const FacultyHome = () => {
 
   // Group upcoming classes by date
   const groupedClasses = useMemo(() => {
-    const groups = {};
-
-    upcomingClasses.forEach(cls => {
-      if (!groups[cls.date]) {
-        groups[cls.date] = [];
-      }
-      groups[cls.date].push(cls);
+    const today = new Date().toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short'
     });
 
-    // Sort: Today first, then future dates
-    return Object.entries(groups).sort(([dateA], [dateB]) => {
-      const today = new Date().toLocaleDateString('en-IN', {
-        weekday: 'long', day: 'numeric', month: 'short'
-      });
-      if (dateA === today) return -1;
-      if (dateB === today) return 1;
-      return new Date(dateA) - new Date(dateB);
-    });
+    return upcomingClasses.filter(cls => cls.date === today);
   }, [upcomingClasses]);
+
 
   // Group upcoming exams by date
   const groupedExams = useMemo(() => {
@@ -432,15 +422,18 @@ const FacultyHome = () => {
                   No upcoming classes scheduled yet
                 </div>
               ) : (
-                groupedClasses.map(([date, classes]) => (
-                  <div key={date} className="p-4">
-                    <h3 className="font-semibold text-gray-800 mb-2">
-                      {date === new Date().toLocaleDateString('en-IN', {
-                        weekday: 'long', day: 'numeric', month: 'short'
-                      }) ? "Today" : date}
-                    </h3>
-                    {classes.map(cls => (
-                      <div key={cls.id} className="flex justify-between items-center py-2 border-t border-gray-100 first:border-t-0">
+                groupedClasses.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500">
+                    No class scheduled for today
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-800 mb-2">Today</h3>
+                    {groupedClasses.map(cls => (
+                      <div
+                        key={cls.id}
+                        className="flex justify-between items-center py-2 border-t border-gray-100 first:border-t-0"
+                      >
                         <div>
                           <p className="font-medium text-gray-800">{cls.title}</p>
                           <p className="text-sm text-gray-500">{cls.datetime}</p>
@@ -451,7 +444,7 @@ const FacultyHome = () => {
                       </div>
                     ))}
                   </div>
-                ))
+                )
               )}
             </div>
           </div>

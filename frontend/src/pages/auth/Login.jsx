@@ -45,7 +45,7 @@ const Login = () => {
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.setItem("role", "student");
 
-        alert("Login successful! Welcome back to CodeKart");
+        alert("Login successful!");
 
         navigate("/dash"); 
       }

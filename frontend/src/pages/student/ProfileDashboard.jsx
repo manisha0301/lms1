@@ -1,5 +1,5 @@
 // src/pages/student/ProfileDashboard.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   User, Mail, Phone, Calendar, Clock, BookOpen,
   CheckCircle, AlertCircle, Edit2, LogOut, Award,
@@ -13,6 +13,8 @@ export default function ProfileDashboard() {
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
+  const [upcomingClasses, setUpcomingClasses] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -47,6 +49,30 @@ export default function ProfileDashboard() {
 
     fetchProfile();
   }, [navigate]);
+
+  // Fetch real upcoming classes
+  useEffect(() => {
+    const fetchUpcomingClasses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const res = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/student/upcoming-classes`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data.success) {
+          setUpcomingClasses(res.data.upcomingClasses || []);
+        }
+      } catch (err) {
+        console.error('Upcoming classes fetch error:', err);
+      } finally {
+        setLoadingClasses(false);
+      }
+    };
+
+    fetchUpcomingClasses();
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -94,16 +120,6 @@ export default function ProfileDashboard() {
     alert(`Navigating to course: ${id}`);
   };
 
-  const upcomingClasses = [
-    { id: 1, course: 'React Masterclass', date: '2025-11-20', time: '7:00 PM', instructor: 'John Doe' },
-    { id: 2, course: 'Node.js Advanced', date: '2025-11-22', time: '6:30 PM', instructor: 'Jane Smith' },
-    { id: 3, course: 'Python Basics', date: '2025-11-25', time: '5:00 PM', instructor: 'Alice Johnson' },
-    { id: 4, course: 'Java Enterprise', date: '2025-11-28', time: '4:00 PM', instructor: 'Bob Wilson' },
-    { id: 5, course: 'Node.js Advanced', date: '2025-11-22', time: '6:30 PM', instructor: 'Jane Smith' },
-    { id: 6, course: 'Python Basics', date: '2025-11-25', time: '5:00 PM', instructor: 'Alice Johnson' },
-    { id: 7, course: 'Java Enterprise', date: '2025-11-28', time: '4:00 PM', instructor: 'Bob Wilson' },
-  ];
-
   const pendingAssignments = 3;
 
   const registeredCourses = [
@@ -131,9 +147,16 @@ export default function ProfileDashboard() {
     nextExams: [...acc.nextExams, c.exams.next].filter(Boolean)
   }), { completed: 0, total: 0, nextExams: [] });
 
-  // Get the soonest upcoming exam
   const upcomingExam = examProgress.nextExams
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
+
+  const initials = profile ? `${profile.firstName?.charAt(0) || ''}${profile.lastName?.charAt(0) || ''}`.toUpperCase() : '';
+
+  const todayUpcomingClass = useMemo(() => {
+    if (!upcomingClasses || upcomingClasses.length === 0) return null;
+    const todayISO = new Date().toISOString().split('T')[0];
+    return upcomingClasses.find(cls => cls.rawDate === todayISO);
+  }, [upcomingClasses]);
 
   if (loading) {
     return (
@@ -151,7 +174,6 @@ export default function ProfileDashboard() {
     );
   }
 
-  const initials = `${profile.firstName?.charAt(0) || ''}${profile.lastName?.charAt(0) || ''}`.toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
@@ -192,7 +214,7 @@ export default function ProfileDashboard() {
             </button>
           </div>
 
-          {/* Upcoming Classes Sidebar Card */}
+          {/* Upcoming Classes Sidebar Card - REAL DATA */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
               <div className="p-1.5 bg-purple-100 rounded-md">
@@ -201,15 +223,24 @@ export default function ProfileDashboard() {
               Upcoming Classes
             </h3>
             <div className="space-y-4 h-75 overflow-y-auto pr-2">
-              {upcomingClasses.map(cls => (
-                <div key={cls.id} className="p-3 border border-gray-50 bg-gray-50/50 rounded-lg hover:bg-purple-50 transition-colors">
-                  <p className="font-semibold text-sm text-gray-800">{cls.course}</p>
+              {loadingClasses ? (
+                <p className="text-sm text-gray-500 text-center py-4">Loading upcoming classes...</p>
+              ) : !todayUpcomingClass ? (
+                <p className="text-sm text-gray-500 text-center py-4">No class scheduled for today</p>
+              ) : (
+                <div className="p-3 border border-gray-50 bg-gray-50/50 rounded-lg hover:bg-purple-50 transition-colors">
+                  <p className="font-semibold text-sm text-gray-800">{todayUpcomingClass.title}</p>
                   <div className="flex flex-col gap-1 mt-2">
-                    <span className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3"/> {cls.time}</span>
-                    <span className="text-xs text-gray-500 flex items-center gap-1"><User className="w-3 h-3"/> {cls.instructor}</span>
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3"/> {todayUpcomingClass.datetime}
+                    </span>
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Users className="w-3 h-3"/> {todayUpcomingClass.instructor}
+                    </span>
                   </div>
                 </div>
-              ))}
+              )}
+
             </div>
           </div>
         </div>

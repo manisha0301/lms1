@@ -337,3 +337,134 @@ export const updateStudentProfile = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 };
+
+// Get upcoming classes for logged-in student (based on university → admin → courses)
+export const getStudentUpcomingClasses = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // 1. Get student's university
+    const { rows: studentRows } = await pool.query(
+      'SELECT graduation_university FROM students WHERE id = $1',
+      [studentId]
+    );
+
+    if (studentRows.length === 0) {
+      return res.json({ success: true, upcomingClasses: [] });
+    }
+
+    const university = studentRows[0].graduation_university?.trim();
+    if (!university) {
+      return res.json({ success: true, upcomingClasses: [] });
+    }
+
+    // 2. Find matching academic admin
+    const { rows: adminRows } = await pool.query(
+      'SELECT id FROM academic_admins WHERE academic_name ILIKE $1 AND status = $2 LIMIT 1',
+      [`%${university}%`, 'Active']
+    );
+
+    if (adminRows.length === 0) {
+      return res.json({ success: true, upcomingClasses: [] });
+    }
+
+    const adminId = adminRows[0].id;
+
+    // 3. Get all courses assigned to this admin
+    const { rows: courseRows } = await pool.query(`
+      SELECT 
+        c.id AS course_id,
+        c.name AS title,
+        c.teachers
+      FROM courses c
+      JOIN course_academic_assignments caa ON c.id = caa.course_id
+      WHERE caa.academic_admin_id = $1
+    `, [adminId]);
+
+    if (courseRows.length === 0) {
+      return res.json({ success: true, upcomingClasses: [] });
+    }
+
+    const courseIds = courseRows.map(c => c.course_id);
+
+    // 4. Get future/today schedules for these courses
+    const { rows: schedules } = await pool.query(`
+      SELECT 
+        s.course_id,
+        s.start_date,
+        s.end_date,
+        s.start_time,
+        s.end_time,
+        s.meeting_link
+      FROM academic_course_schedules s
+      WHERE s.course_id = ANY($1::int[])
+        AND s.end_date >= CURRENT_DATE
+      ORDER BY s.start_date ASC, s.start_time ASC
+    `, [courseIds]);
+
+    // 5. Build faculty name map (all teachers across courses)
+    const allTeacherIds = new Set();
+    courseRows.forEach(c => {
+      if (c.teachers) c.teachers.forEach(id => allTeacherIds.add(id));
+    });
+
+    let teacherMap = {};
+    if (allTeacherIds.size > 0) {
+      const { rows: teachers } = await pool.query(
+        'SELECT id, full_name FROM faculty WHERE id = ANY($1)',
+        [Array.from(allTeacherIds)]
+      );
+      teacherMap = Object.fromEntries(teachers.map(t => [t.id, t.full_name]));
+    }
+
+    // 6. Generate daily class entries
+    const upcomingClasses = [];
+
+    for (const sched of schedules) {
+      const course = courseRows.find(c => c.course_id === sched.course_id);
+      if (!course) continue;
+
+      const facultyNames = (course.teachers || [])
+        .map(id => teacherMap[id])
+        .filter(Boolean)
+        .join(', ') || 'TBD';
+
+      let currentDate = new Date(sched.start_date);
+      const endDate = new Date(sched.end_date);
+
+      while (currentDate <= endDate) {
+        upcomingClasses.push({
+          id: `${sched.course_id}-${currentDate.toISOString().split('T')[0]}`,
+          title: course.title,
+          datetime: `${sched.start_time?.slice(0,5)} – ${sched.end_time?.slice(0,5)}`,
+          instructor: facultyNames,
+          date: currentDate.toLocaleDateString('en-IN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'short'
+          }),
+          rawDate: currentDate.toISOString().split('T')[0]
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    // Sort by date
+    upcomingClasses.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Optional: limit to reasonable number (e.g., next 30 days)
+    const maxDays = 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + maxDays);
+    const limited = upcomingClasses.filter(cls => new Date(cls.date) <= cutoff);
+
+    res.json({
+      success: true,
+      upcomingClasses: limited
+    });
+  } catch (error) {
+    console.error('Student upcoming classes error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch upcoming classes' });
+  }
+};

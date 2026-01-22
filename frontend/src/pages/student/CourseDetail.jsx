@@ -5,7 +5,7 @@ import {
   Lock, CreditCard, Users, Video, BookOpen, Award,
   Download
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
 
@@ -17,7 +17,21 @@ export default function CourseDetail() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentDayIndex, setCurrentDayIndex] = useState(0);
+
+  const todayLiveClass = useMemo(() => {
+  if (!course?.liveClasses || course.liveClasses.length === 0) return null;
+
+  const today = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  return course.liveClasses.find(cls => cls.date === today);
+}, [course]);
+
+  
 
   // Registration Flow States
   const [showSlotModal, setShowSlotModal] = useState(false);
@@ -176,18 +190,8 @@ export default function CourseDetail() {
     fetchCourse();
   }, [id]);
 
-  // Auto-cycle through daily live classes
-  useEffect(() => {
-    if (course && course.liveClasses && course.liveClasses.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentDayIndex((prevIndex) => 
-          (prevIndex + 1) % course.liveClasses.length
-        );
-      }, 24 * 60 * 60 * 1000); // Change every 24 hours
+  
 
-      return () => clearInterval(interval);
-    }
-  }, [course]);
 
   const isRegistered = true;
 
@@ -295,7 +299,7 @@ export default function CourseDetail() {
             ) : (
               <>
                 {/* Course Content */}
-                <div className="space-y-8 max-h-[700px] overflow-y-auto">
+                <div className="space-y-8 ">
                   <div className="flex items-center justify-between ml-1">
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
                       <BookOpen className="w-7 h-7 text-[#1e3a8a]" />
@@ -308,7 +312,7 @@ export default function CourseDetail() {
                       No course content available yet.
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-6 max-h-[700px] overflow-y-auto shadow-lg rounded-2xl">
                       {course.sections.map((section) => (
                         <div key={section.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
                           <div className="bg-gradient-to-r from-[#1e3a8a]/10 to-[#1e40af]/5 px-6 py-4 flex items-center justify-between">
@@ -379,39 +383,37 @@ export default function CourseDetail() {
                 </div>
 
                 {/* Live Classes – NOW REAL */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <Users className="w-6 h-6 text-[#1e40af]" /> Live Classes Schedule
-                  </h2>
-                  {course.liveClasses && course.liveClasses.length > 0 ? (
-                    <div className="flex items-center justify-between p-5 bg-blue-50 rounded-lg border border-blue-100">
-                      <div>
-                        <p className="font-semibold text-gray-900">{course.liveClasses[currentDayIndex].topic}</p>
-                        <p className="text-sm text-gray-600">with {course.liveClasses[currentDayIndex].instructor}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{course.liveClasses[currentDayIndex].date}</p>
-                        <p className="text-sm text-gray-600">{course.liveClasses[currentDayIndex].time}</p>
-                      </div>
-                      <a
-                        href={course.liveClasses[currentDayIndex].link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`ml-6 px-5 py-2 rounded-md text-sm font-medium transition ${
-                          course.liveClasses[currentDayIndex].link !== '#' 
-                            ? 'bg-[#1e40af] text-white hover:bg-[#1e3a8a] cursor-pointer' 
-                            : 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                        }`}
-                      >
-                        {course.liveClasses[currentDayIndex].link !== '#' ? 'Join Live' : 'No Link'}
-                      </a>
+                {todayLiveClass ? (
+                  <div className="flex items-center justify-between p-5 bg-blue-50 rounded-lg border border-blue-100">
+                    <div>
+                      <p className="font-semibold text-gray-900">{todayLiveClass.topic}</p>
+                      <p className="text-sm text-gray-600">with {todayLiveClass.instructor}</p>
                     </div>
-                  ) : (
-                    <div className="p-5 bg-gray-50 rounded-lg text-center text-gray-500">
-                      No live classes scheduled
+
+                    <div className="text-right">
+                      <p className="font-medium">{todayLiveClass.date}</p>
+                      <p className="text-sm text-gray-600">{todayLiveClass.time}</p>
                     </div>
-                  )}
-                </div>
+
+                    <a
+                      href={todayLiveClass.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`ml-6 px-5 py-2 rounded-md text-sm font-medium transition ${
+                        todayLiveClass.link !== '#'
+                          ? 'bg-[#1e40af] text-white hover:bg-[#1e3a8a] cursor-pointer'
+                          : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                      }`}
+                    >
+                      {todayLiveClass.link !== '#' ? 'Join Live' : 'No Link'}
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-5 bg-gray-50 rounded-lg text-center text-gray-500">
+                    No live classes scheduled for today
+                  </div>
+                )}
+
 
                 {/* Notes */}
                 {course.notes.length > 0 && (
