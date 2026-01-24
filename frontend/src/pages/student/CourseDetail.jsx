@@ -8,6 +8,7 @@ import {
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
+import { ChapterItem } from './ChapterItemStudent';
 
 
 export default function CourseDetail() {
@@ -340,31 +341,13 @@ export default function CourseDetail() {
                                         <p className="text-gray-500 italic text-sm py-4">No chapters in this module yet</p>
                                       ) : (
                                         module.chapters.map((chapter, idx) => (
-                                          <div
-                                            key={chapter.id || idx}
-                                            className={`flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group ${
-                                              chapter.locked ? 'opacity-60' : ''
-                                            }`}
-                                          >
-                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
-                                              {idx + 1}
-                                            </div>
-                                            <div className="flex-1">
-                                              <p className="font-medium text-gray-800">{chapter.title}</p>
-                                              {chapter.duration && <p className="text-xs text-gray-500 mt-0.5">{chapter.duration}</p>}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              {chapter.type === 'video' && <Video className="w-4 h-4 text-[#1e3a8a]" />}
-                                              {chapter.type === 'quiz' && <Award className="w-4 h-4 text-green-600" />}
-                                              {chapter.type === 'assignment' && <FileText className="w-4 h-4 text-orange-600" />}
-                                              {chapter.locked ? (
-                                                <Lock className="w-4 h-4 text-gray-400" />
-                                              ) : (
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))
+  <ChapterItem
+    key={chapter.id || idx}
+    chapter={chapter}
+    idx={idx}
+    isLocked={chapter.locked}
+  />
+))
                                       )}
                                     </div>
                                   </div>
