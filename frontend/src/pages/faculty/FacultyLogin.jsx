@@ -223,7 +223,7 @@ const FacultyLogin = () => {
             <div className="mt-10 text-center">
               <p className="text-gray-600">
                 Don't have an account?{" "}
-                <Link to="/faculty/signup" className="text-[#1e40af] font-bold hover:underline">
+                <Link to="/signup" className="text-[#1e40af] font-bold hover:underline">
                   Sign Up Free
                 </Link>
               </p>

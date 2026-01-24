@@ -190,7 +190,7 @@ const AcademicAdminsPage = () => {
               >
                 <div className="flex items-start justify-between mb-6">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                    {admin.fullName.charAt(0).toUpperCase()}
+                      {admin.academicAdmins && admin.academicAdmins.trim().charAt(0).toUpperCase()}
                   </div>
                   <span
                   className={`px-4 py-2 rounded-full text-sm font-bold ${

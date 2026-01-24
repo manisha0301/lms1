@@ -344,7 +344,7 @@ export const facultySignup = async (req, res) => {
 
 
     // NEW: Notify the matching Academic Admin(s) for approval
-    // ────────────────────────────────────────────────────────────────
+    
     let targetAdminIds = [];
 
     // If we found a matching admin from university name

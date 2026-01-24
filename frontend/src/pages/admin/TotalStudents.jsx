@@ -78,7 +78,7 @@ const TotalStudents = () => {
             </div>
 
             {/* Filters kept but disabled for now - only university data */}
-            <div className="flex gap-4 opacity-50 pointer-events-none">
+            <div className="flex gap-4" opacity-50>
               <select className="px-6 py-2 bg-gray-50 border border-gray-200 rounded-2xl">
                 <option>All Centers</option>
               </select>
