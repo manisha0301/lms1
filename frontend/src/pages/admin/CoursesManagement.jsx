@@ -272,14 +272,14 @@ const CoursesManagement = () => {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center rounded-t-2xl">
-                <h2 className="text-2xl font-bold">Edit Course</h2>
+                <h2 className="text-2xl font-bold">Faculty Assignment</h2>
                 <button onClick={closeModal} className="p-2 hover:bg-white/20 rounded-xl transition">
                   <X className="w-6 h-6" />
                 </button>
               </div>
               <div className="p-8 space-y-6">
                 {/* Image Upload */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Course Image</label>
                   <div className="relative w-full h-48 bg-gray-200 rounded-xl flex items-center justify-center overflow-hidden cursor-pointer">
                     <img src="https://via.placeholder.com/600" alt="" className="w-full h-full object-cover" />
@@ -287,10 +287,10 @@ const CoursesManagement = () => {
                       <Upload className="w-10 h-10 text-white" />
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Form Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Course Name</label>
                     <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
@@ -312,11 +312,11 @@ const CoursesManagement = () => {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Class Meeting Link</label>
                     <input type="url" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
                   </div>
-                </div>
+                </div> */}
 
                 {/* Assign Teachers — DYNAMIC, ONLY NAMES, SAME UI */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-4">Assign Teachers</label>
+                  <label className="block text-md font-bold text-gray-900 mb-4">Assign Teachers</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {activeFaculties.length === 0 ? (
                       <p className="col-span-full text-gray-500 text-center py-4">No active faculties available</p>
@@ -348,7 +348,7 @@ const CoursesManagement = () => {
                   </div>
                 </div>
 
-                {/* Batch Schedule */}
+                {/* Batch Schedule
                 <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-indigo-600" /> Batch Schedule
@@ -359,14 +359,14 @@ const CoursesManagement = () => {
                     <div><label className="block text-xs font-medium text-gray-600 mb-1">Start Time</label><input type="time" className="w-full px-3 py-2 border rounded-lg cursor-pointer" /></div>
                     <div><label className="block text-xs font-medium text-gray-600 mb-1">End Time</label><input type="time" className="w-full px-3 py-2 border rounded-lg cursor-pointer" /></div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Description */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Course Description</label>
                   <textarea rows={6} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
-                </div>
-                <div className="flex justify-end gap-4 pt-6 border-t pt-6">
+                </div> */}
+                <div className="flex justify-end gap-4 pt-6 pt-6">
                   <button onClick={closeModal} className="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold">
                     Cancel
                   </button>

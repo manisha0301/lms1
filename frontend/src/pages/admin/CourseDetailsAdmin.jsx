@@ -26,8 +26,7 @@ const CourseDetailsAdmin = () => {
   const [showContentModal, setShowContentModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-
-  // Batch schedule form state (controlled)
+  // Batch schedule form state
   const [batchForm, setBatchForm] = useState({
     startDate: '',
     endDate: '',
@@ -35,26 +34,25 @@ const CourseDetailsAdmin = () => {
     endTime: ''
   });
 
-  // Meeting link form state (controlled)
+  // Meeting link form state
   const [meetingLinkForm, setMeetingLinkForm] = useState({
     meetingLink: ''
   });
 
-  // Real course data + real schedule
+  // Course data (without fake students)
   const [course, setCourse] = useState({
     name: "Loading...",
     description: "Loading course details...",
     batch: null,
     meetingLink: null,
-    students: [
-      { id: 1, name: "Aarav Sharma", phone: "+91 98765 43210", email: "aarav@gmail.com", assignments: 8, exams: 3 },
-      { id: 2, name: "Priya Singh", phone: "+91 87654 32109", email: "priya@yahoo.com", assignments: 10, exams: 3 },
-      { id: 3, name: "Rohan Patel", phone: "+91 76543 21098", email: "rohan@outlook.com", assignments: 7, exams: 2 },
-    ],
   });
 
-  // ── Real course structure (weeks/sections) ──────────────────
-  const [sections, setSections] = useState([]); // array of weeks/sections
+  // University students state
+  const [universityStudents, setUniversityStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+
+  // Course structure (weeks/sections)
+  const [sections, setSections] = useState([]);
 
   const [newSection, setNewSection] = useState({
     name: "",
@@ -66,14 +64,15 @@ const CourseDetailsAdmin = () => {
     setShowContentModal(true);
   };
 
-  // Fetch real data
+  // Fetch course details + university students
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
+        if (!token) return;
 
-        // Fetch course basic info
+        // Fetch course basic info + structure
         const res = await fetch(`http://localhost:5000/api/auth/admin/courses/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -97,7 +96,7 @@ const CourseDetailsAdmin = () => {
             description: first.description || "No description available.",
           }));
 
-          // Build weeks → modules → chapters structure
+          // Build weeks → modules → chapters
           const weeksMap = new Map();
 
           coursePayload.forEach(row => {
@@ -190,6 +189,7 @@ const CourseDetailsAdmin = () => {
             meetingLink: scheduleRes.data.schedule.meeting_link || null
           }));
         }
+
         setLoading(false);
       } catch (err) {
         console.error("Error fetching course:", err);
@@ -197,7 +197,48 @@ const CourseDetailsAdmin = () => {
       }
     };
 
-    if (id) fetchCourseDetails();
+    const fetchUniversityStudents = async () => {
+      try {
+        setStudentsLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch(
+          "http://localhost:5000/api/auth/admin/university-students",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (data.success && Array.isArray(data.students)) {
+          const formatted = data.students.map(s => ({
+            id: s.id,
+            name: s.name || "Unknown Student",
+            phone: s.phone || s.mobile_number || "—",
+            email: s.email || "—",
+            assignments: "0", // placeholder for now
+            exams: "0",       // placeholder for now
+          }));
+
+          setUniversityStudents(formatted);
+        }
+      } catch (error) {
+        console.error("Error fetching university students:", error);
+      } finally {
+        setStudentsLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchCourseDetails();
+      fetchUniversityStudents();
+    }
   }, [id]);
 
   // Save batch schedule
@@ -274,13 +315,10 @@ const CourseDetailsAdmin = () => {
       // Try to parse various common formats
       try {
         const date = new Date(dateValue);
-
         if (isNaN(date.getTime())) return '';
-
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-
         return `${year}-${month}-${day}`;
       } catch (e) {
         console.warn('Could not parse date:', dateValue);
@@ -391,10 +429,10 @@ const CourseDetailsAdmin = () => {
               </div>
 
               {course.meetingLink ? (
-                <a 
-                  href={course.meetingLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href={course.meetingLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-[#1e3a8a] hover:underline flex items-center gap-2 break-all"
                 >
                   <Link2 className="w-5 h-5" />
@@ -483,8 +521,6 @@ const CourseDetailsAdmin = () => {
                                     <span className="flex-1 font-medium text-gray-800">
                                       {chapter.title}
                                     </span>
-                                    {/* You can show type icon here later */}
-                                    {/* <Video size={16} className="text-gray-500" /> */}
                                   </div>
                                 ))}
                               </div>
@@ -506,32 +542,50 @@ const CourseDetailsAdmin = () => {
             <div className="bg-[#1e3a8a] text-white p-6">
               <h2 className="text-2xl font-bold flex items-center gap-3">
                 <Users className="w-7 h-7" />
-                Enrolled Students ({course.students.length})
+                Enrolled Students ({universityStudents.length})
               </h2>
             </div>
+
             <div className="p-6">
-              <table className="w-full text-left">
-                <thead>
+              {studentsLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  Loading students...
+                </div>
+              ) : universityStudents.length === 0 ? (
+                <div className="text-center py-16 text-gray-500">
+                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg font-medium">No students found</p>
+                  <p className="mt-2">Students from your institution will appear here</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left min-w-[800px]">
+                    <thead>
                   <tr className="text-gray-600 border-b border-gray-200">
                     <th className="py-3 px-4">Name</th>
                     <th className="py-3 px-4">Mobile</th>
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Assignments</th>
                     <th className="py-3 px-4">Exams</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {course.students.map((student) => (
-                    <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                      <td className="py-4 px-4 font-medium text-gray-900">{student.name}</td>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {universityStudents.map((student) => (
+                        <tr
+                          key={student.id}
+                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        >
+                           <td className="py-4 px-4 font-medium text-gray-900">{student.name}</td>
                       <td className="py-4 px-4 text-gray-600">{student.phone}</td>
                       <td className="py-4 px-4 text-gray-600">{student.email}</td>
                       <td className="py-4 px-4 text-gray-600">{student.assignments} submitted</td>
                       <td className="py-4 px-4 text-gray-600">{student.exams} attempted</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -550,38 +604,38 @@ const CourseDetailsAdmin = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={batchForm.startDate}
                       onChange={(e) => setBatchForm(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={batchForm.endDate}
                       onChange={(e) => setBatchForm(prev => ({ ...prev, endDate: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-                    <input 
-                      type="time" 
+                    <input
+                      type="time"
                       value={batchForm.startTime}
                       onChange={(e) => setBatchForm(prev => ({ ...prev, startTime: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-                    <input 
-                      type="time" 
+                    <input
+                      type="time"
                       value={batchForm.endTime}
                       onChange={(e) => setBatchForm(prev => ({ ...prev, endTime: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>
                 </div>
@@ -589,7 +643,7 @@ const CourseDetailsAdmin = () => {
                   <button onClick={() => setShowBatchModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleSaveBatch}
                     className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
                   >
@@ -612,18 +666,18 @@ const CourseDetailsAdmin = () => {
                 </button>
               </div>
               <div className="p-6 space-y-6">
-                <input 
-                  type="url" 
+                <input
+                  type="url"
                   value={meetingLinkForm.meetingLink}
                   onChange={(e) => setMeetingLinkForm({ meetingLink: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
-                  placeholder="https://zoom.us/j/..." 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="https://zoom.us/j/..."
                 />
                 <div className="flex justify-end gap-4">
                   <button onClick={() => setShowLinkModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleSaveLink}
                     className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
                   >

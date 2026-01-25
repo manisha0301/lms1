@@ -5,12 +5,76 @@ import {
   Lock, CreditCard, Users, Video, BookOpen, Award,
   Download
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
 
 
 export default function CourseDetail() {
+    // Assignment Modal State
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+    const [assignmentUploadLoading, setAssignmentUploadLoading] = useState(false);
+    const [assignmentUploadError, setAssignmentUploadError] = useState(null);
+    const [uploadedAnswers, setUploadedAnswers] = useState({}); // { assignmentId: fileUrl }
+    const fileInputRefs = useRef({});
+    // Dummy assignments data for demonstration (replace with real API data)
+    const assignmentsByWeek = useMemo(() => {
+      // You should fetch this from backend and structure by week
+      // Here is a mock structure:
+      return [
+        {
+          week: 'Week 1',
+          assignments: [
+            {
+              id: 1,
+              title: 'Assignment 1: Security Basics',
+              marks: 20,
+              dueDate: '2026-01-28',
+              questionPdf: '/assignments/week1-assignment1.pdf',
+              answerPdf: uploadedAnswers[1] || null
+            },
+            {
+              id: 2,
+              title: 'Assignment 2: System Protection',
+              marks: 15,
+              dueDate: '2026-01-30',
+              questionPdf: '/assignments/week1-assignment2.pdf',
+              answerPdf: uploadedAnswers[2] || null
+            }
+          ]
+        },
+        {
+          week: 'Week 2',
+          assignments: [
+            {
+              id: 3,
+              title: 'Assignment 3: Network Security',
+              marks: 25,
+              dueDate: '2026-02-05',
+              questionPdf: '/assignments/week2-assignment1.pdf',
+              answerPdf: uploadedAnswers[3] || null
+            }
+          ]
+        }
+      ];
+    }, [uploadedAnswers]);
+    // Handle answer PDF upload
+    const handleAnswerUpload = async (assignmentId, file) => {
+      setAssignmentUploadLoading(true);
+      setAssignmentUploadError(null);
+      try {
+        // TODO: Replace with real upload logic (API call)
+        // Simulate upload delay
+        await new Promise(res => setTimeout(res, 1000));
+        // For demo, just use a local URL
+        const fileUrl = URL.createObjectURL(file);
+        setUploadedAnswers(prev => ({ ...prev, [assignmentId]: fileUrl }));
+      } catch (err) {
+        setAssignmentUploadError('Failed to upload answer.');
+      } finally {
+        setAssignmentUploadLoading(false);
+      }
+    };
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -477,10 +541,86 @@ export default function CourseDetail() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
                   <FileText className="w-12 h-12 text-orange-600 mx-auto mb-4" />
                   <h3 className="font-bold text-gray-900 mb-4">Assignments</h3>
-                  <button className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium transition cursor-pointer">
+                  <button
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium transition cursor-pointer"
+                    onClick={() => setShowAssignmentModal(true)}
+                  >
                     View Assignments
                   </button>
                 </div>
+                    {/* Assignment Modal */}
+                    {showAssignmentModal && (
+                      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
+                          <button
+                            className="absolute top-4 right-4 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                            onClick={() => setShowAssignmentModal(false)}
+                          >
+                            &times;
+                          </button>
+                          <h2 className="text-2xl font-bold mb-6 text-[#1e3a8a]">Assignments</h2>
+                          {assignmentsByWeek.map((week, wIdx) => (
+                            <div key={wIdx} className="mb-8">
+                              <h3 className="text-lg font-semibold mb-3 text-indigo-700">{week.week}</h3>
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full shadow-xl rounded-2xl overflow-hidden">
+                                  <thead>
+                                    <tr className="bg-gradient-to-r from-[#1e3a8a]/90 to-[#1e40af]/80">
+                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Title</th>
+                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Marks</th>
+                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Due Date</th>
+                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Question PDF</th>
+                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Answer PDF</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {week.assignments.map((a, idx) => (
+                                      <tr
+                                        key={a.id}
+                                        className={`transition-all ${idx % 2 === 0 ? 'bg-blue-50/60' : 'bg-white'} hover:bg-blue-100/70`}
+                                      >
+                                        <td className="px-6 py-3 font-semibold text-[#1e3a8a] text-base border-b border-blue-100">{a.title}</td>
+                                        <td className="px-6 py-3 border-b border-blue-100 text-gray-700 font-medium">{a.marks}</td>
+                                        <td className="px-6 py-3 border-b border-blue-100 text-gray-700 font-medium">{a.dueDate}</td>
+                                        <td className="px-6 py-3 border-b border-blue-100">
+                                          <a href={a.questionPdf} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-semibold text-xs hover:bg-blue-200 transition">Download</a>
+                                        </td>
+                                        <td className="px-6 py-3 border-b border-blue-100">
+                                          {a.answerPdf ? (
+                                            <a href={a.answerPdf} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-lg font-semibold text-xs mr-2 hover:bg-green-200 transition">View</a>
+                                          ) : null}
+                                          <input
+                                            type="file"
+                                            accept="application/pdf"
+                                            style={{ display: 'none' }}
+                                            ref={el => fileInputRefs.current[a.id] = el}
+                                            onChange={e => {
+                                              if (e.target.files && e.target.files[0]) {
+                                                handleAnswerUpload(a.id, e.target.files[0]);
+                                              }
+                                            }}
+                                          />
+                                          <button
+                                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${a.answerPdf ? 'bg-indigo-100 text-indigo-800 hover:bg-[#1e3a8a]' : 'bg-[#1e3a8a] text-white hover:bg-indigo-700'}`}
+                                            onClick={() => fileInputRefs.current[a.id]?.click()}
+                                            disabled={assignmentUploadLoading}
+                                          >
+                                            {a.answerPdf ? 'Re-upload' : 'Upload'}
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ))}
+                          {assignmentUploadError && (
+                            <div className="text-red-600 text-sm mt-2">{assignmentUploadError}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
               </div>
             )}
 

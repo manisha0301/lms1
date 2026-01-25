@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ViewStudentDetails = () => {
   const { id } = useParams();
@@ -37,7 +39,7 @@ const ViewStudentDetails = () => {
         if (response.data.success) {
           const studentData = response.data.student;
           if (!studentData.bio) {
-            studentData.bio = "Passionate computer science student at DTU with strong foundation in JavaScript, React, and Node.js. Actively contributing to open-source projects and building full-stack applications. Seeking mentorship and real-world experience through Cybernetics LMS.\n ";
+            studentData.bio = "Passionate computer science student at DTU with strong foundation in JavaScript, React, and Node.js. Actively contributing to open-source projects and building full-stack applications. Seeking mentorship and real-world experience through Cybernetics LMS.";
           }
           setStudent(studentData);
         } else {
@@ -53,6 +55,90 @@ const ViewStudentDetails = () => {
 
     fetchStudent();
   }, [id]);
+
+  // Download PDF Report
+  const handleDownloadReport = () => {
+    if (!student) return;
+    try {
+      const doc = new jsPDF();
+
+      // Header
+      doc.setFillColor(30, 58, 138); // #1e3a8a
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.text("Cybernetics LMS - Student Report", 105, 20, { align: "center" });
+      doc.setFontSize(12);
+      doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')}`, 105, 28, { align: "center" });
+
+      // Student ID & Name
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(18);
+      doc.text(`Student ID: ${student.student_id || "N/A"}`, 20, 55);
+      doc.setFontSize(24);
+      doc.setTextColor(30, 58, 138);
+      doc.text(`${student.first_name} ${student.last_name}`, 20, 70);
+
+      // Initials circle removed as requested
+
+      // Status badge simulation
+      doc.setFillColor(34, 197, 94); // emerald-600
+      doc.roundedRect(20, 80, 50, 10, 5, 5, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text("ACTIVE STUDENT", 45, 86, { align: "center" });
+
+      // Details table
+      autoTable(doc, {
+        startY: 100,
+        head: [['Field', 'Details']],
+        body: [
+          ['Full Name', `${student.first_name} ${student.last_name}`],
+          ['Email', student.email || 'N/A'],
+          ['Phone', student.mobile_number || 'N/A'],
+          ['University', student.graduation_university || 'N/A'],
+          ['Joined Date', student.created_at 
+            ? new Date(student.created_at).toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'long', year: 'numeric'
+              })
+            : 'N/A'],
+          ['Course / Batch', "Full Stack MERN Development - Weekend Batch Nov 2025"], // mock as per UI
+          ['Student ID', student.student_id || 'N/A']
+        ],
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [240, 244, 255] }
+      });
+
+      // About Section
+      const finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 120;
+      doc.setFontSize(14);
+      doc.setTextColor(30, 58, 138);
+      doc.text("About Student", 20, finalY);
+
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      const bioLines = doc.splitTextToSize(student.bio || "No bio available.", 170);
+      doc.text(bioLines, 20, finalY + 8);
+
+      // Footer
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(
+        "© 2025 Kristellar Solutions Pvt. Ltd. | Confidential Student Report",
+        105,
+        280,
+        { align: "center" }
+      );
+
+      // Download
+      doc.save(`Student_Report_${student.student_id || id}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      alert('Failed to generate PDF. Please try again.');
+      console.error('PDF generation error:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -165,17 +251,12 @@ const ViewStudentDetails = () => {
                   </p>
                 </div>
 
-
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-5 pt-8 border-t-2 border-gray-200">
-                  <button className="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition">
-                    View Attendance
-                  </button>
-                  <button className="px-10 py-4 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 font-bold shadow-lg flex items-center gap-3 transition hover:scale-105">
-                    <MessageSquare className="w-6 h-6" />
-                    Send Message
-                  </button>
-                  <button className="px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold shadow-lg flex items-center gap-3 transition hover:scale-105">
+                  <button 
+                    onClick={handleDownloadReport}
+                    className="px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold shadow-lg flex items-center gap-3 transition hover:scale-105"
+                  >
                     <Download className="w-6 h-6" />
                     Download Report
                   </button>

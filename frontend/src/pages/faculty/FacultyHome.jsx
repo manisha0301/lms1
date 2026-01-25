@@ -26,7 +26,12 @@ const FacultyHome = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Data state
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    totalCourses: 0,
+    recentCourses: [],
+    faculty: { name: '', designation: '' },
+    totalUniversityStudents: 0   // ← new default
+  });
   const [upcomingClasses, setUpcomingClasses] = useState([]);
   const [upcomingExams, setUpcomingExams] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
@@ -304,12 +309,12 @@ const FacultyHome = () => {
         </div>
       </header>
 
-      <div className="mx-auto px-8 py-10">
+      <div className="mx-auto px-8 pt-10 pb-4">
         {/* Summary Cards */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
             { label: "Total Courses", value: totalCourses, icon: BookOpen, link: "/totalcourses" },
-            { label: "Students Enrolled", value: 342, icon: Users },
+            { label: "Students Enrolled", value: dashboardData?.totalUniversityStudents ?? 342, icon: Users },
             { label: "Average Rating", value: "4.6/5", icon: Star }
           ].map((stat, i) => {
             const Icon = stat.icon;
@@ -346,7 +351,7 @@ const FacultyHome = () => {
               </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg max-h-80 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-lg h-80 overflow-y-auto">
               <ul className="divide-y divide-gray-200">
                 {filteredCourses.length === 0 ? (
                   <li className="p-6 text-center text-gray-500">No courses found</li>
@@ -491,7 +496,7 @@ const FacultyHome = () => {
         </section>
 
         {/* Footer */}
-        <footer className="mt-12 py-6 text-center text-sm text-gray-500 border-t border-gray-200">
+        <footer className="mt-12 pt-6 text-center text-sm text-gray-500 border-t border-gray-200">
           © 2025 Cybernetics LMS • Faculty Portal
         </footer>
       </div>

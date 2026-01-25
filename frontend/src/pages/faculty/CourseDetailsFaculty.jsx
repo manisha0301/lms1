@@ -81,7 +81,7 @@ export default function CourseDetailsFaculty() {
           // Map backend structure to the expected weeks/modules/chapters shape
           const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
           const mappedWeeks = apiWeeks.map((w, idx) => {
-            const weekNum = w.weekNumber || idx + 1;
+            const weekNum = w.id || idx + 1;
             // Find assessment for this week
             const weekAssessment = a.find(assessment => parseInt(assessment.week_id) === weekNum);
             
@@ -241,7 +241,7 @@ export default function CourseDetailsFaculty() {
             });
             const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
             const mappedWeeks = apiWeeks.map((w, idx) => {
-              const weekNum = w.weekNumber || idx + 1;
+              const weekNum = w.id || idx + 1;
               // Find assessment for this week
               const weekAssessment = a.find(assessment => parseInt(assessment.week_id) === weekNum);
               

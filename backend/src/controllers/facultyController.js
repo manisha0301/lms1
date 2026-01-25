@@ -438,21 +438,28 @@ export const facultyLogin = async (req, res) => {
 // Get dashboard data for logged-in faculty
 export const getFacultyDashboard = async (req, res) => {
   try {
-    const facultyId = req.user.id; // from JWT
+    const facultyId = req.user.id;
 
-    // Fetch faculty details (name, designation)
-    const { rows: facultyRows } = await pool.query(
-      'SELECT full_name, designation FROM faculty WHERE id = $1',
-      [facultyId]
-    );
+    // 1. Get faculty basic info + their academic admin's university name
+    const { rows: facultyRows } = await pool.query(`
+      SELECT 
+        f.full_name,
+        f.designation,
+        f.academic_admin_id,
+        aa.academic_name AS university_name
+      FROM faculty f
+      LEFT JOIN academic_admins aa ON f.academic_admin_id = aa.id
+      WHERE f.id = $1 AND f.status = 'Active'
+    `, [facultyId]);
 
     if (facultyRows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Faculty not found' });
+      return res.status(404).json({ success: false, error: 'Faculty not found or not active' });
     }
 
     const faculty = facultyRows[0];
+    const universityName = faculty.university_name || '';
 
-    // Fetch courses where this faculty is in the teachers array
+    // 2. Get courses taught by this faculty
     const { rows: courses } = await pool.query(`
       SELECT 
         id, 
@@ -467,7 +474,7 @@ export const getFacultyDashboard = async (req, res) => {
       ORDER BY created_at DESC
     `, [facultyId]);
 
-    // Fetch teacher names for all courses
+    // 3. Get teacher names for display
     const allTeacherIds = new Set();
     courses.forEach(course => {
       if (course.teachers && Array.isArray(course.teachers)) {
@@ -484,35 +491,47 @@ export const getFacultyDashboard = async (req, res) => {
       facultyMap = Object.fromEntries(faculties.map(f => [f.id, f.full_name]));
     }
 
-    // Add teacher names to each course
     courses.forEach(course => {
       if (course.teachers && course.teachers.length > 0) {
         course.facultyNames = course.teachers
-          .map(id => facultyMap[id] || 'Unknown Faculty')
-          .filter(name => name !== 'Unknown Faculty'); // Remove unknown ones
+          .map(id => facultyMap[id] || 'Unknown')
+          .filter(name => name !== 'Unknown');
       } else {
         course.facultyNames = [];
       }
-      // Format created_at date
       if (course.created_at) {
         course.created_at = new Date(course.created_at).toISOString();
       }
-      delete course.teachers; 
+      delete course.teachers;
     });
+
+    // 4. NEW: Count students in the same university
+    let totalUniversityStudents = 0;
+    if (universityName) {
+      const { rows: studentCount } = await pool.query(`
+        SELECT COUNT(*) AS total
+        FROM students
+        WHERE graduation_university ILIKE $1
+      `, [`%${universityName}%`]);
+
+      totalUniversityStudents = parseInt(studentCount[0].total, 10) || 0;
+    }
 
     res.json({
       success: true,
       dashboard: {
         totalCourses: courses.length,
-        recentCourses: courses.slice(0, 10), 
+        recentCourses: courses.slice(0, 10),
         faculty: {
           name: faculty.full_name,
           designation: faculty.designation || 'Faculty Member',
-        }
+        },
+        // NEW field
+        totalUniversityStudents
       }
     });
   } catch (error) {
-    console.error('Get faculty dashboard error:', error);
+    console.error('Get faculty dashboard error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to load dashboard' });
   }
 };
