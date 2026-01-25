@@ -117,17 +117,17 @@ export const getCourse = async (req, res) => {
     course.instructors = instructors;
 
     // Real enrolled students count (safe fallback)
-    let enrolledCount = 0;
-    try {
-      const { rows: [countRow] } = await pool.query(
-        'SELECT COUNT(*) as count FROM enrollments WHERE course_id = $1 AND status = $2',
-        [course.id, 'PAID']
-      );
-      enrolledCount = parseInt(countRow?.count) || 0;
-    } catch (err) {
-      console.log('Enrollments count failed (table may not exist):', err.message);
-    }
-    course.enrolledStudents = enrolledCount;
+    // let enrolledCount = 0;
+    // try {
+    //   const { rows: [countRow] } = await pool.query(
+    //     'SELECT COUNT(*) as count FROM enrollments WHERE course_id = $1 AND status = $2',
+    //     [course.id, 'PAID']
+    //   );
+    //   enrolledCount = parseInt(countRow?.count) || 0;
+    // } catch (err) {
+    //   console.log('Enrollments count failed (table may not exist):', err.message);
+    // }
+    // course.enrolledStudents = enrolledCount;
 
     // ── DYNAMIC DAILY LIVE SESSIONS: Generate from start_date to end_date ────────────────────────────────
     const { rows: [schedule] } = await pool.query(`

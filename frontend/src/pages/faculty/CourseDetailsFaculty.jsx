@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import node from '../../assets/node.webp';
+import { ChapterItem } from './ChapterItem.jsx';
 
 const formatDateToYYYYMMDD = (dateString) => {
   if (!dateString) return '';
@@ -431,12 +432,18 @@ export default function CourseDetailsFaculty() {
 
                               <div className="space-y-2.5 ml-2">
                                 {module.chapters?.map((chapter, idx) => (
-                                  <div key={chapter?.id || idx} className="flex items-center gap-3 py-2.5 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
-                                      {idx + 1}
-                                    </div>
-                                    <span className="flex-1 font-medium text-gray-800">{(chapter && (chapter.title || chapter)) || 'Untitled'}</span>
-                                  </div>
+                                  <ChapterItem
+                          key={chapter?.id || idx}
+                          chapter={chapter}
+                          idx={idx}
+                          courseId={courseId}
+                          week={section.week}
+                          moduleId={module.id}
+                          onChapterUpdate={() => {
+                            // Optional: refresh data after upload
+                            // You can call fetchCourse() again or update local state
+                          }}
+                        />
                                 ))}
                               </div>
                             </div>
