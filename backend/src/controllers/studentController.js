@@ -10,6 +10,8 @@ import {
 
 import { addNotificationForAcademicAdmins } from '../models/notificationModel.js';
 
+import { addNotificationForFaculties } from '../models/notificationModel.js';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key'; 
 
 export const studentSignup = async (req, res) => {
@@ -74,6 +76,35 @@ export const studentSignup = async (req, res) => {
         );
       }
     }
+
+          // Notify faculty of this center
+      try {
+        const { rows: faculty } = await pool.query(`
+          SELECT id 
+          FROM faculty 
+          WHERE academic_admin_id = ANY($1)
+            AND status = 'Active'
+        `, [adminIds]);
+
+        const facultyIds = faculty.map(f => f.id);
+
+        if (facultyIds.length > 0) {
+          const studentName = `${firstName} ${lastName}`.trim() || 'A new student';
+          const centerName = graduationUniversity.trim();
+
+          const message = `${studentName} has joined your center (${centerName})`;
+
+          await addNotificationForFaculties(
+            pool,
+            message,
+            'student',
+            'medium',
+            facultyIds
+          );
+        }
+      } catch (err) {
+        console.error('Faculty notification failed on signup:', err.message);
+      }
     
     // Generate JWT token
     const token = jwt.sign(
@@ -466,5 +497,28 @@ export const getStudentUpcomingClasses = async (req, res) => {
   } catch (error) {
     console.error('Student upcoming classes error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch upcoming classes' });
+  }
+};
+
+export const getStudentNotifications = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { limit = 20 } = req.query;
+
+    const { rows } = await pool.query(`
+      SELECT 
+        id, message, type, priority, status, 
+        created_at::text AS created_at
+      FROM notifications
+      WHERE recipient_type = 'student' 
+        AND recipient_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `, [studentId, Number(limit)]);
+
+    res.json({ success: true, notifications: rows });
+  } catch (err) {
+    console.error('Get student notifications error:', err);
+    res.status(500).json({ success: false, error: 'Failed to load notifications' });
   }
 };

@@ -6,6 +6,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';       
 
 import pool from './config/db.js';
+
+// Start the cron job
+import './utils/reminderCron.js';
+
 import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
 import { 
   createCourseAcademicRelationTable, 
@@ -13,7 +17,8 @@ import {
   createAcademicCourseSchedulesTable,  // ← ADDED THIS IMPORT
   createCourseWeeksTable,
   createCourseModulesTables,
-  assessmentsTableSetup
+  assessmentsTableSetup,
+  assignmentSubmissionsTableSetup
 } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
@@ -25,6 +30,8 @@ import { createNotificationsTable } from './models/notificationModel.js';
 import studentRoutes from './routes/studentRoutes.js';
 import { createStudentsTable } from './models/studentModel.js';
 import { createExamsTables } from './models/examModel.js'; // NEW: Import createExamsTables
+
+
 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);         
@@ -66,6 +73,7 @@ const initDatabase = async () => {
     await createAcademicCourseSchedulesTable();
     await assessmentsTableSetup(pool);
     await createExamsTables(); // NEW: Initialize exam tables
+    await assignmentSubmissionsTableSetup();
 
     console.log('All database tables initialized');
 
@@ -99,12 +107,12 @@ const initDatabase = async () => {
 
 initDatabase();
 
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Routes
 app.use('/api/auth/superadmin', superAdminRoutes);
 app.use('/api/auth/admin', adminRoutes);
 app.use('/api/faculty', facultyRoutes);
-
-// NEW: Student routes
 app.use('/api/auth/student', studentRoutes);
 
 // Global error handler
@@ -113,11 +121,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     success: false,
     error: 'Server Error'
-  });
-});
+  });  
+});  
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('\nKRISTELLAR LMS BACKEND STARTED');
   console.log(`Server running on http://localhost:${PORT}`);
-});
+});  

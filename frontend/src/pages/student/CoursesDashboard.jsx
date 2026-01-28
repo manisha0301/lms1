@@ -17,13 +17,15 @@ export default function CoursesDashboard() {
   const [notificationOpen, setNotificationOpen] = useState(false);
 
   const [courses, setCourses] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Fetch real courses based on student's university
+  // Fetch courses + notifications
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -31,23 +33,34 @@ export default function CoursesDashboard() {
           return;
         }
 
-        const res = await axios.get('http://localhost:5000/api/auth/student/courses', {
+        // 1. Fetch courses
+        const coursesRes = await axios.get('http://localhost:5000/api/auth/student/courses', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (res.data.success) {
-          const enrichedCourses = res.data.courses
-          setCourses(enrichedCourses);
+        if (coursesRes.data.success) {
+          setCourses(coursesRes.data.courses || []);
+        }
+
+        // 2. Fetch real notifications
+        const notifRes = await axios.get('http://localhost:5000/api/auth/student/notifications?limit=10', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (notifRes.data.success) {
+          setNotifications(notifRes.data.notifications || []);
         }
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        console.error("Failed to fetch data:", err);
         setCourses([]);
+        setNotifications([]);
       } finally {
         setLoading(false);
+        setLoadingNotifications(false);
       }
     };
 
-    fetchCourses();
+    fetchData();
   }, [navigate]);
 
   const filteredCourses = useMemo(() => {
@@ -66,13 +79,10 @@ export default function CoursesDashboard() {
 
   const coursesToShow = showAllCourses ? filteredCourses : filteredCourses.slice(0, 6);
 
-  // Dummy data for sidebar
-  const notifications = [
-    { id: 1, title: "New Assignment Posted", desc: "React Masterclass - Module 6", time: "5 mins ago", unread: true },
-    { id: 2, title: "Live Class Tomorrow", desc: "Node.js Advanced at 7:00 PM", time: "2 hours ago", unread: true },
-    { id: 3, title: "Certificate Ready", desc: "Vue.js Essentials completed!", time: "1 day ago", unread: false }
-  ];
+  // Calculate unread count for bell badge
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
+  // Dummy data for sidebar (keep as fallback or remove later)
   const announcements = [
     { id: 1, title: "New Batch Starting!", desc: "Full Stack Web Dev - 15th Dec 2025", time: "2 hours ago" },
     { id: 2, title: "Exam Schedule Released", desc: "Final Assessment on 20th Dec", time: "1 day ago" }
@@ -108,15 +118,15 @@ export default function CoursesDashboard() {
                 className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
               >
                 <Bell className="w-6 h-6" />
-                {notifications.filter(n => n.unread).length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {notifications.filter(n => n.unread).length}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {notificationOpen && (
-                <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
                   <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
                     <h3 className="font-bold text-lg">Notifications</h3>
                     <button onClick={() => setNotificationOpen(false)} className="hover:bg-white/20 p-1 rounded cursor-pointer">
@@ -124,21 +134,42 @@ export default function CoursesDashboard() {
                     </button>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {notifications.map(notif => (
-                      <div key={notif.id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${notif.unread ? 'bg-blue-50' : ''}`}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{notif.title}</p>
-                            <p className="text-sm text-gray-600 mt-1">{notif.desc}</p>
-                            <p className="text-xs text-gray-500 mt-2">{notif.time}</p>
+                    {loadingNotifications ? (
+                      <div className="p-6 text-center text-gray-500">Loading notifications...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-6 text-center text-gray-500">No new notifications</div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div 
+                          key={notif.id} 
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
+                            notif.priority === 'high' ? 'bg-red-50' :
+                            notif.priority === 'medium' ? 'bg-yellow-50' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                              notif.priority === 'high' ? 'bg-red-500' :
+                              notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                            }`}></div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">{notif.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(notif.created_at).toLocaleString('en-IN', {
+                                  dateStyle: 'medium',
+                                  timeStyle: 'short'
+                                })}
+                              </p>
+                            </div>
                           </div>
-                          {notif.unread && <div className="w-2 h-2 bg-red-500 rounded-full ml-3"></div>}
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                   <div className="p-3 bg-gray-50 text-center">
-                    <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">View all notifications</button>
+                    <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">
+                      View all notifications
+                    </button>
                   </div>
                 </div>
               )}
@@ -249,7 +280,6 @@ export default function CoursesDashboard() {
                     }
                     alt={course.title}
                     className="w-full h-full object-cover"
-                    // You can keep onError as fallback, or remove if the ternary handles it
                     onError={(e) => {
                       e.target.src = "https://via.placeholder.com/400x300/6b7280/ffffff?text=Image+Not+Found";
                     }}

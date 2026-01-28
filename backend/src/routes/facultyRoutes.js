@@ -8,10 +8,11 @@ import {
   updateFacultyProfile, 
   getCourseDetails, 
   getUpcomingClasses,
-  getUpcomingExams
- 
+  getUpcomingExams,
+  getFacultyNotifications
 
 } from '../controllers/facultyController.js';
+
 import { uploadProfilePic } from '../controllers/facultyController.js'; // for photo
 import { protectFaculty } from '../middleware/authMiddleware.js';
 import { createCourseAssessment, getCourseAssessments } from '../controllers/assessmentController.js';
@@ -46,5 +47,7 @@ router.get('/my-courses', protectFaculty, getFacultyCourses);
 router.post('/exams', protectFaculty, createExam);
 router.get('/exams', protectFaculty, getFacultyExams);
 router.get('/upcoming-exams', protectFaculty, getUpcomingExams);
+
+router.get('/notifications', protectFaculty, getFacultyNotifications);
 
 export default router;

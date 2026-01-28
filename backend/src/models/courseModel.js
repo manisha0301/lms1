@@ -151,6 +151,45 @@ export const assessmentsTableSetup = async () => {
   console.log('course_assessments table recreated with proper relations');
 };
 
+// NEW: Assignment Submission Table (added here as requested)
+export const assignmentSubmissionsTableSetup = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS assignment_submissions (
+      id              SERIAL PRIMARY KEY,
+      assignment_id   INTEGER NOT NULL REFERENCES course_assessments(id) ON DELETE CASCADE,
+      student_id      INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      answer_pdf_path TEXT NOT NULL,
+      submitted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(assignment_id, student_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_submissions_assignment 
+      ON assignment_submissions(assignment_id);
+    CREATE INDEX IF NOT EXISTS idx_submissions_student 
+      ON assignment_submissions(student_id);
+  `;
+
+  await pool.query(query);
+  console.log('assignment_submissions table created or already exists');
+};
+
+// Run all course-related table setups (call this once on server start)
+export const setupAllCourseRelatedTables = async () => {
+  try {
+    await createCoursesTable();
+    await createCourseAcademicRelationTable();
+    await createCourseWeeksTable();
+    await createCourseModulesTables();
+    await createAcademicCourseSchedulesTable();
+    await assessmentsTableSetup();
+    await assignmentSubmissionsTableSetup();  // ← This includes your requested table
+    console.log('All course-related tables (including assignment_submissions) are ready.');
+  } catch (error) {
+    console.error('Error setting up course-related tables:', error);
+    throw error;
+  }
+};
+
 export const addCourse = async ({
   image,
   name,

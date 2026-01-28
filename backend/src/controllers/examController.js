@@ -1,6 +1,8 @@
 // src/controllers/examController.js
 import pool from '../config/db.js';
 
+import { addNotificationForFaculty } from '../models/notificationModel.js';
+
 // Get all courses assigned to this faculty (for dropdown)
 export const getFacultyCourses = async (req, res) => {
   try {
@@ -67,6 +69,21 @@ export const createExam = async (req, res) => {
       );
     }
 
+    // Notify the faculty who created the exam
+    const { rows: [course] } = await pool.query(
+      'SELECT name FROM courses WHERE id = $1',
+      [courseId]
+    );
+    const courseName = course?.name || 'the course';
+    const message = `You created a new exam: "${topic}" in ${courseName} (${slots.length} slots)`;
+    await addNotificationForFaculty(
+      pool,
+      message,
+      'exam',
+      'medium',
+      facultyId
+    );
+
     res.status(201).json({
       success: true,
       message: 'Exam created successfully',
@@ -118,5 +135,56 @@ export const getFacultyExams = async (req, res) => {
   } catch (error) {
     console.error('Get faculty exams error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch exams' });
+  }
+};
+
+// Get available exam link(s) for a course (for logged-in student
+export const getCourseExamLink = async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+
+    const { rows } = await pool.query(`
+      SELECT 
+        e.id,
+        e.topic,
+        e.exam_link,
+        e.total_marks,
+        s.date,
+        s.start_time,
+        s.end_time
+      FROM exams e
+      JOIN exam_slots s ON e.id = s.exam_id
+      WHERE e.course_id = $1
+        AND s.date = CURRENT_DATE
+        AND CURRENT_TIME BETWEEN s.start_time AND s.end_time
+        AND e.exam_link IS NOT NULL
+        AND e.exam_link != ''
+      LIMIT 1
+    `, [courseId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No exam is active right now"
+      });
+    }
+
+    const exam = rows[0];
+
+    res.json({
+      success: true,
+      exam: {
+        id: exam.id,
+        topic: exam.topic,
+        examLink: exam.exam_link,
+        totalMarks: exam.total_marks,
+        date: exam.date,
+        startTime: exam.start_time,
+        endTime: exam.end_time
+      }
+    });
+  } catch (error) {
+    console.error('Get course exam link error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch exam link' });
   }
 };

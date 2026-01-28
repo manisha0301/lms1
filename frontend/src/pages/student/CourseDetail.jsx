@@ -8,74 +8,29 @@ import {
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
-import { ChapterItem } from './ChapterItemStudent';
-
 
 export default function CourseDetail() {
-    // Assignment Modal State
-    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-    const [assignmentUploadLoading, setAssignmentUploadLoading] = useState(false);
-    const [assignmentUploadError, setAssignmentUploadError] = useState(null);
-    const [uploadedAnswers, setUploadedAnswers] = useState({}); // { assignmentId: fileUrl }
-    const fileInputRefs = useRef({});
-    // Dummy assignments data for demonstration (replace with real API data)
-    const assignmentsByWeek = useMemo(() => {
-      // You should fetch this from backend and structure by week
-      // Here is a mock structure:
-      return [
-        {
-          week: 'Week 1',
-          assignments: [
-            {
-              id: 1,
-              title: 'Assignment 1: Security Basics',
-              marks: 20,
-              dueDate: '2026-01-28',
-              questionPdf: '/assignments/week1-assignment1.pdf',
-              answerPdf: uploadedAnswers[1] || null
-            },
-            {
-              id: 2,
-              title: 'Assignment 2: System Protection',
-              marks: 15,
-              dueDate: '2026-01-30',
-              questionPdf: '/assignments/week1-assignment2.pdf',
-              answerPdf: uploadedAnswers[2] || null
-            }
-          ]
-        },
-        {
-          week: 'Week 2',
-          assignments: [
-            {
-              id: 3,
-              title: 'Assignment 3: Network Security',
-              marks: 25,
-              dueDate: '2026-02-05',
-              questionPdf: '/assignments/week2-assignment1.pdf',
-              answerPdf: uploadedAnswers[3] || null
-            }
-          ]
-        }
-      ];
-    }, [uploadedAnswers]);
-    // Handle answer PDF upload
-    const handleAnswerUpload = async (assignmentId, file) => {
-      setAssignmentUploadLoading(true);
-      setAssignmentUploadError(null);
-      try {
-        // TODO: Replace with real upload logic (API call)
-        // Simulate upload delay
-        await new Promise(res => setTimeout(res, 1000));
-        // For demo, just use a local URL
-        const fileUrl = URL.createObjectURL(file);
-        setUploadedAnswers(prev => ({ ...prev, [assignmentId]: fileUrl }));
-      } catch (err) {
-        setAssignmentUploadError('Failed to upload answer.');
-      } finally {
-        setAssignmentUploadLoading(false);
-      }
+    // Helper to format date as DD-MM-YYYY
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${day}-${month}-${year}`;
     };
+  // Assignment Modal State
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [assignmentUploadLoading, setAssignmentUploadLoading] = useState(false);
+  const [assignmentUploadError, setAssignmentUploadError] = useState(null);
+  const [uploadedAnswers, setUploadedAnswers] = useState({}); // { assignmentId: fileUrl for preview }
+  const fileInputRefs = useRef({});
+
+  // Real assignments from backend
+  const [assignments, setAssignments] = useState([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+
+  // NEW: Real exam activation states
+  const [activeExam, setActiveExam] = useState(null);
+  const [examLoading, setExamLoading] = useState(true);
+
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -84,19 +39,17 @@ export default function CourseDetail() {
   const [error, setError] = useState(null);
 
   const todayLiveClass = useMemo(() => {
-  if (!course?.liveClasses || course.liveClasses.length === 0) return null;
+    if (!course?.liveClasses || course.liveClasses.length === 0) return null;
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+    const today = new Date().toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
 
-  return course.liveClasses.find(cls => cls.date === today);
-}, [course]);
-
-  
+    return course.liveClasses.find(cls => cls.date === today);
+  }, [course]);
 
   // Registration Flow States
   const [showSlotModal, setShowSlotModal] = useState(false);
@@ -255,8 +208,61 @@ export default function CourseDetail() {
     fetchCourse();
   }, [id]);
 
-  
+  // NEW: Fetch real exam activation status
+  useEffect(() => {
+    const fetchActiveExam = async () => {
+      setExamLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/student/courses/${id}/exam-link`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
+        if (res.data.success && res.data.exam) {
+          setActiveExam(res.data.exam);
+        } else {
+          setActiveExam(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch exam status:", err);
+        setActiveExam(null);
+      } finally {
+        setExamLoading(false);
+      }
+    };
+
+    fetchActiveExam();
+  }, [id]);
+
+  // Fetch real assignments when modal opens
+  useEffect(() => {
+    if (showAssignmentModal && id) {
+      const fetchAssignments = async () => {
+        setAssignmentsLoading(true);
+        try {
+          const token = localStorage.getItem('token');
+          const res = await axios.get(
+            `${apiConfig.API_BASE_URL}/api/auth/student/courses/${id}/assignments`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+
+          if (res.data.success) {
+            setAssignments(res.data.assignments || []);
+          }
+        } catch (err) {
+          console.error("Failed to load assignments:", err);
+          setAssignmentUploadError("Could not load assignments");
+        } finally {
+          setAssignmentsLoading(false);
+        }
+      };
+
+      fetchAssignments();
+    }
+  }, [showAssignmentModal, id]);
 
   const isRegistered = true;
 
@@ -270,6 +276,38 @@ export default function CourseDetail() {
     alert('Payment Successful! You are now registered.');
     setShowPayment(false);
     navigate(0);
+  };
+
+  // Updated: Real upload to backend
+  const handleAnswerUpload = async (assignmentId, file) => {
+    setAssignmentUploadLoading(true);
+    setAssignmentUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append('assessmentPdf', file);
+
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/auth/student/assignments/${assignmentId}/submit`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (res.data.success) {
+        const fileUrl = URL.createObjectURL(file); // local preview
+        setUploadedAnswers(prev => ({ ...prev, [assignmentId]: fileUrl }));
+        alert('Answer uploaded successfully!');
+      }
+    } catch (err) {
+      setAssignmentUploadError('Failed to upload answer: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setAssignmentUploadLoading(false);
+    }
   };
 
   if (loading) {
@@ -409,13 +447,31 @@ export default function CourseDetail() {
                                         <p className="text-gray-500 italic text-sm py-4">No chapters in this module yet</p>
                                       ) : (
                                         module.chapters.map((chapter, idx) => (
-  <ChapterItem
-    key={chapter.id || idx}
-    chapter={chapter}
-    idx={idx}
-    isLocked={chapter.locked}
-  />
-))
+                                          <div
+                                            key={chapter.id || idx}
+                                            className={`flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group ${
+                                              chapter.locked ? 'opacity-60' : ''
+                                            }`}
+                                          >
+                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
+                                              {idx + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                              <p className="font-medium text-gray-800">{chapter.title}</p>
+                                              {chapter.duration && <p className="text-xs text-gray-500 mt-0.5">{chapter.duration}</p>}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {chapter.type === 'video' && <Video className="w-4 h-4 text-[#1e3a8a]" />}
+                                              {chapter.type === 'quiz' && <Award className="w-4 h-4 text-green-600" />}
+                                              {chapter.type === 'assignment' && <FileText className="w-4 h-4 text-orange-600" />}
+                                              {chapter.locked ? (
+                                                <Lock className="w-4 h-4 text-gray-400" />
+                                              ) : (
+                                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))
                                       )}
                                     </div>
                                   </div>
@@ -511,14 +567,31 @@ export default function CourseDetail() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
                   <Award className="w-12 h-12 text-green-600 mx-auto mb-4" />
                   <h3 className="font-bold text-gray-900 mb-4">Final Exam</h3>
-                  <a
-                    href={course.examLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition"
-                  >
-                    Start Exam
-                  </a>
+
+                  {examLoading ? (
+                    <button
+                      className="block w-full bg-gray-400 text-white py-3 rounded-lg font-medium transition cursor-not-allowed"
+                      disabled
+                    >
+                      Checking exam status...
+                    </button>
+                  ) : activeExam ? (
+                    <a
+                      href={activeExam.examLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition"
+                    >
+                      Start Exam
+                    </a>
+                  ) : (
+                    <button
+                      className="block w-full bg-gray-400 text-white py-3 rounded-lg font-medium transition cursor-not-allowed"
+                      disabled
+                    >
+                      No Active Exam
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
@@ -531,79 +604,98 @@ export default function CourseDetail() {
                     View Assignments
                   </button>
                 </div>
-                    {/* Assignment Modal */}
-                    {showAssignmentModal && (
-                      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
-                          <button
-                            className="absolute top-4 right-4 text-gray-500 hover:text-red-600 text-2xl font-bold"
-                            onClick={() => setShowAssignmentModal(false)}
-                          >
-                            &times;
-                          </button>
-                          <h2 className="text-2xl font-bold mb-6 text-[#1e3a8a]">Assignments</h2>
-                          {assignmentsByWeek.map((week, wIdx) => (
-                            <div key={wIdx} className="mb-8">
-                              <h3 className="text-lg font-semibold mb-3 text-indigo-700">{week.week}</h3>
-                              <div className="overflow-x-auto">
-                                <table className="min-w-full shadow-xl rounded-2xl overflow-hidden">
-                                  <thead>
-                                    <tr className="bg-gradient-to-r from-[#1e3a8a]/90 to-[#1e40af]/80">
-                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Title</th>
-                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Marks</th>
-                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Due Date</th>
-                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Question PDF</th>
-                                      <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">Answer PDF</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {week.assignments.map((a, idx) => (
-                                      <tr
-                                        key={a.id}
-                                        className={`transition-all ${idx % 2 === 0 ? 'bg-blue-50/60' : 'bg-white'} hover:bg-blue-100/70`}
+
+                {/* Assignment Modal */}
+                {showAssignmentModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
+                      <button
+                        className="absolute top-4 right-4 text-gray-500 hover:text-red-600 text-2xl font-bold"
+                        onClick={() => setShowAssignmentModal(false)}
+                      >
+                        ×
+                      </button>
+
+                      <h2 className="text-2xl font-bold mb-6 text-[#1e3a8a]">Assessments</h2>
+
+                      {assignmentsLoading ? (
+                        <p className="text-center text-gray-500 py-8">Loading assessments...</p>
+                      ) : assignments.length === 0 ? (
+                        <p className="text-center text-gray-500 py-8">No assessments available yet.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+                            <thead className="bg-[#1e3a8a] text-white">
+                              <tr>
+                                <th className="px-4 py-3 text-left">Test Name</th>
+                                <th className="px-4 py-3 text-center">Marks</th>
+                                <th className="px-4 py-3 text-center">Due Date</th>
+                                <th className="px-4 py-3 text-center">Question</th>
+                                <th className="px-4 py-3 text-center">Answer</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {assignments.map((a) => (
+                                <tr key={a.id} className="border-b hover:bg-blue-50">
+                                  <td className="px-4 py-3 font-medium">{a.test_name}</td>
+                                  <td className="px-4 py-3 text-center">{a.marks}</td>
+                                  <td className="px-4 py-3 text-center">{formatDate(a.due_date)}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <a
+                                      href={`${apiConfig.API_BASE_URL}/uploads/${a.question_pdf}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 font-semibold hover:underline"
+                                    >
+                                      Download
+                                    </a>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+
+                                    {(a.answer_pdf || uploadedAnswers[a.id]) ? (
+                                      <a
+                                        href={a.answer_pdf ? `${apiConfig.API_BASE_URL}/uploads/${a.answer_pdf}` : uploadedAnswers[a.id]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-green-600 font-semibold mr-2"
                                       >
-                                        <td className="px-6 py-3 font-semibold text-[#1e3a8a] text-base border-b border-blue-100">{a.title}</td>
-                                        <td className="px-6 py-3 border-b border-blue-100 text-gray-700 font-medium">{a.marks}</td>
-                                        <td className="px-6 py-3 border-b border-blue-100 text-gray-700 font-medium">{a.dueDate}</td>
-                                        <td className="px-6 py-3 border-b border-blue-100">
-                                          <a href={a.questionPdf} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-semibold text-xs hover:bg-blue-200 transition">Download</a>
-                                        </td>
-                                        <td className="px-6 py-3 border-b border-blue-100">
-                                          {a.answerPdf ? (
-                                            <a href={a.answerPdf} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-lg font-semibold text-xs mr-2 hover:bg-green-200 transition">View</a>
-                                          ) : null}
-                                          <input
-                                            type="file"
-                                            accept="application/pdf"
-                                            style={{ display: 'none' }}
-                                            ref={el => fileInputRefs.current[a.id] = el}
-                                            onChange={e => {
-                                              if (e.target.files && e.target.files[0]) {
-                                                handleAnswerUpload(a.id, e.target.files[0]);
-                                              }
-                                            }}
-                                          />
-                                          <button
-                                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${a.answerPdf ? 'bg-indigo-100 text-indigo-800 hover:bg-[#1e3a8a]' : 'bg-[#1e3a8a] text-white hover:bg-indigo-700'}`}
-                                            onClick={() => fileInputRefs.current[a.id]?.click()}
-                                            disabled={assignmentUploadLoading}
-                                          >
-                                            {a.answerPdf ? 'Re-upload' : 'Upload'}
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          ))}
-                          {assignmentUploadError && (
-                            <div className="text-red-600 text-sm mt-2">{assignmentUploadError}</div>
-                          )}
+                                        View
+                                      </a>
+                                    ) : null}
+
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      hidden
+                                      ref={el => (fileInputRefs.current[a.id] = el)}
+                                      onChange={e => {
+                                        if (e.target.files && e.target.files[0]) {
+                                          handleAnswerUpload(a.id, e.target.files[0]);
+                                        }
+                                      }}
+                                    />
+
+                                    <button
+                                      onClick={() => fileInputRefs.current[a.id]?.click()}
+                                      className="bg-[#1e3a8a] text-white px-3 py-1 rounded-md text-sm hover:bg-[#1e40af]"
+                                      disabled={assignmentUploadLoading}
+                                    >
+                                      {(a.answer_pdf || uploadedAnswers[a.id]) ? 'Re-upload' : 'Upload'}
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {assignmentUploadError && (
+                        <p className="text-red-600 mt-3 text-sm text-center">{assignmentUploadError}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

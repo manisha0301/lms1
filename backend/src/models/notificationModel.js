@@ -121,3 +121,115 @@ export const getAllActiveAcademicAdminIds = async (customPool) => {
   );
   return rows.map(r => r.id);
 };
+
+
+
+export const addNotificationForFaculty = async (
+  pool,
+  message,
+  type = 'info',
+  priority = 'medium',
+  facultyId
+) => {
+  if (!facultyId) return;
+
+  try {
+    await pool.query(
+      `INSERT INTO notifications 
+        (recipient_type, recipient_id, message, type, priority, status)
+       VALUES ('faculty', $1, $2, $3, $4, 'unread')`,
+      [facultyId, message.trim(), type, priority]
+    );
+    console.log(`Notification sent to faculty ${facultyId}: ${message}`);
+  } catch (err) {
+    console.error('Faculty notification failed:', err.message);
+  }
+};
+
+export const addNotificationForFaculties = async (
+  pool,
+  message,
+  type = 'info',
+  priority = 'medium',
+  facultyIds = []
+) => {
+  if (!Array.isArray(facultyIds) || facultyIds.length === 0) return;
+
+  const values = facultyIds.map(id => [
+    'faculty',
+    Number(id),
+    message.trim(),
+    type,
+    priority,
+    'unread'
+  ]);
+
+  const placeholders = values.map((_, i) => `($${i*6+1},$${i*6+2},$${i*6+3},$${i*6+4},$${i*6+5},$${i*6+6})`).join(',');
+
+  try {
+    await pool.query(`
+      INSERT INTO notifications 
+        (recipient_type, recipient_id, message, type, priority, status)
+      VALUES ${placeholders}
+    `, values.flat());
+    console.log(`Sent notification to ${facultyIds.length} faculty`);
+  } catch (err) {
+    console.error('Bulk faculty notification failed:', err.message);
+  }
+};
+
+// Add these two at the bottom
+
+export const addNotificationForStudent = async (
+  pool,
+  message,
+  type = 'info',
+  priority = 'medium',
+  studentId
+) => {
+  if (!studentId) return;
+
+  try {
+    await pool.query(
+      `INSERT INTO notifications 
+        (recipient_type, recipient_id, message, type, priority, status)
+       VALUES ('student', $1, $2, $3, $4, 'unread')`,
+      [studentId, message.trim(), type, priority]
+    );
+    console.log(`Notification sent to student ${studentId}: ${message}`);
+  } catch (err) {
+    console.error('Student notification failed:', err.message);
+  }
+};
+
+export const addNotificationForStudents = async (
+  pool,
+  message,
+  type = 'info',
+  priority = 'medium',
+  studentIds = []
+) => {
+  if (!Array.isArray(studentIds) || studentIds.length === 0) return;
+
+  const values = studentIds.map(id => [
+    'student',
+    Number(id),
+    message.trim(),
+    type,
+    priority,
+    'unread'
+  ]);
+
+  const placeholders = values.map((_, i) => `($${i*6+1},$${i*6+2},$${i*6+3},$${i*6+4},$${i*6+5},$${i*6+6})`).join(',');
+
+  try {
+    await pool.query(`
+      INSERT INTO notifications 
+        (recipient_type, recipient_id, message, type, priority, status)
+      VALUES ${placeholders}
+    `, values.flat());
+    console.log(`Sent notification to ${studentIds.length} students`);
+  } catch (err) {
+    console.error('Bulk student notification failed:', err.message);
+  }
+};

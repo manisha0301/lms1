@@ -12,10 +12,12 @@ import {
 
 import { 
   addNotificationForSuperAdmin ,
-  getAllActiveAcademicAdminIds
+  getAllActiveAcademicAdminIds,
+  addNotificationForAcademicAdmins,
+  addNotificationForFaculty
 } from '../models/notificationModel.js';
 
-import { addNotificationForAcademicAdmins } from '../models/notificationModel.js';
+
 
 
 // Create new course
@@ -403,16 +405,42 @@ export const updateCourseTeachers = async (req, res) => {
       return res.status(400).json({ success: false, error: 'teacherIds must be an array' });
     }
 
-    const { rows } = await pool.query(
-      `UPDATE courses 
-       SET teachers = $1 
-       WHERE id = $2 
-       RETURNING id, teachers`,
-      [teacherIds, courseId]
+    // Get current teachers
+    const { rows: [current] } = await pool.query(
+      'SELECT teachers, name FROM courses WHERE id = $1',
+      [courseId]
     );
 
-    if (rows.length === 0) {
+    if (!current) {
       return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+
+    const oldTeachers = current.teachers || [];
+    const newTeachers = teacherIds.map(id => Number(id));
+
+    const added = newTeachers.filter(id => !oldTeachers.includes(id));
+    const removed = oldTeachers.filter(id => !newTeachers.includes(id));
+
+    // Update database
+    const { rows } = await pool.query(
+      `UPDATE courses SET teachers = $1 WHERE id = $2 RETURNING id, teachers`,
+      [newTeachers, courseId]
+    );
+
+    // Notify added faculty
+    if (added.length > 0) {
+      const message = `You have been assigned to teach "${current.name}"`;
+      for (const fid of added) {
+        await addNotificationForFaculty(pool, message, 'course', 'high', fid);
+      }
+    }
+
+    // Notify removed faculty
+    if (removed.length > 0) {
+      const message = `You have been removed from teaching "${current.name}"`;
+      for (const fid of removed) {
+        await addNotificationForFaculty(pool, message, 'course', 'high', fid);
+      }
     }
 
     res.json({ success: true, teachers: rows[0].teachers });

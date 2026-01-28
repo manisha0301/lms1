@@ -828,3 +828,26 @@ export const getUpcomingExams = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch exams' });
   }
 };
+
+export const getFacultyNotifications = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+    const { limit = 20 } = req.query;
+
+    const { rows } = await pool.query(`
+      SELECT 
+        id, message, type, priority, status, 
+        created_at::text AS created_at
+      FROM notifications
+      WHERE recipient_type = 'faculty' 
+        AND recipient_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `, [facultyId, Number(limit)]);
+
+    res.json({ success: true, notifications: rows });
+  } catch (err) {
+    console.error('Get faculty notifications error:', err);
+    res.status(500).json({ success: false, error: 'Failed to load notifications' });
+  }
+};

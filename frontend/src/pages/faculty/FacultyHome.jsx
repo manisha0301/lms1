@@ -30,25 +30,18 @@ const FacultyHome = () => {
     totalCourses: 0,
     recentCourses: [],
     faculty: { name: '', designation: '' },
-    totalUniversityStudents: 0   // ← new default
+    totalUniversityStudents: 0
   });
   const [upcomingClasses, setUpcomingClasses] = useState([]);
   const [upcomingExams, setUpcomingExams] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadingExams, setLoadingExams] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const notifications = [
-    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
-    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
-    { message: "New grading policy update", time: "Yesterday", type: "info" },
-    { message: "Mid-term schedule released", time: "2 hours ago", type: "urgent" },
-    { message: "Room change for CSE-405", time: "5 hours ago", type: "warning" },
-    { message: "New grading policy update", time: "Yesterday", type: "info" }
-  ];
-
-  // Fetch dashboard, classes & exams on mount
+  // Fetch all data on mount
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
@@ -78,13 +71,22 @@ const FacultyHome = () => {
           setUpcomingClasses(classesRes.data.upcomingClasses || []);
         }
 
-        // 3. Upcoming exams created by this faculty (future only)
+        // 3. Upcoming exams
         const examsRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/upcoming-exams`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
         if (examsRes.data.success) {
           setUpcomingExams(examsRes.data.upcomingExams || []);
+        }
+
+        // 4. Notifications (NEW)
+        const notifRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/notifications?limit=12`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (notifRes.data.success) {
+          setNotifications(notifRes.data.notifications || []);
         }
       } catch (err) {
         console.error('Fetch error:', err);
@@ -93,6 +95,7 @@ const FacultyHome = () => {
         setLoading(false);
         setLoadingClasses(false);
         setLoadingExams(false);
+        setLoadingNotifications(false);
       }
     };
 
@@ -146,7 +149,6 @@ const FacultyHome = () => {
     return upcomingClasses.filter(cls => cls.date === today);
   }, [upcomingClasses]);
 
-
   // Group upcoming exams by date
   const groupedExams = useMemo(() => {
     const groups = {};
@@ -158,7 +160,6 @@ const FacultyHome = () => {
       groups[exam.date].push(exam);
     });
 
-    // Sort: Today first, then future dates
     return Object.entries(groups).sort(([dateA], [dateB]) => {
       const today = new Date().toLocaleDateString('en-IN', {
         weekday: 'long', day: 'numeric', month: 'short'
@@ -168,6 +169,9 @@ const FacultyHome = () => {
       return new Date(dateA) - new Date(dateB);
     });
   }, [upcomingExams]);
+
+  // Calculate unread count for bell badge
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
   // Loading & Error states
   if (loading) {
@@ -190,7 +194,7 @@ const FacultyHome = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white sticky top-0 z-50 shadow-lg">
-        <div className="px-8 py-4 flex justify-between items-center   mx-auto">
+        <div className="px-8 py-4 flex justify-between items-center mx-auto">
           {/* Logo & Title */}
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl shadow-xl flex items-center justify-center">
@@ -211,9 +215,11 @@ const FacultyHome = () => {
                 className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
               >
                 <Bell className="w-6 h-6" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                  6
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Notification Dropdown */}
@@ -229,14 +235,37 @@ const FacultyHome = () => {
                     </button>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {notifications.map((notif, i) => (
-                      <div key={i} className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
-                          notif.type === 'urgent' ? 'bg-red-50' : notif.type === 'warning' ? 'bg-yellow-50' : ''
-                      }`}>
-                        <p className="font-semibold text-gray-900">{notif.message}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
-                      </div>
-                    ))}
+                    {loadingNotifications ? (
+                      <div className="p-6 text-center text-gray-500">Loading notifications...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-6 text-center text-gray-500">No notifications yet</div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div 
+                          key={notif.id} 
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
+                            notif.priority === 'high' ? 'bg-red-50' :
+                            notif.priority === 'medium' ? 'bg-yellow-50' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                              notif.priority === 'high' ? 'bg-red-500' :
+                              notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                            }`}></div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">{notif.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(notif.created_at).toLocaleString('en-IN', {
+                                  dateStyle: 'medium',
+                                  timeStyle: 'short'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -256,8 +285,8 @@ const FacultyHome = () => {
               </div>
 
               {/* Profile Dropdown */}
-              <div>
               {isProfileOpen && (
+                <div>
                 <div className="absolute right-8 mt-9 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                   <div className="bg-[#1e3a8a] text-white p-5">
                     <div className="flex items-center gap-4">
@@ -302,8 +331,8 @@ const FacultyHome = () => {
                     </button>
                   </div>
                 </div>
+                </div>
               )}
-              </div>
             </div>
           </div>
         </div>
@@ -314,7 +343,7 @@ const FacultyHome = () => {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
             { label: "Total Courses", value: totalCourses, icon: BookOpen, link: "/totalcourses" },
-            { label: "Students Enrolled", value: dashboardData?.totalUniversityStudents ?? 342, icon: Users },
+            { label: "Students Enrolled", value: dashboardData?.totalUniversityStudents ?? 0, icon: Users },
             { label: "Average Rating", value: "4.6/5", icon: Star }
           ].map((stat, i) => {
             const Icon = stat.icon;
@@ -337,7 +366,6 @@ const FacultyHome = () => {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
           {/* My Recent Courses */}
           <section className="md:col-span-2">
             <div className="flex justify-between items-center mb-5">
@@ -345,8 +373,10 @@ const FacultyHome = () => {
                 <BookOpen className="w-6 h-6 text-[#1e3a8a]" />
                 My Recent Courses
               </h2>
-              <button className="text-[#1e3a8a] hover:text-indigo-700 font-medium flex items-center gap-1 cursor-pointer"
-              onClick={() => navigate('/totalcourses')}>
+              <button 
+                className="text-[#1e3a8a] hover:text-indigo-700 font-medium flex items-center gap-1 cursor-pointer"
+                onClick={() => navigate('/totalcourses')}
+              >
                 View All <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -373,7 +403,7 @@ const FacultyHome = () => {
                         <p className="text-sm text-gray-500">{course.code} • {course.students} students</p>
                       </div>
                       <span className={`text-xs px-3 py-1 rounded-full ${
-                          course.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        course.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {course.status}
                       </span>
@@ -391,20 +421,31 @@ const FacultyHome = () => {
               Notifications
             </h2>
             <div className="bg-white rounded-2xl shadow-lg max-h-80 overflow-y-auto">
-              <ul className="divide-y divide-gray-200">
-                {notifications.map((notif, i) => (
-                  <li key={i} className="p-4 flex items-start gap-3">
-                    <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
-                      notif.type === 'urgent' ? 'bg-red-500' : 
-                      notif.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                    }`}></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-800">{notif.message}</p>
-                      <p className="text-xs text-gray-500">{notif.time}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {loadingNotifications ? (
+                <div className="p-6 text-center text-gray-500">Loading notifications...</div>
+              ) : notifications.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">No new notifications</div>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {notifications.map((notif) => (
+                    <li key={notif.id} className="p-4 flex items-start gap-3 hover:bg-gray-50 transition">
+                      <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                        notif.priority === 'high' ? 'bg-red-500' :
+                        notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                      }`}></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">{notif.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(notif.created_at).toLocaleString('en-IN', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short'
+                          })}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </section>
         </div>
