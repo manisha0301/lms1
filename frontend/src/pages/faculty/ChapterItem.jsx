@@ -1,16 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, Video, Upload, Play, X } from 'lucide-react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig.js';
 
-export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterUpdate }) {
+export function ChapterItem({ chapter, idx, courseId, weekId, moduleId, onChapterUpdate }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showAddVideoModal, setShowAddVideoModal] = useState(false);
   const [showViewVideoModal, setShowViewVideoModal] = useState(false);
   const [videoFile, setVideoFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [existingVideo, setExistingVideo] = useState(null); // fetched from backend
+  const [loadingVideo, setLoadingVideo] = useState(false);
 
-  const hasVideo = !!chapter?.videoUrl; // Assume backend sends videoUrl if video exists
+  // Fetch if video already exists for this chapter
+  useEffect(() => {
+    const fetchVideo = async () => {
+      if (!chapter?.id) return;
+      setLoadingVideo(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/faculty/chapter-video/${chapter.id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (res.data?.success && res.data.video) {
+          setExistingVideo(res.data.video);
+        }
+      } catch (err) {
+        // Silence 404 (no video yet) - only log real errors
+        if (err.response?.status !== 404) {
+          console.error('Video fetch error (non-404):', err);
+        } else {
+          console.log('No video exists yet for chapter', chapter.id);
+        }
+      } finally {
+        setLoadingVideo(false);
+      }
+    };
+
+    fetchVideo();
+  }, [chapter?.id]);
+
+  const hasVideo = !!existingVideo;
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -29,17 +62,26 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
     }
 
     setUploading(true);
+
     const formData = new FormData();
     formData.append('video', videoFile);
-    formData.append('chapterId', chapter.id);
-    formData.append('week', week);
+    formData.append('courseId', courseId);
+    formData.append('weekId', weekId);
     formData.append('moduleId', moduleId);
+    formData.append('chapterId', chapter.id);
+    formData.append('videoTitle', chapter.title || 'Untitled Video');
+
+    // DEBUG: Log exactly what is being sent to backend
+    console.log('=== UPLOAD DEBUG - FormData contents ===');
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value instanceof Blob ? '[File - ' + value.name + ']' : value);
+    }
 
     const token = localStorage.getItem('token');
 
     try {
       const res = await axios.post(
-        `${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}/chapters/video`,
+        `${apiConfig.API_BASE_URL}/api/faculty/upload-video`,
         formData,
         {
           headers: {
@@ -51,18 +93,27 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
 
       if (res.data?.success) {
         alert('Video uploaded successfully!');
+        setExistingVideo(res.data.video); // Update UI immediately
         setShowAddVideoModal(false);
         setVideoFile(null);
-        // Optional: refresh course data or update local chapter state
-        onChapterUpdate?.();
+        if (onChapterUpdate) onChapterUpdate(); // Refresh parent if needed
       } else {
-        alert(res.data?.error || 'Failed to upload video');
+        alert(res.data?.message || 'Failed to upload video');
       }
     } catch (err) {
       console.error('Video upload error:', err);
-      alert('Error uploading video');
+      const errorMessage = err.response?.data?.message || 'Error uploading video. Please check console.';
+      alert(errorMessage);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleViewVideo = () => {
+    if (hasVideo) {
+      setShowViewVideoModal(true);
+    } else {
+      alert('No video available for this chapter yet.');
     }
   };
 
@@ -79,9 +130,8 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
           {idx + 1}
         </div>
         <span className="flex-1 font-medium text-gray-800">
-          {(chapter && (chapter.title || chapter)) || 'Untitled'}
+          {chapter?.title || chapter || 'Untitled Chapter'}
         </span>
-
         <ChevronDown
           className={`w-5 h-5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
@@ -105,20 +155,18 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (hasVideo) {
-                setShowViewVideoModal(true);
-              } else {
-                alert('No video available for this chapter yet.');
-              }
+              handleViewVideo();
               setIsOpen(false);
             }}
             className={`w-full px-4 py-3 text-left flex items-center gap-3 hover:bg-gray-50 transition ${
-              !hasVideo ? 'opacity-50 cursor-not-allowed' : ''
+              !hasVideo || loadingVideo ? 'opacity-50 cursor-not-allowed' : ''
             }`}
-            disabled={!hasVideo}
+            disabled={!hasVideo || loadingVideo}
           >
             <Play className="w-5 h-5 text-[#1e40af]" />
-            <span>View Video</span>
+            <span>
+              {loadingVideo ? 'Loading...' : hasVideo ? 'View Video' : 'No Video Yet'}
+            </span>
           </button>
         </div>
       )}
@@ -128,7 +176,9 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 w-full max-w-lg">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">Add Video - {chapter.title || 'Chapter'}</h3>
+              <h3 className="text-xl font-bold">
+                Add Video - {chapter?.title || 'Chapter'}
+              </h3>
               <button onClick={() => setShowAddVideoModal(false)}>
                 <X className="w-6 h-6 text-gray-500 hover:text-gray-800" />
               </button>
@@ -143,7 +193,7 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
                 >
                   <Upload className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                   <p className="text-gray-700 font-medium">Click to upload or drag & drop</p>
-                  <p className="text-sm text-gray-500 mt-1">MP4, WebM, MOV (max 500MB recommended)</p>
+                  <p className="text-sm text-gray-500 mt-1">MP4, WebM, MOV (max 2GB)</p>
                   {videoFile && (
                     <p className="mt-3 text-green-600 font-medium">
                       Selected: {videoFile.name}
@@ -182,24 +232,23 @@ export function ChapterItem({ chapter, idx, courseId, week, moduleId, onChapterU
       )}
 
       {/* View Video Modal */}
-      {showViewVideoModal && hasVideo && (
+      {showViewVideoModal && hasVideo && existingVideo && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl overflow-hidden w-full max-w-5xl max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-4 bg-gray-100">
               <h3 className="text-lg font-semibold">
-                {chapter.title || 'Chapter Video'}
+                {existingVideo.video_title || chapter?.title || 'Chapter Video'}
               </h3>
               <button onClick={() => setShowViewVideoModal(false)}>
                 <X className="w-6 h-6 text-gray-600 hover:text-gray-900" />
               </button>
             </div>
-
-            <div className="flex-1 bg-black flex items-center justify-center">
+            <div className="flex-1 bg-black flex items-center justify-center p-4">
               <video
                 controls
                 autoPlay
-                className="w-full h-full max-h-[80vh]"
-                src={chapter.videoUrl}
+                className="w-full max-h-[80vh] rounded-lg"
+                src={`${apiConfig.API_BASE_URL}${existingVideo.video_path}`}
               >
                 Your browser does not support the video tag.
               </video>

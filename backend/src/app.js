@@ -14,14 +14,14 @@ import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAd
 import { 
   createCourseAcademicRelationTable, 
   createCoursesTable,
-  createAcademicCourseSchedulesTable,  // ← ADDED THIS IMPORT
+  createAcademicCourseSchedulesTable,
   createCourseWeeksTable,
   createCourseModulesTables,
   assessmentsTableSetup,
   assignmentSubmissionsTableSetup
 } from './models/courseModel.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
-import { createAcademicAdminsTable , createAcademicAdminDetailsTable} from './models/academicAdminModel.js';
+import { createAcademicAdminsTable, createAcademicAdminDetailsTable } from './models/academicAdminModel.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { createFacultyTable } from './models/facultyModel.js';
 import facultyRoutes from './routes/facultyRoutes.js';
@@ -31,7 +31,10 @@ import studentRoutes from './routes/studentRoutes.js';
 import { createStudentsTable } from './models/studentModel.js';
 import { createExamsTables } from './models/examModel.js'; // NEW: Import createExamsTables
 
+// NEW: Video model setup
+import { setupVideoTables } from './models/videoModel.js';
 
+import { createEmailVerificationsTable } from './models/verificationModel.js';
 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);         
@@ -52,8 +55,9 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// SERVE UPLOADED IMAGES
+// SERVE UPLOADED IMAGES & VIDEOS
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Initialize DB tables
@@ -74,6 +78,11 @@ const initDatabase = async () => {
     await assessmentsTableSetup(pool);
     await createExamsTables(); // NEW: Initialize exam tables
     await assignmentSubmissionsTableSetup();
+
+    // NEW: Initialize video table
+    await setupVideoTables();
+
+    await createEmailVerificationsTable();
 
     console.log('All database tables initialized');
 
@@ -125,7 +134,7 @@ app.use((err, req, res, next) => {
 });  
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log('\nKRISTELLAR LMS BACKEND STARTED');
   console.log(`Server running on http://localhost:${PORT}`);
-});  
+});

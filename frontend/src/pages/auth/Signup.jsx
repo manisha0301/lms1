@@ -1,13 +1,33 @@
 // src/pages/auth/Signup.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Phone, School, Check, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  School,
+  Check,
+  ChevronDown,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import axios from "axios";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Email verification states
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
+
+  // Phone verification states
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -16,7 +36,7 @@ const Signup = () => {
     mobileNumber: "",
     password: "",
     graduationUniversity: "",
-    agreeTerms: false
+    agreeTerms: false,
   });
 
   // Real institutes from SuperAdmin
@@ -30,7 +50,9 @@ const Signup = () => {
   useEffect(() => {
     const fetchInstitutes = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/auth/superadmin/institutes");
+        const res = await axios.get(
+          "http://localhost:5000/api/auth/superadmin/institutes"
+        );
         if (res.data.success) {
           const instituteList = res.data.institutes;
           setInstitutes(instituteList);
@@ -61,15 +83,30 @@ const Signup = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+  const savedForm = sessionStorage.getItem('studentSignupForm');
+  if (savedForm) {
+    try {
+      setFormData(JSON.parse(savedForm));
+    } catch (err) {
+      console.error('Failed to parse saved student form:', err);
+    }
+  }
+
+  setEmailVerified(sessionStorage.getItem('studentEmailVerified') === 'true');
+  setPhoneVerified(sessionStorage.getItem('studentPhoneVerified') === 'true');
+}, []);
+
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
 
     if (name === "graduationUniversity") {
-      const filtered = institutes.filter(inst =>
+      const filtered = institutes.filter((inst) =>
         inst.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredInstitutes(filtered);
@@ -78,12 +115,80 @@ const Signup = () => {
   };
 
   const selectInstitute = (institute) => {
-    setFormData(prev => ({ ...prev, graduationUniversity: institute }));
+    setFormData((prev) => ({ ...prev, graduationUniversity: institute }));
     setShowDropdown(false);
   };
 
   const toggleDropdown = () => {
-    setShowDropdown(prev => !prev);
+    setShowDropdown((prev) => !prev);
+  };
+
+  // Verify Email handler
+  const handleVerifyEmail = async () => {
+    const email = formData.email.trim();
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      alert("Please enter a valid email address");
+      return;
+    }
+
+    setVerifyingEmail(true);
+
+    sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
+
+    navigate('/verify-email-otp', {
+      state: {
+        email,
+        user_type: 'student',
+        returnTo: '/signup'
+      }
+    });
+
+    axios.post('http://localhost:5000/api/auth/student/verify-email/send-otp', {
+      email,
+      user_type: 'student'
+    }).catch(() => {
+      alert('Failed to send OTP. Please try again.');
+    });
+
+    setVerifyingEmail(false);
+  };
+
+  // Verify Phone handler – now connected
+  const handleVerifyPhone = async () => {
+    const phone = formData.mobileNumber.trim();
+    if (!phone || phone.length < 10) {
+      alert("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setVerifyingPhone(true);
+
+    sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
+
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/student/verify-phone/send-otp', {
+        phone,
+        user_type: 'student'
+      });
+
+      if (res.data.success) {
+        navigate('/verify-phone-otp', {
+          state: {
+            phone,
+            user_type: 'student',
+            returnTo: '/signup',
+            isPhoneVerification: true
+          }
+        });
+      } else {
+        alert(res.data.message || 'Failed to send OTP');
+      }
+    } catch (err) {
+      console.error('Phone OTP error:', err);
+      alert('Failed to send OTP. Please try again.');
+    }
+
+    setVerifyingPhone(false);
   };
 
   const handleSignup = async (e) => {
@@ -94,29 +199,49 @@ const Signup = () => {
       return;
     }
 
+    if (!emailVerified) {
+      alert("Please verify your email first");
+      return;
+    }
+
+    if (!phoneVerified) {
+      alert("Please verify your phone number first");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/student/signup", {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim(),
-        mobileNumber: formData.mobileNumber.trim(),
-        password: formData.password,
-        graduationUniversity: formData.graduationUniversity.trim() || null
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/student/signup",
+        {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          mobileNumber: formData.mobileNumber.trim(),
+          password: formData.password,
+          graduationUniversity: formData.graduationUniversity.trim() || null,
+        }
+      );
 
       if (response.data.success) {
+        // ✅ FULL cleanup (THIS IS WHAT YOU MISSED)
+        sessionStorage.removeItem('studentSignupForm');
+        sessionStorage.removeItem('studentEmailVerified');
+        sessionStorage.removeItem('studentPhoneVerified');
+
+        // ✅ Auth should persist across refresh
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.setItem("role", "student");
 
         alert("Account created successfully.");
-
         navigate("/dash");
       }
+
     } catch (error) {
-      const errorMsg = error.response?.data?.error || "Something went wrong. Please try again.";
+      const errorMsg =
+        error.response?.data?.error || "Something went wrong. Please try again.";
       alert("Error: " + errorMsg);
     } finally {
       setLoading(false);
@@ -126,7 +251,6 @@ const Signup = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a]/5 via-white to-green-50/30 flex items-center justify-center px-4 py-12">
       <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
-
         {/* LEFT SIDE – BRANDING */}
         <div className="bg-gradient-to-br from-[#1e3a8a] to-[#1e40af] text-white p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
@@ -142,7 +266,13 @@ const Signup = () => {
             </p>
 
             <div className="space-y-5 text-lg">
-              {["Live Interactive Classes Daily", "1:1 Mentorship from Industry Experts", "100+ Hiring Partners", "Lifetime Access + Certificate", "Money-Back Guarantee"].map((item, i) => (
+              {[
+                "Live Interactive Classes Daily",
+                "1:1 Mentorship from Industry Experts",
+                "100+ Hiring Partners",
+                "Lifetime Access + Certificate",
+                "Money-Back Guarantee",
+              ].map((item, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <Check className="w-7 h-7 text-green-400 flex-shrink-0" />
                   <span>{item}</span>
@@ -151,9 +281,18 @@ const Signup = () => {
             </div>
 
             <div className="mt-12 flex items-center gap-8">
-              <div><div className="text-4xl font-bold">50K+</div><div className="text-sm opacity-80">Students Enrolled</div></div>
-              <div><div className="text-4xl font-bold">4.9</div><div className="text-sm opacity-80">Average Rating</div></div>
-              <div><div className="text-4xl font-bold">₹12 LPA</div><div className="text-sm opacity-80">Avg Placement</div></div>
+              <div>
+                <div className="text-4xl font-bold">50K+</div>
+                <div className="text-sm opacity-80">Students Enrolled</div>
+              </div>
+              <div>
+                <div className="text-4xl font-bold">4.9</div>
+                <div className="text-sm opacity-80">Average Rating</div>
+              </div>
+              <div>
+                <div className="text-4xl font-bold">₹12 LPA</div>
+                <div className="text-sm opacity-80">Avg Placement</div>
+              </div>
             </div>
           </div>
           <div className="relative z-10 mt-16 text-center">
@@ -165,8 +304,12 @@ const Signup = () => {
         <div className="p-10 lg:p-16 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-gray-900">Start Your Journey</h2>
-              <p className="mt-3 text-gray-600">Create your account in 30 seconds</p>
+              <h2 className="text-3xl font-bold text-gray-900">
+                Start Your Journey
+              </h2>
+              <p className="mt-3 text-gray-600">
+                Create your account in 30 seconds
+              </p>
             </div>
 
             {/* Social Buttons */}
@@ -180,14 +323,20 @@ const Signup = () => {
             </div>
 
             <div className="relative mb-8">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="bg-white px-4 text-gray-500">OR</span></div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-4 text-gray-500">OR</span>
+              </div>
             </div>
 
             <form onSubmit={handleSignup} className="space-y-5">
               {/* First Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name
+                </label>
                 <div className="relative">
                   <User className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
@@ -204,7 +353,9 @@ const Signup = () => {
 
               {/* Last Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name
+                </label>
                 <div className="relative">
                   <User className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
@@ -219,11 +370,13 @@ const Signup = () => {
                 </div>
               </div>
 
-              {/* Email */}
+              {/* Email with Verify Button */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     name="email"
@@ -231,16 +384,41 @@ const Signup = () => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="you@example.com"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                    disabled={emailVerified}
+                    className={`w-full pl-12 pr-36 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
+                      emailVerified
+                        ? "bg-green-50 border-green-300 text-green-700 cursor-not-allowed"
+                        : "border-gray-300"
+                    }`}
                   />
+                  {emailVerified ? (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-green-700 font-medium flex items-center gap-1">
+                      Verified ✓ <Check className="w-4 h-4" />
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleVerifyEmail}
+                      disabled={verifyingEmail || emailVerified || !formData.email.trim()}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium rounded-md transition ${
+                        emailVerified
+                          ? "bg-green-100 text-green-700 border border-green-300 cursor-default"
+                          : "bg-[#1e40af] text-white hover:bg-[#1e3a8a]"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {verifyingEmail ? "Sending..." : "Verify Email"}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Phone */}
+              {/* Phone with Verify Button – NOW CONNECTED */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number
+                </label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="tel"
                     name="mobileNumber"
@@ -248,14 +426,39 @@ const Signup = () => {
                     value={formData.mobileNumber}
                     onChange={handleChange}
                     placeholder="+91 9876543210"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                    disabled={phoneVerified}
+                    className={`w-full pl-12 pr-36 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
+                      phoneVerified
+                        ? "bg-green-50 border-green-300 text-green-700 cursor-not-allowed"
+                        : "border-gray-300"
+                    }`}
                   />
+                  {phoneVerified ? (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-green-700 font-medium flex items-center gap-1">
+                      Verified ✓ <Check className="w-4 h-4" />
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleVerifyPhone}
+                      disabled={verifyingPhone || phoneVerified || !formData.mobileNumber.trim()}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium rounded-md transition ${
+                        phoneVerified
+                          ? "bg-green-100 text-green-700 border border-green-300 cursor-default"
+                          : "bg-[#1e40af] text-white hover:bg-[#1e3a8a]"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {verifyingPhone ? "Sending..." : phoneVerified ? "Verified ✓" : "Verify Phone"}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* UNIVERSITY */}
               <div className="relative" ref={dropdownRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Graduation / University</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Graduation / University
+                </label>
                 <div className="relative">
                   <School className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
@@ -272,16 +475,24 @@ const Signup = () => {
                     onClick={toggleDropdown}
                     className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
                   >
-                    <ChevronDown className={`w-5 h-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-5 h-5 transition-transform ${
+                        showDropdown ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
                 </div>
 
                 {showDropdown && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {instituteLoading ? (
-                      <p className="p-4 text-center text-gray-500">Loading institutes...</p>
+                      <p className="p-4 text-center text-gray-500">
+                        Loading institutes...
+                      </p>
                     ) : filteredInstitutes.length === 0 ? (
-                      <p className="p-4 text-center text-gray-500">No institutes found</p>
+                      <p className="p-4 text-center text-gray-500">
+                        No institutes found
+                      </p>
                     ) : (
                       filteredInstitutes.map((institute, i) => (
                         <div
@@ -299,7 +510,9 @@ const Signup = () => {
 
               {/* PASSWORD */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
@@ -316,7 +529,11 @@ const Signup = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -331,15 +548,25 @@ const Signup = () => {
                   onChange={handleChange}
                   className="w-5 h-5 text-[#1e40af] rounded"
                 />
-                <label htmlFor="terms" className="ml-3 text-sm text-gray-600">
-                  I agree to the <a href="#" className="text-[#1e40af] font-medium">Terms & Conditions</a> and <a href="#" className="text-[#1e40af] font-medium">Privacy Policy</a>
+                <label
+                  htmlFor="terms"
+                  className="ml-3 text-sm text-gray-600"
+                >
+                  I agree to the{" "}
+                  <Link to="/terms" className="text-[#1e40af] font-medium hover:underline">
+                    Terms & Conditions
+                  </Link>
+                  and{" "}
+                  <Link to="/privacy" className="text-[#1e40af] font-medium hover:underline">
+                    Privacy Policy
+                  </Link>
                 </label>
               </div>
 
               {/* Submit */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !formData.agreeTerms || !emailVerified || !phoneVerified}
                 className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? "Creating Account..." : "Create Free Account"}
@@ -350,7 +577,10 @@ const Signup = () => {
             <div className="mt-10 text-center">
               <p className="text-gray-600">
                 Already have an account?{" "}
-                <button onClick={() => navigate("/login")} className="text-[#1e40af] font-bold hover:underline">
+                <button
+                  onClick={() => navigate("/login")}
+                  className="text-[#1e40af] font-bold hover:underline"
+                >
                   Login Here
                 </button>
               </p>

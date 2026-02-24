@@ -77,7 +77,7 @@ const CoursesManagementPage = () => {
     academic.center.toLowerCase().includes(searchTerm.toLowerCase()) ||
     academic.courses.some(course =>
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.faculty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.faculty || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -120,12 +120,12 @@ const CoursesManagementPage = () => {
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6">
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                    {course.faculty.split(' ').map(n => n[0]).join('')}
+                    {(course.faculty || 'N/A').split(' ').map(n => n[0]).join('')}
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Faculty In-Charge</p>
-                    <p className="font-bold text-gray-900">{course.faculty}</p>
-                    <p className="text-sm text-gray-600">{course.facultyEmail}</p>
+                    <p className="font-bold text-gray-900">{course.faculty || 'No faculty assigned'}</p>
+                    <p className="text-sm text-gray-600">{course.facultyEmail || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -133,14 +133,14 @@ const CoursesManagementPage = () => {
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
                 <IndianRupee className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
                 <p className="text-3xl font-bold text-emerald-900">
-                  ₹{(course.revenue / 100000).toFixed(1)}L
+                  ₹{( (course.revenue || 0) / 100000 ).toFixed(1)}L
                 </p>
                 <p className="text-sm text-gray-600">Revenue Generated</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
                 <Target className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
-                <p className="text-3xl font-bold text-[#1e3a8a]">{course.completionRate}%</p>
+                <p className="text-3xl font-bold text-[#1e3a8a]">{course.completionRate || 0}%</p>
                 <p className="text-sm text-gray-600">Completion Rate</p>
               </div>
             </div>
@@ -149,26 +149,26 @@ const CoursesManagementPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
                 <Users className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
-                <p className="text-3xl font-bold">{course.totalStudents}</p>
+                <p className="text-3xl font-bold">{course.totalStudents || 0}</p>
                 <p className="text-sm text-gray-600">Total Enrolled</p>
               </div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
-                <FileCheck className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
-                <p className="text-3xl font-bold">
-                  {course.examsConducted}/{course.totalExams}
+                <FileCheck className="w-10 h-10 text-[#1e3a8a] mx-auto mb-2" />
+                <p className="text-2xl font-bold">
+                  {course.examsConducted || 0}/{course.totalExams || 0}
                 </p>
                 <p className="text-sm text-gray-600">Exams</p>
               </div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
-                <ClipboardList className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
-                <p className="text-3xl font-bold">
-                  {course.completedAssignments}/{course.totalAssignments}
+                <ClipboardList className="w-10 h-8 text-[#1e3a8a] mx-auto mb-2" />
+                <p className="text-2xl font-bold">
+                  {course.completedAssignments || 0}/{course.totalAssignments || 0}
                 </p>
                 <p className="text-sm text-gray-600">Assignments</p>
               </div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 text-center">
                 <GraduationCap className="w-10 h-10 text-[#1e3a8a] mx-auto mb-3" />
-                <p className="text-3xl font-bold">{course.activeStudents}</p>
+                <p className="text-3xl font-bold">{course.activeStudents || 0}</p>
                 <p className="text-sm text-gray-600">Active Students</p>
               </div>
             </div>
@@ -180,19 +180,19 @@ const CoursesManagementPage = () => {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-3 text-gray-600">
                     <Calendar className="w-4 h-4" />
-                    <span>Start: {course.startDate}</span>
+                    <span>Start: {course.startDate || 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
                     <Clock className="w-4 h-4" />
-                    <span>Duration: {course.duration}</span>
+                    <span>Duration: {course.duration || 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
                     <Users className="w-4 h-4" />
-                    <span>Batch Size: {course.batchSize}</span>
+                    <span>Batch Size: {course.batchSize || 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
                     <UserCheck className="w-4 h-4" />
-                    <span>Avg Attendance: {course.avgAttendance}%</span>
+                    <span>Avg Attendance: {course.avgAttendance || 0}%</span>
                   </div>
                 </div>
               </div>
@@ -201,11 +201,11 @@ const CoursesManagementPage = () => {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center gap-3 text-gray-600">
                     <Award className="w-4 h-4" />
-                    <span>Top Performer: {course.topPerformer}</span>
+                    <span>Top Performer: {course.topPerformer || 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
                     <Clock className="w-4 h-4" />
-                    <span>Last Activity: {course.lastActivity}</span>
+                    <span>Last Activity: {course.lastActivity || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -230,13 +230,13 @@ const CoursesManagementPage = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="  mx-auto px-8 py-6">
+        <div className="mx-auto px-8 py-6">
           <h1 className="text-3xl font-bold">Courses by Academic Admin</h1>
           <p className="opacity-90 mt-1">Monitor all courses organized by each Academic Admin, including faculty assignments and performance metrics</p>
         </div>
       </header>
 
-      <div className="  mx-auto px-8 py-4">
+      <div className="mx-auto px-8 py-4">
         {/* Search Bar */}
         <div className="relative flex-1 max-w-lg mb-8">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
@@ -304,7 +304,7 @@ const CoursesManagementPage = () => {
                           <p className="text-sm text-gray-600 mt-2">
                             <span className="font-mono bg-gray-200 px-2 py-1 rounded">{course.code}</span>
                             {' • '}
-                            <UserCheck className="inline w-4 h-4" /> {course.faculty}
+                            <UserCheck className="inline w-4 h-4" /> {course.faculty || 'No faculty assigned'}
                           </p>
                         </div>
                         <span className={`px-4 py-2 rounded-full text-sm font-bold ${
@@ -312,42 +312,44 @@ const CoursesManagementPage = () => {
                           course.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
                           'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {course.status}
+                          {course.status || 'N/A'}
                         </span>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div className="text-center">
                           <Users className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-gray-900">{course.totalStudents}</p>
+                          <p className="text-2xl font-bold text-gray-900">{course.totalStudents || 0}</p>
                           <p className="text-xs text-gray-600">Enrolled</p>
                         </div>
                         <div className="text-center">
                           <FileCheck className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-gray-900">
-                            {course.examsConducted}/{course.totalExams}
+                          <p className="text-2xl font-bold">
+                            {course.examsConducted || 0}/{course.totalExams || 0}
                           </p>
                           <p className="text-xs text-gray-600">Exams</p>
                         </div>
                         <div className="text-center">
                           <ClipboardList className="w-8 h-8 text-[#1e3a8a] mx-auto mb-2" />
                           <p className="text-2xl font-bold text-gray-900">
-                            {course.completedAssignments}/{course.totalAssignments}</p>
+                            {course.completedAssignments || 0}/{course.totalAssignments || 0}
+                          </p>
                           <p className="text-xs text-gray-600">Assignments</p>
                         </div>
                         <div className="text-center">
                           <IndianRupee className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
                           <p className="text-2xl font-bold text-gray-900">
-                            ₹{(course.revenue / 100000).toFixed(1)}L
+                            ₹{((course.revenue || 0) / 100000).toFixed(1)}L
                           </p>
                           <p className="text-xs text-gray-600">Revenue</p>
                         </div>
                       </div>
 
                       <div 
-                      className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-[#1e3a8a] font-bold"
-                      onClick={() => setSelectedCourse({ course, academic })}>
-                        <span >View Detailed Report</span>
+                        className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-[#1e3a8a] font-bold cursor-pointer"
+                        onClick={() => setSelectedCourse({ course, academic })}
+                      >
+                        <span>View Detailed Report</span>
                         <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition" />
                       </div>
                     </div>
@@ -363,7 +365,7 @@ const CoursesManagementPage = () => {
           <h3 className="text-2xl font-bold mb-6">Platform-Wide Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <p className="text-4xl font-bold">{academicsData.reduce((a, c) => a + c.totalCourses, 0)}</p>
+              <p className="text-4xl font-bold">{academicsData.reduce((a, c) => a + (c.totalCourses || 0), 0)}</p>
               <p className="opacity-90 mt-2">Total Courses</p>
             </div>
             <div>
@@ -372,13 +374,13 @@ const CoursesManagementPage = () => {
             </div>
             <div>
               <p className="text-4xl font-bold">
-                {academicsData.reduce((a, c) => a + c.totalStudents, 0).toLocaleString()}
+                {academicsData.reduce((a, c) => a + (c.totalStudents || 0), 0).toLocaleString()}
               </p>
               <p className="opacity-90 mt-2">Total Students</p>
             </div>
             <div>
               <p className="text-4xl font-bold">
-                ₹{(academicsData.reduce((a, c) => a + c.totalRevenue, 0) / 100000).toFixed(1)}L
+                ₹{(academicsData.reduce((a, c) => a + (c.totalRevenue || 0), 0) / 100000).toFixed(1)}L
               </p>
               <p className="opacity-90 mt-2">Total Revenue</p>
             </div>

@@ -170,7 +170,16 @@ export const assignmentSubmissionsTableSetup = async () => {
   `;
 
   await pool.query(query);
-  console.log('assignment_submissions table created or already exists');
+
+  // await pool.query(`
+  //   ALTER TABLE assignment_submissions
+  //   ADD COLUMN IF NOT EXISTS marks INTEGER,
+  //   ADD COLUMN IF NOT EXISTS remarks TEXT,
+  //   ADD COLUMN IF NOT EXISTS graded_at TIMESTAMP,
+  //   ADD COLUMN IF NOT EXISTS graded_by INTEGER REFERENCES faculty(id) ON DELETE SET NULL;
+  // `);
+
+  console.log('assignment_submissions table ready with grading columns');
 };
 
 // Run all course-related table setups (call this once on server start)

@@ -14,6 +14,8 @@ import { useEffect } from "react";
 import Login from "./pages/auth/Login";
 import Home from "./pages/Home";
 import Signup from "./pages/auth/Login";
+import Terms from "./pages/legal/terms";
+import Privacy from "./pages/legal/privacy";
 
 function RedirectToStudent() {
   useEffect(() => {
@@ -21,7 +23,7 @@ function RedirectToStudent() {
     if (!hostname || hostname.startsWith("student")) return;
     const portPart = window.location.port ? `:${window.location.port}` : "";
     const targetHostname =
-      hostname === "localhost" || hostname === "127.0.0.1"
+      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "172.30.3.175"
         ? `student.localhost`
         : `student.${hostname}`;
     const target = `${window.location.protocol}//${targetHostname}${portPart}/`;

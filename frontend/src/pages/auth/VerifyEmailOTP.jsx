@@ -1,13 +1,25 @@
 // src/pages/auth/VerifyEmailOTP.jsx
 import { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Mail, Shield, CheckCircle, ArrowLeft } from 'lucide-react';
 
 export default function VerifyEmailOTP() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Get data from navigation state (passed from FacultySignup or Signup page)
+  const email = location.state?.email || '';
+  const user_type = location.state?.user_type || 'faculty'; // fallback to faculty if missing
+  const returnTo = location.state?.returnTo || '/signup';
+
   const [otp, setOtp] = useState(['', '', '', '', '', '']); // 6-digit OTP
-  const [timer, setTimer] = useState(120); // 2 minutes
+  const [timer, setTimer] = useState(10); // 2 minutes
   const [canResend, setCanResend] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const inputRefs = useRef([]);
 
   // Timer countdown
@@ -39,13 +51,6 @@ export default function VerifyEmailOTP() {
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-
-    // Auto-submit when all filled
-    if (newOtp.every(digit => digit !== '') && newOtp.length === 6) {
-      setTimeout(() => {
-        setIsVerified(true);
-      }, 800);
-    }
   };
 
   const handleKeyDown = (index, e) => {
@@ -54,16 +59,123 @@ export default function VerifyEmailOTP() {
     }
   };
 
-  const handleResend = () => {
-    if (canResend) {
-      setTimer(120);
-      setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
-      setIsVerified(false);
-      inputRefs.current[0]?.focus();
-      alert('New OTP sent to your email!');
+  const handleVerify = async () => {
+    const otpString = otp.join('');
+    if (otpString.length !== 6) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      console.log('[VERIFY] Sending verification request:', { email, otp: otpString, user_type });
+
+      const baseURL =
+        user_type === 'student'
+          ? 'http://localhost:5000/api/auth/student'
+          : 'http://localhost:5000/api/faculty';
+
+      const res = await axios.post(
+        `${baseURL}/verify-email/verify-otp`,
+        {
+          email,
+          otp: otpString,
+          user_type
+        }
+      );
+
+
+      console.log('[VERIFY] Response:', res.data);
+
+      if (res.data.success) {
+        setIsVerified(true);
+
+        // ✅ CORRECT: role-based key
+        const key =
+          user_type === 'student'
+            ? 'studentEmailVerified'
+            : 'facultyEmailVerified';
+
+        sessionStorage.setItem(key, 'true');
+
+        setTimeout(() => {
+          navigate(returnTo);
+        }, 1500);
+        
+      } else {
+        setError(res.data.message || 'Invalid or expired OTP');
+      }
+    } catch (err) {
+      console.error('[VERIFY ERROR]', err.response?.data || err.message);
+      setError(
+        err.response?.data?.message ||
+        'Verification failed. Please try again or request a new code.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    if (!canResend) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      console.log('[RESEND] Requesting new OTP for:', { email, user_type });
+
+      const baseURL =
+        user_type === 'student'
+          ? 'http://localhost:5000/api/auth/student'
+          : 'http://localhost:5000/api/faculty';
+
+      const res = await axios.post(
+        `${baseURL}/verify-email/send-otp`,
+        {
+          email,
+          user_type
+        }
+      );
+
+
+      console.log('[RESEND] Response:', res.data);
+
+      if (res.data.success) {
+        setTimer(120);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        setError('');
+        alert('New OTP has been sent to your email!');
+        inputRefs.current[0]?.focus();
+      } else {
+        setError(res.data.message || 'Failed to resend OTP');
+      }
+    } catch (err) {
+      console.error('[RESEND ERROR]', err.response?.data || err.message);
+      setError('Could not resend OTP. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If no email was passed → show error
+  if (!email) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">No Email Provided</h2>
+          <p className="text-gray-700 mb-6">Please go back and enter your email first.</p>
+          <Link
+            to={returnTo}
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-indigo-700"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Signup
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
@@ -72,11 +184,11 @@ export default function VerifyEmailOTP() {
           
           {/* Back Button */}
           <Link 
-            to="/signup" 
-            className="flex items-center gap-2 text-[#1e3a8a] text-sm mb-6 transition"
+            to={returnTo} 
+            className="flex items-center gap-2 text-[#1e3a8a] text-sm mb-6 transition hover:text-indigo-800"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            Back to Signup
           </Link>
 
           {/* Header */}
@@ -89,7 +201,7 @@ export default function VerifyEmailOTP() {
               We've sent a 6-digit verification code to
             </p>
             <div className="mt-3 px-4 py-2 bg-indigo-50 rounded-lg inline-block">
-              <p className="font-semibold text-[#1e3a8a]">sarah.chen@cybernetics.edu</p>
+              <p className="font-semibold text-[#1e3a8a] break-all">{email}</p>
             </div>
           </div>
 
@@ -100,13 +212,7 @@ export default function VerifyEmailOTP() {
                 <CheckCircle className="w-14 h-14 text-green-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-3">Email Verified!</h2>
-              <p className="text-gray-600 mb-8">You can now reset your password.</p>
-              <Link
-                to="/reset-password"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-xl transition transform hover:scale-105"
-              >
-                Continue to Reset Password
-              </Link>
+              <p className="text-gray-600 mb-8">Returning to signup page...</p>
             </div>
           ) : (
             <>
@@ -127,6 +233,11 @@ export default function VerifyEmailOTP() {
                 ))}
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <p className="text-red-600 text-center mb-6 font-medium">{error}</p>
+              )}
+
               {/* Timer / Resend */}
               <div className="text-center mb-8">
                 {!canResend ? (
@@ -139,7 +250,10 @@ export default function VerifyEmailOTP() {
                 ) : (
                   <button
                     onClick={handleResend}
-                    className="text-[#1e3a8a] font-semibold hover:underline text-lg"
+                    disabled={loading}
+                    className={`text-[#1e3a8a] font-semibold hover:underline text-lg ${
+                      loading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     Resend OTP
                   </button>
@@ -148,15 +262,11 @@ export default function VerifyEmailOTP() {
 
               {/* Verify Button */}
               <button
-                onClick={() => {
-                  if (otp.every(d => d !== '')) {
-                    setIsVerified(true);
-                  }
-                }}
-                disabled={otp.some(d => d === '')}
-                className="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg hover:shadow-2xl transition transform hover:scale-105 disabled:cursor-not-allowed disabled:transform-none"
+                onClick={handleVerify}
+                disabled={loading || otp.some(d => !d) || otp.join('').length !== 6}
+                className="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg hover:shadow-2xl transition transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60 disabled:transform-none"
               >
-                Verify Email
+                {loading ? 'Verifying...' : 'Verify Email'}
               </button>
             </>
           )}

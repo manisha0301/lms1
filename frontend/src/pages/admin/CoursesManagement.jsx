@@ -197,13 +197,13 @@ const CoursesManagement = () => {
             />
           </div>
 
-          <button
+          {/* <button
             onClick={() => openModal("add")}
             className="px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center gap-3"
           >
             <Plus className="w-6 h-6" />
             Add New Course
-          </button>
+          </button> */}
         </div>
 
         {loading ? (

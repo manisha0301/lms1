@@ -83,10 +83,10 @@ export default function CourseDetailsFaculty() {
           const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
           const mappedWeeks = apiWeeks.map((w, idx) => {
             const weekNum = w.id || idx + 1;
-            // Find assessment for this week
             const weekAssessment = a.find(assessment => parseInt(assessment.week_id) === weekNum);
             
             return {
+              id: w.id,  // ← Important: real week ID for weekId prop
               week: weekNum,
               title: w.title || `Week ${weekNum}`,
               modules: (w.modules || []).map(m => ({
@@ -243,10 +243,10 @@ export default function CourseDetailsFaculty() {
             const apiWeeks = Array.isArray(c.contents) ? c.contents : [];
             const mappedWeeks = apiWeeks.map((w, idx) => {
               const weekNum = w.id || idx + 1;
-              // Find assessment for this week
               const weekAssessment = a.find(assessment => parseInt(assessment.week_id) === weekNum);
               
               return {
+                id: w.id,  // important for weekId prop
                 week: weekNum,
                 title: w.title || `Week ${weekNum}`,
                 modules: (w.modules || []).map(m => ({
@@ -313,24 +313,22 @@ export default function CourseDetailsFaculty() {
       <div className="bg-[#1e3a8a] text-white py-12">
         <div className="mx-auto px-6">
           <div className="flex flex-row items-center justify-between">
-              {/* <div className="flex flex-row items-center justify-between"> */}
-                <div className="md:flex-1">
-                  <h1 className="text-4xl font-semibold">{course.title}</h1>
-                  <p className="mt-2 text-blue-100 max-w-2xl">
-                    {course.description}
-                  </p>
-                </div>
-                <div className="w-80 flex-shrink-0">
-                  <div className="relative">
-                    <img
-                      src={course.thumbnail}
-                      alt="Course Thumbnail"
-                      onError={(e) => { e.target.onerror = null; e.target.src = node; }}
-                      className="w-full h-36 md:h-56 object-cover rounded-lg border-4 border-white shadow-md"
-                    />
-                  </div>
-                </div>
-              {/* </div> */}
+            <div className="md:flex-1">
+              <h1 className="text-4xl font-semibold">{course.title}</h1>
+              <p className="mt-2 text-blue-100 max-w-2xl">
+                {course.description}
+              </p>
+            </div>
+            <div className="w-80 flex-shrink-0">
+              <div className="relative">
+                <img
+                  src={course.thumbnail}
+                  alt="Course Thumbnail"
+                  onError={(e) => { e.target.onerror = null; e.target.src = node; }}
+                  className="w-full h-36 md:h-56 object-cover rounded-lg border-4 border-white shadow-md"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -360,7 +358,7 @@ export default function CourseDetailsFaculty() {
             )}
           </div>
 
-          {/* Course Info Summary - same as before */}
+          {/* Course Info Summary */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
@@ -395,6 +393,7 @@ export default function CourseDetailsFaculty() {
               </div>
             </div>
           </div>
+
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2">
@@ -409,7 +408,7 @@ export default function CourseDetailsFaculty() {
             ) : (
               <div className="space-y-6">
                 {weeks.map((section) => (
-                  <div key={section.week} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div key={section.id || section.week} className="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div className="bg-gradient-to-r from-[#1e3a8a]/10 to-[#1e40af]/5 px-6 py-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div>
@@ -433,17 +432,17 @@ export default function CourseDetailsFaculty() {
                               <div className="space-y-2.5 ml-2">
                                 {module.chapters?.map((chapter, idx) => (
                                   <ChapterItem
-                          key={chapter?.id || idx}
-                          chapter={chapter}
-                          idx={idx}
-                          courseId={courseId}
-                          week={section.week}
-                          moduleId={module.id}
-                          onChapterUpdate={() => {
-                            // Optional: refresh data after upload
-                            // You can call fetchCourse() again or update local state
-                          }}
-                        />
+                                    key={chapter?.id || idx}
+                                    chapter={chapter}
+                                    idx={idx}
+                                    courseId={course.id}           // FIXED: now passed
+                                    weekId={section.id}            // FIXED: now passed (real ID)
+                                    moduleId={module.id}           // FIXED: now passed
+                                    onChapterUpdate={() => {
+                                      // Optional: refresh data after upload
+                                      // You can call fetchCourse() again or update local state
+                                    }}
+                                  />
                                 ))}
                               </div>
                             </div>

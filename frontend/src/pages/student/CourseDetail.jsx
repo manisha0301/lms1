@@ -3,19 +3,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Play, FileText, Calendar, Clock, CheckCircle, 
   Lock, CreditCard, Users, Video, BookOpen, Award,
-  Download
+  Download, X, Loader2
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
 
 export default function CourseDetail() {
-    // Helper to format date as DD-MM-YYYY
-    const formatDate = (dateStr) => {
-      if (!dateStr) return '';
-      const [year, month, day] = dateStr.split('-');
-      return `${day}-${month}-${year}`;
-    };
+  // Helper to format date as DD-MM-YYYY
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}-${month}-${year}`;
+  };
+
   // Assignment Modal State
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [assignmentUploadLoading, setAssignmentUploadLoading] = useState(false);
@@ -37,6 +38,13 @@ export default function CourseDetail() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // State for chapter modal
+  const [showChapterModal, setShowChapterModal] = useState(false);
+  const [selectedChapter, setSelectedChapter] = useState(null);
+  const [videoData, setVideoData] = useState(null);
+  const [loadingVideo, setLoadingVideo] = useState(false);
+  const [videoError, setVideoError] = useState('');
 
   const todayLiveClass = useMemo(() => {
     if (!course?.liveClasses || course.liveClasses.length === 0) return null;
@@ -172,7 +180,7 @@ export default function CourseDetail() {
           // Real course content from database
           sections: sections,
 
-          // Dummy content remains unchanged
+          // Dummy content remains unchanged (fallback)
           modules: [
             {
               id: 1,
@@ -310,6 +318,39 @@ export default function CourseDetail() {
     }
   };
 
+  // NEW: Open chapter modal and fetch real video using student endpoint
+  const openChapterModal = async (chapter) => {
+    setSelectedChapter(chapter);
+    setShowChapterModal(true);
+    setVideoData(null);
+    setVideoError('');
+    setLoadingVideo(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/student/chapter-video/${chapter.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      
+
+      if (res.data?.success && res.data.video) {
+        setVideoData(res.data.video);
+      } else {
+        setVideoError('No lecture video available yet');
+      }
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setVideoError('No lecture video uploaded for this chapter yet');
+      } else {
+        setVideoError('Failed to load video. Please try again.');
+        console.error('Video fetch error:', err);
+      }
+    } finally {
+      setLoadingVideo(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -402,7 +443,7 @@ export default function CourseDetail() {
             ) : (
               <>
                 {/* Course Content */}
-                <div className="space-y-8 ">
+                <div className="space-y-8">
                   <div className="flex items-center justify-between ml-1">
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
                       <BookOpen className="w-7 h-7 text-[#1e3a8a]" />
@@ -449,9 +490,8 @@ export default function CourseDetail() {
                                         module.chapters.map((chapter, idx) => (
                                           <div
                                             key={chapter.id || idx}
-                                            className={`flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition group ${
-                                              chapter.locked ? 'opacity-60' : ''
-                                            }`}
+                                            onClick={() => openChapterModal(chapter)}
+                                            className="flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer group"
                                           >
                                             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 group-hover:bg-[#1e3a8a]/10 group-hover:text-[#1e3a8a] transition">
                                               {idx + 1}
@@ -467,7 +507,7 @@ export default function CourseDetail() {
                                               {chapter.locked ? (
                                                 <Lock className="w-4 h-4 text-gray-400" />
                                               ) : (
-                                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                                <Play className="w-5 h-5 text-[#1e40af] opacity-0 group-hover:opacity-100 transition" />
                                               )}
                                             </div>
                                           </div>
@@ -516,7 +556,6 @@ export default function CourseDetail() {
                     No live classes scheduled for today
                   </div>
                 )}
-
 
                 {/* Notes */}
                 {course.notes.length > 0 && (
@@ -759,6 +798,71 @@ export default function CourseDetail() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Chapter Modal - Opens when clicking a chapter */}
+      {showChapterModal && selectedChapter && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl overflow-hidden w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 bg-gray-100 border-b">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {selectedChapter.title || 'Chapter Content'}
+              </h3>
+              <button
+                onClick={() => setShowChapterModal(false)}
+                className="text-gray-600 hover:text-gray-900 transition"
+              >
+                <X className="w-7 h-7" />
+              </button>
+            </div>
+
+            {/* Body - Real video fetch & playback */}
+            <div className="flex-1 flex items-center justify-center p-8 text-center">
+              {loadingVideo ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-10 h-10 animate-spin text-[#1e40af]" />
+                  <p className="text-gray-700">Loading lecture video...</p>
+                </div>
+              ) : videoError ? (
+                <div className="flex flex-col items-center gap-4">
+                  <Play className="w-16 h-16 text-[#1e40af]" />
+                  <h4 className="text-2xl font-bold text-gray-800">
+                    No Lecture Video Yet
+                  </h4>
+                  <p className="text-gray-600 max-w-md">
+                    {videoError}
+                  </p>
+                </div>
+              ) : videoData ? (
+                <div className="w-full h-full flex flex-col items-center justify-center">
+                  <video
+                    controls
+                    autoPlay
+                    className="w-full max-h-[70vh] rounded-lg shadow-lg"
+                    src={`${apiConfig.API_BASE_URL}${videoData.video_path}`}
+                    onError={() => setVideoError('Failed to play video - file may be unavailable')}
+                  >
+                    <source src={`${apiConfig.API_BASE_URL}${videoData.video_path}`} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              ) : (
+                <p className="text-gray-700">Preparing...</p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 text-center">
+              <button
+                onClick={() => setShowChapterModal(false)}
+                className="px-8 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,13 +1,14 @@
 // src/pages/auth/FacultySignup.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { School, ChevronDown } from 'lucide-react';
+import { School, ChevronDown, Check } from 'lucide-react';
 import axios from 'axios';
 import { useRef } from 'react';
 
 const FacultySignup = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -34,6 +35,28 @@ const FacultySignup = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [universityLoading, setUniversityLoading] = useState(true);
   const dropdownRef = useRef(null);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [profilePreview, setProfilePreview] = useState(null);
+
+  // ONE-TIME RESTORE FROM localStorage
+  useEffect(() => {
+    const savedForm = sessionStorage.getItem('facultySignupForm');
+    if (savedForm) {
+      try {
+        setForm(JSON.parse(savedForm));
+      } catch (err) {
+        console.error('Failed to parse saved form data:', err);
+      }
+    }
+
+    setEmailVerified(sessionStorage.getItem('facultyEmailVerified') === 'true');
+    setPhoneVerified(sessionStorage.getItem('facultyPhoneVerified') === 'true');
+  }, []);
 
   useEffect(() => {
     const fetchUniversities = async () => {
@@ -63,20 +86,6 @@ const FacultySignup = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [verifyingEmail, setVerifyingEmail] = useState(false);
-  const [verifyingPhone, setVerifyingPhone] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [passwordError, setPasswordError] = useState('');
-  const [profilePreview, setProfilePreview] = useState(null);
-
-  useEffect(() => {
-    if (location.state?.emailVerified) setEmailVerified(true);
-    if (location.state?.phoneVerified) setPhoneVerified(true);
-  }, [location.state]);
-
   useEffect(() => {
     if (form.password || form.confirmPassword) {
       setPasswordError(
@@ -104,7 +113,7 @@ const FacultySignup = () => {
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
       if (name === 'university') {
-        const filtered = universities.filter(u =>
+        const filtered = universities.filter((u) =>
           u.toLowerCase().includes(value.toLowerCase())
         );
         setFilteredUniversities(filtered);
@@ -125,28 +134,84 @@ const FacultySignup = () => {
   const countWords = (text) =>
     text.trim().split(/\s+/).filter((w) => w.length > 0).length;
 
-  const sendOTP = (type) => {
-    if (type === 'email' && !form.email) return alert('Enter email first');
-    if (type === 'phone' && !form.phone) return alert('Enter phone first');
+  // Handle Verify Email
+  const handleVerifyEmail = () => {
+    const emailValue = form.email.trim();
+    if (!emailValue || !/\S+@\S+\.\S+/.test(emailValue)) {
+      alert('Please enter a valid email first');
+      return;
+    }
 
-    const payload = {
-      email: form.email,
-      phone: form.phone,
-      type,
-      fromSignup: true,
-      returnTo: '/faculty-signup',
-    };
+    // Save current form before leaving the page
+    sessionStorage.setItem('facultySignupForm', JSON.stringify(form));
 
-    navigate('/otp', { state: payload });
+    setVerifyingEmail(true);
+
+    navigate('/verify-email-otp', {
+      state: {
+        email: emailValue,
+        user_type: 'faculty',
+        returnTo: '/signup'
+      }
+    });
+
+    axios.post('http://localhost:5000/api/faculty/verify-email/send-otp', {
+      email: emailValue,
+      user_type: 'faculty'
+    }).catch(() => {
+      alert('Failed to send OTP');
+    });
+
+    setVerifyingEmail(false);
   };
 
-  // REAL API SUBMIT
+  // Handle Verify Phone
+  const handleVerifyPhone = async () => {
+    let phoneValue = form.phone.trim().replace(/\D/g, '');
+    if (phoneValue.startsWith('91') && phoneValue.length === 12) {
+      phoneValue = phoneValue.substring(2);
+    }
+    if (!phoneValue || phoneValue.length !== 10) {
+      alert('Please enter a valid 10-digit Indian phone number');
+      return;
+    }
+
+    // Save current form before leaving the page
+    sessionStorage.setItem('facultySignupForm', JSON.stringify(form));
+
+    setVerifyingPhone(true);
+
+    try {
+      const res = await axios.post('http://localhost:5000/api/faculty/verify-phone/send-otp', {
+        phone: phoneValue,
+        user_type: 'faculty'
+      });
+      if (res.data.success) {
+        navigate('/verify-phone-otp', {
+          state: {
+            phone: phoneValue,
+            user_type: 'faculty',
+            returnTo: '/signup',
+            isPhoneVerification: true
+          }
+        });
+      } else {
+        alert(res.data.message || 'Failed to send OTP to phone');
+      }
+    } catch (err) {
+      console.error('Phone OTP error:', err);
+      alert(err.response?.data?.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setVerifyingPhone(false);
+    }
+  };
+
+  // Handle Signup
   const handleSignup = async (e) => {
     e.preventDefault();
-
     if (!form.termsAccepted) return alert('Accept Terms & Conditions');
-    // if (!emailVerified || !phoneVerified)
-    //   return alert('Please verify both email and phone');
+    if (!emailVerified) return alert('Please verify your email first');
+    if (!phoneVerified) return alert('Please verify your phone number first');
     if (form.shortCV && countWords(form.shortCV) > 100)
       return alert('Short CV must be ≤ 100 words');
     if (form.password !== form.confirmPassword)
@@ -171,7 +236,6 @@ const FacultySignup = () => {
     formData.append('password', form.password);
     formData.append('employmentStatus', form.employmentStatus);
     formData.append('university', form.university.trim() || '');
-
     if (form.profilePicture) {
       formData.append('profilePicture', form.profilePicture);
     }
@@ -181,14 +245,45 @@ const FacultySignup = () => {
         method: 'POST',
         body: formData,
       });
-
       const data = await res.json();
 
       if (data.success) {
-        alert('Signup successful! Your account is pending admin approval.\nYou will be notified once approved.');
-        navigate('/login'); // or home page
+        // Full cleanup
+        sessionStorage.removeItem('facultySignupForm');
+        sessionStorage.removeItem('facultyEmailVerified');
+        sessionStorage.removeItem('facultyPhoneVerified');
+
+        setProfilePreview(null);
+        setEmailVerified(false);
+        setPhoneVerified(false);
+        
+        alert(
+          'Signup successful! Your account is pending admin approval.\nYou will be notified once approved.'
+        );
+
+        // Reset form completely
+        setForm({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          address: '',
+          employmentStatus: '',
+          designation: '',
+          qualification: '',
+          shortCV: '',
+          profilePicture: null,
+          linkedin: '',
+          instagram: '',
+          facebook: '',
+          password: '',
+          confirmPassword: '',
+          termsAccepted: false,
+          university: '',
+        });
+        navigate('/login');
       } else {
-        alert('Signup failed: ' + data.error);
+        alert('Signup failed: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
       console.error('Signup error:', err);
@@ -210,7 +305,6 @@ const FacultySignup = () => {
               Join Cybernetics LMS Professional Network
             </p>
           </div>
-
           <form onSubmit={handleSignup} className="space-y-6">
             {/* Name */}
             <div className="grid md:grid-cols-2 gap-5">
@@ -236,7 +330,9 @@ const FacultySignup = () => {
 
             {/* University Dropdown */}
             <div className="relative mb-4" ref={dropdownRef}>
-              <label className="block text-sm font-medium text-gray-700 mb-2">University / Institute</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                University / Institute
+              </label>
               <div className="relative">
                 <School className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                 <input
@@ -253,7 +349,9 @@ const FacultySignup = () => {
                   onClick={toggleDropdown}
                   className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
                 >
-                  <ChevronDown className={`w-5 h-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-5 h-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+                  />
                 </button>
               </div>
               {showDropdown && (
@@ -286,19 +384,20 @@ const FacultySignup = () => {
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 pr-36 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={emailVerified}
+                className={`w-full px-4 py-3 pr-36 border rounded-lg focus:ring-2 focus:ring-blue-500 ${emailVerified ? 'bg-green-50 border-green-300 cursor-not-allowed' : 'border-gray-300'}`}
               />
               <button
                 type="button"
-                onClick={() => sendOTP('email')}
-                disabled={verifyingEmail || emailVerified}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md transition ${
+                onClick={handleVerifyEmail}
+                disabled={verifyingEmail || emailVerified || !form.email.trim()}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm font-medium rounded-md transition ${
                   emailVerified
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-green-100 text-green-700 cursor-default'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
-                } ${verifyingEmail ? 'opacity-50' : ''}`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {emailVerified ? 'Verified' : verifyingEmail ? 'Sending...' : 'Verify Email'}
+                {emailVerified ? 'Verified ✓' : verifyingEmail ? 'Sending...' : 'Verify Email'}
               </button>
             </div>
 
@@ -311,20 +410,27 @@ const FacultySignup = () => {
                 value={form.phone}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 pr-36 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={phoneVerified}
+                className={`w-full px-4 py-3 pr-36 border rounded-lg focus:ring-2 focus:ring-blue-500 ${phoneVerified ? 'bg-green-50 border-green-300 cursor-not-allowed' : 'border-gray-300'}`}
               />
-              <button
-                type="button"
-                onClick={() => sendOTP('phone')}
-                disabled={verifyingPhone || phoneVerified}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium rounded-md transition ${
-                  phoneVerified
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                } ${verifyingPhone ? 'opacity-50' : ''}`}
-              >
-                {phoneVerified ? 'Verified' : verifyingPhone ? 'Sending...' : 'Verify Phone'}
-              </button>
+              {phoneVerified ? (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm font-medium bg-green-100 text-green-700 rounded-md flex items-center gap-1">
+                  Verified <Check className="w-4 h-4" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleVerifyPhone}
+                  disabled={verifyingPhone || phoneVerified || !form.phone.trim()}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 text-sm font-medium rounded-md transition ${
+                    verifyingPhone
+                      ? 'bg-gray-400 text-white cursor-wait'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {verifyingPhone ? 'Sending...' : 'Verify Phone'}
+                </button>
+              )}
             </div>
 
             <textarea
@@ -461,9 +567,7 @@ const FacultySignup = () => {
               onChange={handleChange}
               required
               minLength="8"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                passwordError ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${passwordError ? 'border-red-500' : 'border-gray-300'}`}
             />
 
             <div>
@@ -475,9 +579,7 @@ const FacultySignup = () => {
                 onChange={handleChange}
                 required
                 minLength="8"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  passwordError ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${passwordError ? 'border-red-500' : 'border-gray-300'}`}
               />
               {passwordError && (
                 <p className="mt-1 text-sm text-red-600">{passwordError}</p>
@@ -512,7 +614,9 @@ const FacultySignup = () => {
                 !form.termsAccepted ||
                 passwordError ||
                 !form.password ||
-                form.password.length < 8
+                form.password.length < 8 ||
+                !emailVerified ||
+                !phoneVerified
               }
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >

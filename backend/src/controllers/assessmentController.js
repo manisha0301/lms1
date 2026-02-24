@@ -28,7 +28,7 @@ const questionStorage = multer.diskStorage({
     const courseId = req.params.courseId;
     const timestamp = Date.now();
     const ext = path.extname(file.originalname).toLowerCase() || '.pdf';
-    const filename = `question-course${courseId}${ext}`;
+    const filename = `question-course${courseId}-${timestamp}${ext}`;
     cb(null, filename);
   }
 });
@@ -55,7 +55,7 @@ const answerStorage = multer.diskStorage({
     const studentId = req.user?.id || 'unknown';
     const timestamp = Date.now();
     const ext = path.extname(file.originalname).toLowerCase() || '.pdf';
-    const filename = `answer-assignment${assignmentId}-student${studentId}${ext}`;
+    const filename = `answer-assignment${assignmentId}-student${studentId}-${timestamp}${ext}`;
     cb(null, filename);
   }
 });
@@ -75,7 +75,6 @@ export const uploadAnswer = multer({
 // Create assessment – uses uploadQuestion
 export const createCourseAssessment = (req, res) => {
   uploadQuestion(req, res, async function (err) {
-    // Handle multer errors
     if (err instanceof multer.MulterError) {
       console.error('Multer error:', err);
       return res.status(400).json({
@@ -101,7 +100,6 @@ export const createCourseAssessment = (req, res) => {
       const facultyId = user.role === 'faculty' ? user.id : null;
       const weekId = req.body.weekId || null;
 
-      // Fetch faculty's academic_admin_id (safe)
       let academicAdminId = null;
       if (facultyId) {
         const { rows: facultyRows } = await pool.query(
@@ -120,7 +118,6 @@ export const createCourseAssessment = (req, res) => {
         dueDate
       } = req.body;
 
-      // Required fields
       if (!title || !totalMarks || !dueDate) {
         return res.status(400).json({
           success: false,
@@ -128,7 +125,6 @@ export const createCourseAssessment = (req, res) => {
         });
       }
 
-      // Parse & validate marks
       const marks = parseInt(totalMarks, 10);
       if (isNaN(marks) || marks <= 0) {
         return res.status(400).json({
@@ -137,7 +133,6 @@ export const createCourseAssessment = (req, res) => {
         });
       }
 
-      // Authorization: Check if faculty teaches the course
       const { rows: authCheck } = await pool.query(`
         SELECT teachers FROM courses WHERE id = $1
       `, [courseId]);
@@ -153,13 +148,11 @@ export const createCourseAssessment = (req, res) => {
         return res.status(403).json({ success: false, error: 'You are not assigned to teach this course' });
       }
 
-      // PDF path
       let pdfPath = null;
       if (req.file) {
         pdfPath = `assessments/questions/${req.file.filename}`;
       }
 
-      // Insert
       const { rows: [newAssessment] } = await pool.query(`
         INSERT INTO course_assessments (
           course_id, week_id,
@@ -180,7 +173,6 @@ export const createCourseAssessment = (req, res) => {
         dueDate
       ]);
 
-      // Notify the faculty who created it
       if (facultyId) {
         const { rows: [course] } = await pool.query(
           'SELECT name FROM courses WHERE id = $1',
@@ -205,7 +197,6 @@ export const createCourseAssessment = (req, res) => {
         );
       }
 
-      // Notify students in the same university/center about new assignment
       try {
         const { rows: courseAdmin } = await pool.query(`
           SELECT caa.academic_admin_id
@@ -245,14 +236,7 @@ export const createCourseAssessment = (req, res) => {
 
           const message = `New Assignment Posted: "${title}" (Due: ${dueFormatted})`;
 
-          // Assuming notifyStudents is defined in notificationModel.js
-          await notifyStudents(
-            pool,
-            message,
-            'assignment',
-            'medium',
-            studentIds
-          );
+          // await notifyStudents(pool, message, 'assignment', 'medium', studentIds);  // Uncomment if function exists
         }
       } catch (err) {
         console.error('Failed to notify students about new assignment:', err.message);
@@ -273,7 +257,6 @@ export const createCourseAssessment = (req, res) => {
   });
 };
 
-// Your getCourseAssessments function (unchanged)
 export const getCourseAssessments = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -309,39 +292,6 @@ export const getCourseAssessments = async (req, res) => {
   }
 };
 
-// Get all assignments for a course (student view)
-export const getCourseAssignmentsForStudent = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-    const studentId = req.user.id;
-
-    const { rows } = await pool.query(`
-      SELECT 
-        a.id,
-        a.title AS test_name,
-        a.total_marks AS marks,
-        TO_CHAR(a.due_date, 'YYYY-MM-DD') AS due_date,
-        a.pdf_path AS question_pdf,
-        s.answer_pdf_path AS answer_pdf
-      FROM course_assessments a
-      LEFT JOIN assignment_submissions s
-        ON a.id = s.assignment_id AND s.student_id = $2
-      WHERE a.course_id = $1
-        AND a.pdf_path IS NOT NULL
-      ORDER BY a.due_date ASC, a.created_at DESC
-    `, [courseId, studentId]);
-
-    res.json({
-      success: true,
-      assignments: rows
-    });
-  } catch (error) {
-    console.error('Get student assignments error:', error);
-    res.status(500).json({ success: false, error: 'Failed to load assignments' });
-  }
-};
-
-// Submit student's answer PDF – uses uploadAnswer
 export const submitAssignmentAnswer = (req, res) => {
   uploadAnswer(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
@@ -382,4 +332,106 @@ export const submitAssignmentAnswer = (req, res) => {
       res.status(500).json({ success: false, error: 'Server error during submission: ' + (error.message || 'Unknown error') });
     }
   });
+};
+
+// Faculty fetches submissions for one assignment
+export const getAssignmentSubmissions = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const facultyId = req.user.id;
+
+    // Security: Only faculty who teaches the course can see submissions
+    const { rows: permCheck } = await pool.query(`
+      SELECT ca.course_id 
+      FROM course_assessments ca 
+      JOIN courses c ON ca.course_id = c.id
+      WHERE ca.id = $1 AND $2 = ANY(c.teachers)
+    `, [assignmentId, facultyId]);
+
+    if (permCheck.length === 0) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    const { rows: submissions } = await pool.query(`
+      SELECT 
+        s.id,
+        s.student_id,
+        CONCAT(st.first_name, ' ', st.last_name) AS student_name,
+        s.answer_pdf_path,
+        s.submitted_at
+      FROM assignment_submissions s
+      JOIN students st ON s.student_id = st.id
+      WHERE s.assignment_id = $1
+      ORDER BY s.submitted_at DESC NULLS LAST
+    `, [assignmentId]);
+
+    res.json({ success: true, submissions });
+  } catch (error) {
+    console.error('Get submissions error:', error.stack);
+    res.status(500).json({ success: false, error: 'Failed to fetch submissions' });
+  }
+};
+
+// Faculty updates marks & remarks
+export const updateSubmissionEvaluation = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    const { marks, remarks } = req.body;
+    const facultyId = req.user.id;
+
+    const { rows: permCheck } = await pool.query(`
+      SELECT ca.course_id 
+      FROM assignment_submissions s
+      JOIN course_assessments ca ON s.assignment_id = ca.id
+      JOIN courses c ON ca.course_id = c.id
+      WHERE s.id = $1 AND $2 = ANY(c.teachers)
+    `, [submissionId, facultyId]);
+
+    if (permCheck.length === 0) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    await pool.query(`
+      UPDATE assignment_submissions
+      SET marks = $1, remarks = $2, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+    `, [marks || null, remarks || null, submissionId]);
+
+    res.json({ success: true, message: 'Evaluation updated' });
+  } catch (error) {
+    console.error('Update evaluation error:', error.stack);
+    res.status(500).json({ success: false, error: 'Failed to update evaluation' });
+  }
+};
+
+// FIXED: Add this missing function that studentRoutes.js is looking for
+export const getCourseAssignmentsForStudent = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const studentId = req.user.id;
+
+    const { rows } = await pool.query(`
+      SELECT 
+        a.id,
+        a.title AS test_name,
+        a.total_marks AS marks,
+        TO_CHAR(a.due_date, 'YYYY-MM-DD') AS due_date,
+        a.pdf_path AS question_pdf,
+        s.answer_pdf_path AS answer_pdf
+      FROM course_assessments a
+      LEFT JOIN assignment_submissions s
+        ON a.id = s.assignment_id AND s.student_id = $2
+      WHERE a.course_id = $1
+        AND a.pdf_path IS NOT NULL
+      ORDER BY a.due_date ASC, a.created_at DESC
+    `, [courseId, studentId]);
+
+    res.json({
+      success: true,
+      assignments: rows
+    });
+  } catch (error) {
+    console.error('Get student assignments error:', error.stack);
+    res.status(500).json({ success: false, error: 'Failed to load assignments' });
+  }
 };

@@ -315,84 +315,172 @@ export const getCourseAssignments = async (req, res) => {
 
 export const getCoursesForManagement = async (req, res) => {
   try {
+    console.log('Starting getCoursesForManagement...');
+
     const { rows: academicsData } = await pool.query(`
       SELECT 
-        aa.id as "academicId",
-        aa.full_name as "academicName",
-        aa.email as "academicEmail",
-        aa.academic_name as center,
-        COUNT(DISTINCT caa.course_id) as "totalCourses",
-        0 as "totalStudents",
-        0 as "totalRevenue",
+        aa.id AS "academicId",
+        aa.full_name AS "academicName",
+        aa.email AS "academicEmail",
+        aa.academic_name AS center,
+        aa.status,
+        
+        COALESCE((
+          SELECT COUNT(DISTINCT caa.course_id)
+          FROM course_academic_assignments caa
+          WHERE caa.academic_admin_id = aa.id
+        ), 0) AS "totalCourses",
+        
+        COALESCE((
+          SELECT COUNT(*)
+          FROM students s
+          WHERE s.graduation_university = aa.academic_name
+        ), 0) AS "totalStudents",
+        
+        0 AS "totalRevenue",
+
         COALESCE(
           JSONB_AGG(
             DISTINCT JSONB_BUILD_OBJECT(
-              'id', c.id,
-              'title', c.name,
-              'code', UPPER(SPLIT_PART(c.name, ' ', 1)) || '-' || UPPER(SPLIT_PART(aa.full_name, ' ', 1)) || '-25A',
-              'duration', c.duration,
-              'startDate', COALESCE((c.batches->0->>'startDate')::text, '2025-01-01'),
-              'totalStudents', 0,
-              'activeStudents', 0,
-              'examsConducted', 0,
-              'totalExams', 0,
-              'completedAssignments', 0,
-              'totalAssignments', 0,
-              'avgAttendance', 0,
-              'revenue', 0,
-              'status', 'Ongoing',
-              'batchSize', 350,
-              'completionRate', 87,
-              'topPerformer', 'Rohan Mehta',
-              'lastActivity', '2 hours ago',
-              'teachers', c.teachers
+              'id',              c.id,
+              'title',           c.name,
+              'code',            COALESCE(UPPER(SPLIT_PART(c.name, ' ', 1)) || '-' || 
+                                 UPPER(REGEXP_REPLACE(aa.full_name, '[^A-Z0-9]', '', 'g')) || '-25A', 'N/A'),
+              'faculty',         NULL,
+              'status',          'Ongoing',
+              
+              'totalStudents',   COALESCE((
+                SELECT COUNT(*) 
+                FROM students s 
+                WHERE s.graduation_university = aa.academic_name
+              ), 0),
+              
+              'examsConducted',  CASE 
+                                   WHEN aa.academic_name = 'Horizon College' THEN 0 
+                                   ELSE COALESCE((
+                                     SELECT COUNT(DISTINCT es.exam_id)
+                                     FROM exam_slots es
+                                     JOIN exams e ON es.exam_id = e.id
+                                     WHERE e.course_id = c.id
+                                   ), 0)
+                                 END,
+              
+              'totalExams',      CASE 
+                                   WHEN aa.academic_name = 'Horizon College' THEN 0 
+                                   ELSE COALESCE((
+                                     SELECT COUNT(*)
+                                     FROM exams e
+                                     WHERE e.course_id = c.id
+                                   ), 0)
+                                 END,
+              
+              'completedAssignments', CASE 
+                                        WHEN aa.academic_name = 'Horizon College' THEN 0 
+                                        ELSE COALESCE((
+                                          SELECT COUNT(DISTINCT sub.student_id)
+                                          FROM assignment_submissions sub
+                                          JOIN course_assessments ca ON sub.assignment_id = ca.id
+                                          WHERE ca.course_id = c.id
+                                        ), 0)
+                                      END,
+              
+              'totalAssignments', CASE 
+                                    WHEN aa.academic_name = 'Horizon College' THEN 0 
+                                    ELSE COALESCE((
+                                      SELECT COUNT(*)
+                                      FROM course_assessments ca
+                                      WHERE ca.course_id = c.id
+                                    ), 0)
+                                  END,
+              
+              'revenue',         0,
+              'duration',        c.duration,
+              'teachers',        COALESCE(c.teachers, '{}')
             )
           ) FILTER (WHERE c.id IS NOT NULL),
           '[]'::jsonb
-        ) as courses
+        ) AS courses
+
       FROM academic_admins aa
-      LEFT JOIN course_academic_assignments caa ON aa.id = caa.academic_admin_id
-      LEFT JOIN courses c ON c.id = caa.course_id
+      LEFT JOIN course_academic_assignments caa 
+             ON aa.id = caa.academic_admin_id
+      LEFT JOIN courses c 
+             ON c.id = caa.course_id
+      
       WHERE aa.status = 'Active'
-      GROUP BY aa.id
+      
+      GROUP BY 
+        aa.id, aa.full_name, aa.email, aa.academic_name, aa.status
+      
       ORDER BY aa.full_name ASC
     `);
 
-    const allTeacherIds = new Set();
-    academicsData.forEach(ac => {
-      ac.courses.forEach(course => {
-        if (course.teachers && Array.isArray(course.teachers)) {
-          course.teachers.forEach(id => allTeacherIds.add(id));
-        }
-      });
-    });
+    console.log(`Fetched ${academicsData.length} academics`);
 
-    let facultyMap = {};
-    if (allTeacherIds.size > 0) {
-      const { rows: faculties } = await pool.query(
-        'SELECT id, full_name FROM faculty WHERE id = ANY($1)',
-        [Array.from(allTeacherIds)]
-      );
-      facultyMap = Object.fromEntries(faculties.map(f => [f.id, f.full_name])); 
+    // Process faculty safely - no await in map
+    const processedAcademics = [];
+    for (const ac of academicsData) {
+      const processedCourses = [];
+
+      for (const course of (ac.courses || [])) {
+        let facultyName = 'No faculty assigned';
+
+        try {
+          if (course.teachers && Array.isArray(course.teachers) && course.teachers.length > 0) {
+            const courseTeacherIds = course.teachers
+              .map(id => Number(id))
+              .filter(id => !isNaN(id) && id > 0);
+
+            if (courseTeacherIds.length > 0) {
+              const { rows: facultyRows } = await pool.query(`
+                SELECT id, full_name
+                FROM faculty 
+                WHERE id = ANY($1)
+                  AND academic_admin_id = $2
+              `, [courseTeacherIds, ac.academicId]);
+
+              const nameMap = {};
+              facultyRows.forEach(f => {
+                nameMap[f.id] = f.full_name;
+              });
+
+              facultyName = courseTeacherIds
+                .map(id => nameMap[id] || null)
+                .filter(name => name !== null)
+                .join(', ') || 'No faculty assigned';
+            }
+          }
+        } catch (innerErr) {
+          console.error(`Faculty error for academic ${ac.academicId || 'unknown'}, course ${course.id || 'unknown'}:`, innerErr.message);
+          facultyName = 'Error loading faculty';
+        }
+
+        processedCourses.push({
+          ...course,
+          faculty: facultyName,
+          totalStudents: Number(course.totalStudents) || 0,
+          revenue: Number(course.revenue) || 0,
+        });
+      }
+
+      processedAcademics.push({
+        ...ac,
+        courses: processedCourses,
+        totalStudents: Number(ac.totalStudents) || 0,
+        totalRevenue: Number(ac.totalRevenue) || 0,
+        totalCourses: Number(ac.totalCourses) || 0,
+      });
     }
 
-    academicsData.forEach(ac => {
-      ac.courses.forEach(course => {
-        if (course.teachers && course.teachers.length > 0) {
-          course.faculty = course.teachers
-            .map(id => facultyMap[id] || 'Unknown Faculty')
-            .join(', ');
-        } else {
-          course.faculty = 'No faculty assigned';
-        }
-        delete course.teachers;
-      });
-    });
+    res.json({ success: true, academicsData: processedAcademics });
 
-    res.json({ success: true, academicsData });
   } catch (error) {
-    console.error('Get courses management error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch management data' });
+    console.error('Get courses management CRASH:', error.message);
+    console.error('Full stack trace:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error - see backend console for details'
+    });
   }
 };
 

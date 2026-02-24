@@ -5,6 +5,11 @@ import { getCourse } from '../controllers/courseController.js';
 import { protectStudent } from '../middleware/authMiddleware.js'; 
 import { getCourseExamLink } from '../controllers/examController.js';
 import { getCourseAssignmentsForStudent, submitAssignmentAnswer } from '../controllers/assessmentController.js';
+import { getChapterVideoForStudent } from '../controllers/videoController.js';
+import { sendEmailOTP, verifyEmailOTP } from '../controllers/verificationController.js';
+
+// ADD THIS IMPORT FOR PHONE OTP
+import { sendOTP, verifyOTP, resendOTP } from '../controllers/otpController.js';
 
 const router = express.Router();
 
@@ -17,7 +22,7 @@ router.post('/login', studentLogin);
 // Get courses for logged-in student (protected)
 router.get('/courses', protectStudent, getStudentCourses);
 
-// Get course details for students
+// Course details for students
 router.get('/courses/:id', protectStudent, getCourse);
 
 router.get('/profile', protectStudent, getStudentProfile);
@@ -36,5 +41,16 @@ router.get('/courses/:courseId/assignments', protectStudent, getCourseAssignment
 
 // Submit answer PDF
 router.post('/assignments/:assignmentId/submit', protectStudent, submitAssignmentAnswer);
+
+router.get('/chapter-video/:chapterId', protectStudent, getChapterVideoForStudent);
+
+// Email OTP routes
+router.post('/verify-email/send-otp', sendEmailOTP);
+router.post('/verify-email/verify-otp', verifyEmailOTP);
+
+// NEW: Phone OTP routes for student
+router.post('/verify-phone/send-otp', sendOTP);
+router.post('/verify-phone/verify-otp', verifyOTP);
+router.post('/verify-phone/resend-otp', resendOTP);
 
 export default router;
