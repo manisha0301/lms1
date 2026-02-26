@@ -307,7 +307,7 @@ export default function AssignmentManagement() {
                   <div className="flex flex-col gap-3">
                     {assignment.pdf_path && (
                       <a
-                        href={`http://localhost:5000/uploads/${assignment.pdf_path}`}
+                        href={`${apiConfig.API_BASE_URL}/uploads/${assignment.pdf_path}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
@@ -499,7 +499,7 @@ export default function AssignmentManagement() {
                           <td className="px-6 py-4">
                             {sub.answer_pdf_path ? (
                               <a
-                                href={`http://localhost:5000/uploads/${sub.answer_pdf_path}`}
+                                href={`${apiConfig.API_BASE_URL}/uploads/${sub.answer_pdf_path}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-indigo-600 hover:underline text-sm flex items-center gap-1"

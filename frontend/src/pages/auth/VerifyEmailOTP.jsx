@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Mail, Shield, CheckCircle, ArrowLeft } from 'lucide-react';
+import apiConfig from '../../config/apiConfig';
 
 export default function VerifyEmailOTP() {
   const location = useLocation();
@@ -71,8 +72,8 @@ export default function VerifyEmailOTP() {
 
       const baseURL =
         user_type === 'student'
-          ? 'http://localhost:5000/api/auth/student'
-          : 'http://localhost:5000/api/faculty';
+          ? `${apiConfig.API_BASE_URL}/api/auth/student`
+          : `${apiConfig.API_BASE_URL}/api/faculty`;
 
       const res = await axios.post(
         `${baseURL}/verify-email/verify-otp`,
@@ -126,8 +127,8 @@ export default function VerifyEmailOTP() {
 
       const baseURL =
         user_type === 'student'
-          ? 'http://localhost:5000/api/auth/student'
-          : 'http://localhost:5000/api/faculty';
+          ? `${apiConfig.API_BASE_URL}/api/auth/student`
+          : `${apiConfig.API_BASE_URL}/api/faculty`;
 
       const res = await axios.post(
         `${baseURL}/verify-email/send-otp`,

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone, School, Calendar, Check, ArrowRight, Eye, EyeOff } from "lucide-react";
+import apiConfig from "../../config/apiConfig";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Login = () => {
   setLoading(true);
 
   try {
-    const response = await fetch("http://localhost:5000/api/auth/admin/login", {
+    const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData)

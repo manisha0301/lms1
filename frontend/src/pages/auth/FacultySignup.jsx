@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { School, ChevronDown, Check } from 'lucide-react';
 import axios from 'axios';
 import { useRef } from 'react';
+import apiConfig from '../../config/apiConfig';
 
 const FacultySignup = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const FacultySignup = () => {
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/auth/superadmin/institutes');
+        const res = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/superadmin/institutes`);
         if (res.data.success) {
           setUniversities(res.data.institutes);
           setFilteredUniversities(res.data.institutes);
@@ -155,7 +156,7 @@ const FacultySignup = () => {
       }
     });
 
-    axios.post('http://localhost:5000/api/faculty/verify-email/send-otp', {
+    axios.post(`${apiConfig.API_BASE_URL}/api/faculty/verify-email/send-otp`, {
       email: emailValue,
       user_type: 'faculty'
     }).catch(() => {
@@ -182,7 +183,7 @@ const FacultySignup = () => {
     setVerifyingPhone(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/faculty/verify-phone/send-otp', {
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/faculty/verify-phone/send-otp`, {
         phone: phoneValue,
         user_type: 'faculty'
       });
@@ -241,7 +242,7 @@ const FacultySignup = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/faculty/signup', {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/faculty/signup`, {
         method: 'POST',
         body: formData,
       });

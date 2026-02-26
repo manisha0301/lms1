@@ -7,6 +7,7 @@ import {
   MapPin, Shield, AlertCircle, ArrowLeft, Check, X as RejectIcon,
   Calendar1
 } from "lucide-react";
+import apiConfig from "../../config/apiConfig";
 
 const FacultyManagement = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -28,7 +29,7 @@ const FacultyManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch('http://localhost:5000/api/auth/admin/faculty', {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/faculty`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -50,7 +51,7 @@ const FacultyManagement = () => {
     const fetchCourses = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch('http://localhost:5000/api/auth/admin/courses', {
+        const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/courses`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -103,7 +104,7 @@ const FacultyManagement = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch('http://localhost:5000/api/auth/admin/faculty', {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/faculty`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData
@@ -135,7 +136,7 @@ const FacultyManagement = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/auth/admin/faculty/${facultyId}/approve`, {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/faculty/${facultyId}/approve`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,7 +167,7 @@ const FacultyManagement = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/auth/admin/faculty/${facultyId}/reject`, {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/faculty/${facultyId}/reject`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -294,7 +295,7 @@ const FacultyManagement = () => {
                           <div className="flex items-center gap-4">
                             {faculty.profile_picture ? (
                               <img
-                                src={`http://localhost:5000/uploads/faculty/${faculty.profile_picture}`}
+                                src={`${apiConfig.API_BASE_URL}/uploads/faculty/${faculty.profile_picture}`}
                                 alt={faculty.name}
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-300"
                               />
@@ -334,7 +335,7 @@ const FacultyManagement = () => {
                           <div className="flex items-center justify-between mb-4">
                             {request.profile_picture ? (
                               <img
-                                src={`http://localhost:5000/uploads/faculty/${request.profile_picture}`}
+                                src={`${apiConfig.API_BASE_URL}/uploads/faculty/${request.profile_picture}`}
                                 alt={request.name}
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-300"
                               />
@@ -392,7 +393,7 @@ const FacultyManagement = () => {
                         <div className="flex justify-center mb-4">
                           {faculty.profile_picture ? (
                             <img
-                              src={`http://localhost:5000/uploads/faculty/${faculty.profile_picture}`}
+                              src={`${apiConfig.API_BASE_URL}/uploads/faculty/${faculty.profile_picture}`}
                               alt={faculty.name}
                               className="w-24 h-24 rounded-full object-cover border-4 border-[#1e3a8a]"
                             />
@@ -449,7 +450,7 @@ const FacultyManagement = () => {
                         <div className="flex justify-center mb-4">
                           {request.profile_picture ? (
                             <img
-                              src={`http://localhost:5000/uploads/faculty/${request.profile_picture}`}
+                              src={`${apiConfig.API_BASE_URL}/uploads/faculty/${request.profile_picture}`}
                               alt={request.name}
                               className="w-24 h-24 rounded-full object-cover border-4 border-[#1e3a8a]"
                             />

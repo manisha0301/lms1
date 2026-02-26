@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { BookOpen, Clock, CheckCircle, AlertCircle, Search, Filter, Shield } from 'lucide-react';
+import apiConfig from '../../config/apiConfig';
 
 const OTPVerification = () => {
   const location = useLocation();
@@ -59,7 +60,7 @@ const OTPVerification = () => {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/student/verify-phone/verify-otp', {
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-phone/verify-otp`, {
         phone,
         otp: otpValue,
         user_type,
@@ -94,7 +95,7 @@ const OTPVerification = () => {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/student/verify-phone/resend-otp', {
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-phone/resend-otp`, {
         phone,
         user_type,
       });

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import apiConfig from '../../config/apiConfig';
 
 export default function AdminDashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -38,7 +39,7 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/auth/admin/courses', {
+        const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/courses`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/auth/admin/notifications?limit=5', {
+        const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/notifications?limit=5`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

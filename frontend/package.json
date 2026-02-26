@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:student": "cross-env PORT=5173 vite",
+    "dev:faculty": "cross-env PORT=5174 vite",
+    "dev:academic": "cross-env PORT=5175 vite",
+    "dev:admin": "cross-env PORT=5176 vite",
+    "dev:superadmin": "cross-env PORT=5177 vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -27,6 +32,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.24",

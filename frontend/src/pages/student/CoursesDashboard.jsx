@@ -7,6 +7,7 @@ import {
   Megaphone, Activity, X
 } from 'lucide-react';
 import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
 
 export default function CoursesDashboard() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function CoursesDashboard() {
         }
 
         // 1. Fetch courses
-        const coursesRes = await axios.get('http://localhost:5000/api/auth/student/courses', {
+        const coursesRes = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/student/courses`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -43,7 +44,7 @@ export default function CoursesDashboard() {
         }
 
         // 2. Fetch real notifications
-        const notifRes = await axios.get('http://localhost:5000/api/auth/student/notifications?limit=10', {
+        const notifRes = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/student/notifications?limit=10`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -275,7 +276,7 @@ export default function CoursesDashboard() {
                 <div className="h-40 relative overflow-hidden">
                   <img 
                     src={course.thumbnail 
-                      ? `http://localhost:5000/uploads/${course.thumbnail}` 
+                      ? `${apiConfig.API_BASE_URL}/uploads/${course.thumbnail}` 
                       : "https://via.placeholder.com/400x300/6b7280/ffffff?text=No+Image"
                     }
                     alt={course.title}

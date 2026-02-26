@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import apiConfig from '../../config/apiConfig';
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ const SuperAdminDashboard = () => {
     const fetchStats = async () => {
   try {
     const token = localStorage.getItem('superAdminToken');
-    const response = await fetch('http://localhost:5000/api/auth/superadmin/stats', {
+    const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/stats`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -76,7 +77,7 @@ const SuperAdminDashboard = () => {
       const token = localStorage.getItem('superAdminToken');
 
       // Fetch recent (limit 4)
-      const recentRes = await fetch('http://localhost:5000/api/auth/superadmin/notifications?limit=4', {
+      const recentRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications?limit=4`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const recentData = await recentRes.json();
@@ -92,7 +93,7 @@ const SuperAdminDashboard = () => {
       }
 
       // Fetch full list
-      const fullRes = await fetch('http://localhost:5000/api/auth/superadmin/notifications', {
+      const fullRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const fullData = await fullRes.json();

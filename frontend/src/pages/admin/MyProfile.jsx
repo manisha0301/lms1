@@ -21,6 +21,7 @@ import {
   EyeOff
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import apiConfig from "../../config/apiConfig";
 
 const MyProfile = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ const MyProfile = () => {
           return;
         }
 
-        const res = await fetch("http://localhost:5000/api/auth/admin/profile", {
+        const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -85,7 +86,7 @@ const MyProfile = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/auth/admin/profile", {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -155,7 +156,7 @@ const MyProfile = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("http://localhost:5000/api/auth/admin/change-password", {
+      const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

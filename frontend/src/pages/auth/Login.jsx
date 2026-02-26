@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Phone, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
+import apiConfig from "../../config/apiConfig";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/student/login", {
+      const response = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/login`, {
         email: formData.identifier.includes("@") ? formData.identifier.trim() : undefined,
         mobileNumber: !formData.identifier.includes("@") ? formData.identifier.trim() : undefined,
         password: formData.password

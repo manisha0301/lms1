@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
+import apiConfig from "../../config/apiConfig";
 
 const SuperAdminLogin = () => {
   const [loading, setLoading] = useState(false);
@@ -22,7 +23,7 @@ const SuperAdminLogin = () => {
 
     try {
       // Replace with your actual super admin login endpoint
-      const response = await fetch("http://localhost:5000/api/auth/superadmin/login", {
+      const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)

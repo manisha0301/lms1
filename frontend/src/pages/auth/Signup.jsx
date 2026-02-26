@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import axios from "axios";
+import apiConfig from "../../config/apiConfig";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const Signup = () => {
     const fetchInstitutes = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:5000/api/auth/superadmin/institutes"
+          `${apiConfig.API_BASE_URL}/api/auth/superadmin/institutes`
         );
         if (res.data.success) {
           const instituteList = res.data.institutes;
@@ -143,7 +144,7 @@ const Signup = () => {
       }
     });
 
-    axios.post('http://localhost:5000/api/auth/student/verify-email/send-otp', {
+    axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-email/send-otp`, {
       email,
       user_type: 'student'
     }).catch(() => {
@@ -166,7 +167,7 @@ const Signup = () => {
     sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/student/verify-phone/send-otp', {
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-phone/send-otp`, {
         phone,
         user_type: 'student'
       });
@@ -213,7 +214,7 @@ const Signup = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/student/signup",
+        `${apiConfig.API_BASE_URL}/api/auth/student/signup`,
         {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),

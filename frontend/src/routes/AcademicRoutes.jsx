@@ -7,12 +7,14 @@ import PendingApprovals from "../pages/academic/PendingApprovals";
 import AcademicLogin from "../pages/auth/AcademicLogin";
 import AcademicSettings from "../pages/academic/AcademicSettings";
 import MyProfile from "../pages/academic/MyProfile";
+import AcademicSignup from "../pages/auth/AcademicSignup";
 
 export default function AcademicRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
       <Route path="/login" element={<AcademicLogin />} />
+      <Route path="/signup" element={<AcademicSignup />} />
       <Route path="/dash" element={<AcademicDashboard />} />
       <Route path="/totalcourses" element={<TotalCourses />} />
       <Route path="/centers" element={<CentersManagement />} />
