@@ -77,20 +77,94 @@ export const createFaculty = async (req, res) => {
   try {
     const {
       fullName, email, phone, address,
-      designation, qualification, employmentStatus, password,
-      academicAdminId   // ← NEW: Get academic admin ID from request body
+      designation, qualification, employmentStatus, password
     } = req.body;
 
-    console.log('Logged in user ID (req.user.id):', req.user?.id);
-    console.log('Received academicAdminId from form:', academicAdminId);
+    // ────────────────────────────────────────────────
+    // VALIDATION – mirroring academic admin creation
+    // ────────────────────────────────────────────────
 
+    // Required fields
     if (!fullName || !email || !password) {
-      return res.status(400).json({ success: false, error: 'Name, email and password required' });
+      return res.status(400).json({
+        success: false,
+        error: "Full name, email and password are required"
+      });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    // 1. Full Name
+    const trimmedFullName = (fullName || '').trim();
+    const nameRegex = /^[A-Za-z ]+$/;
+    if (!nameRegex.test(trimmedFullName)) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name must contain only letters and spaces (no numbers, symbols, or special characters)"
+      });
     }
+    if (trimmedFullName.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name is too short (minimum 2 characters)"
+      });
+    }
+    if (trimmedFullName.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name is too long (maximum 100 characters)"
+      });
+    }
+
+    // 2. Email
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid email address"
+      });
+    }
+    // Block suspicious TLD ending with digit
+    const domainPart = trimmedEmail.split('@')[1] || '';
+    const tld = domainPart.split('.').pop() || '';
+    if (/\d$/.test(tld)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email domain – top-level domain cannot end with a number"
+      });
+    }
+
+    // 3. Phone (optional but strong validation when provided)
+    let cleanedPhone = null;
+    if (phone && phone.trim()) {
+      cleanedPhone = phone.replace(/[\s\-+]/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!phoneRegex.test(cleanedPhone)) {
+        return res.status(400).json({
+          success: false,
+          error: "Mobile number must be a valid 10-digit Indian number starting with 6-9 (e.g., 9876543210)"
+        });
+      }
+    }
+
+    // 4. Password
+    if (password.length < 8 || password.length > 16) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be between 8 and 16 characters long"
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      });
+    }
+
+    // ────────────────────────────────────────────────
+    // Create
+    // ────────────────────────────────────────────────
 
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
@@ -98,36 +172,31 @@ export const createFaculty = async (req, res) => {
     const profile_picture = req.file ? req.file.filename : null;
 
     const newFaculty = await addFaculty({
-      full_name: fullName,
-      email,
-      phone,
-      address,
-      designation,
-      qualification,
-      employment_status: employmentStatus,
+      full_name: trimmedFullName,
+      email: trimmedEmail,
+      phone: cleanedPhone,
+      address: address?.trim() || null,
+      designation: designation?.trim() || null,
+      qualification: qualification?.trim() || null,
+      employment_status: employmentStatus || 'Employed',
       password_hash,
       profile_picture,
-      status: 'Active',  // Admin bypasses approval
-      academic_admin_id: academicAdminId || req.user.id  // ← NEW: Set the admin ID
+      status: 'Active',
+      academic_admin_id: req.user.id   // Important: current academic admin
     });
 
-    //Notify the Academic Admin this faculty belongs to
-
-    const targetAdminId = academicAdminId || req.user.id;
-
-    if (targetAdminId) {
-      const message = `New faculty joined: ${newFaculty.full_name} (${newFaculty.designation || 'Faculty'})`;
-
-      await addNotificationForAcademicAdmins(
-        pool,
-        message,
-        'faculty',       // notification type
-        'medium',        // priority
-        [targetAdminId]  // only this one admin gets notified
-      );
-    }
+    // Notification to this academic admin (optional – already notifying self)
+    const message = `New faculty added: ${newFaculty.full_name} (${newFaculty.designation || 'Faculty'})`;
+    await addNotificationForAcademicAdmins(
+      pool,
+      message,
+      'faculty',
+      'medium',
+      [req.user.id]
+    );
 
     res.status(201).json({ success: true, faculty: newFaculty });
+
   } catch (error) {
     console.error('Create faculty error:', error);
     if (error.code === '23505') {
@@ -253,7 +322,7 @@ export const updateFacultyDetails = async (req, res) => {
   }
 };
 
-// Delete faculty
+// Delete faculty (admin action)
 export const deleteFacultyMember = async (req, res) => {
   try {
     const { facultyId } = req.params;
@@ -292,7 +361,7 @@ export const facultySignup = async (req, res) => {
       facebookUrl,
       password,
       employmentStatus,
-      university   // ← Changed: Now receiving university NAME from frontend
+      university
     } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
@@ -660,7 +729,7 @@ export const updateFacultyProfile = async (req, res) => {
 
     const { rows } = await pool.query(`
       UPDATE faculty 
-      SET ${Object.keys(updates).map((k, i) => `${k} = $${i + 1}`).join(', ')}, updated_at = CURRENT_TIMESTAMP
+      SET ${Object.keys(updates).map((k, i) => `${k} = $${i + 1}`).join(', ')}
       WHERE id = $${Object.keys(updates).length + 1}
       RETURNING code, full_name, email, phone, designation, qualification, profile_picture, created_at AS joining_date
     `, [...Object.values(updates), facultyId]);
@@ -849,5 +918,121 @@ export const getFacultyNotifications = async (req, res) => {
   } catch (err) {
     console.error('Get faculty notifications error:', err);
     res.status(500).json({ success: false, error: 'Failed to load notifications' });
+  }
+};
+
+// Change faculty password (mirrors superAdmin & student pattern)
+export const changeFacultyPassword = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    // VALIDATION
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "All password fields are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password and confirm password do not match"
+      });
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 16) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must be between 8 and 16 characters long"
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      });
+    }
+
+    // Fetch current hashed password
+    const { rows } = await pool.query(
+      'SELECT password_hash FROM faculty WHERE id = $1',
+      [facultyId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Faculty not found"
+      });
+    }
+
+    const storedHash = rows[0].password_hash;
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, storedHash);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: "Current password is incorrect"
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await pool.query(
+      'UPDATE faculty SET password_hash = $1 WHERE id = $2',
+      [newPasswordHash, facultyId]
+    );
+
+    console.log("Password updated for faculty ID:", facultyId);
+
+    res.json({
+      success: true,
+      message: "Password changed successfully"
+    });
+
+  } catch (error) {
+    console.error("Faculty Change Password Error →", error.message);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+// Permanently delete faculty account
+export const deleteFacultyAccount = async (req, res) => {
+  try {
+    const facultyId = req.user.id; // from JWT
+
+    console.log(`Deleting faculty account ID: ${facultyId}`);
+
+    const { rowCount } = await pool.query(
+      'DELETE FROM faculty WHERE id = $1',
+      [facultyId]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Faculty account not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Faculty account deleted permanently'
+    });
+
+  } catch (error) {
+    console.error('Delete faculty account error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during faculty account deletion'
+    });
   }
 };

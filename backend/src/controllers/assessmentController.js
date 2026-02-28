@@ -355,10 +355,13 @@ export const getAssignmentSubmissions = async (req, res) => {
     const { rows: submissions } = await pool.query(`
       SELECT 
         s.id,
-        s.student_id,
+        st.student_id AS student_code,
         CONCAT(st.first_name, ' ', st.last_name) AS student_name,
         s.answer_pdf_path,
-        s.submitted_at
+        s.submitted_at,
+        s.marks,
+        s.remarks,
+        s.graded_at
       FROM assignment_submissions s
       JOIN students st ON s.student_id = st.id
       WHERE s.assignment_id = $1
@@ -393,9 +396,16 @@ export const updateSubmissionEvaluation = async (req, res) => {
 
     await pool.query(`
       UPDATE assignment_submissions
-      SET marks = $1, remarks = $2, updated_at = CURRENT_TIMESTAMP
+      SET 
+        marks = $1,
+        remarks = $2,
+        graded_at = CURRENT_TIMESTAMP
       WHERE id = $3
-    `, [marks || null, remarks || null, submissionId]);
+    `, [
+      marks !== undefined ? marks : null,
+      remarks !== undefined ? remarks : null,
+      submissionId
+    ]);
 
     res.json({ success: true, message: 'Evaluation updated' });
   } catch (error) {
@@ -417,7 +427,9 @@ export const getCourseAssignmentsForStudent = async (req, res) => {
         a.total_marks AS marks,
         TO_CHAR(a.due_date, 'YYYY-MM-DD') AS due_date,
         a.pdf_path AS question_pdf,
-        s.answer_pdf_path AS answer_pdf
+        s.answer_pdf_path AS answer_pdf,
+        s.marks AS marks_obtained,
+        s.remarks AS remarks
       FROM course_assessments a
       LEFT JOIN assignment_submissions s
         ON a.id = s.assignment_id AND s.student_id = $2

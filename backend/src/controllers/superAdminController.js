@@ -110,10 +110,18 @@ const superAdminChangePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 8 || newPassword.length > 16) {
       return res.status(400).json({
         success: false,
-        error: "New password must be at least 8 characters long"
+        error: "New password must be between 8 and 16 characters long"
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
       });
     }
 
@@ -177,8 +185,11 @@ export const getDashboardStats = async (req, res) => {
     );
     const totalCentres = parseInt(centresCount[0].count, 10);
 
-    // 4. Exams Conducted – kept as dummy (0) as per your request
-    const examsConducted = 0;
+    // 4. Total Exams (real count from exams table)
+    const { rows: examsCount } = await pool.query(
+      'SELECT COUNT(*) FROM exams'
+    );
+    const examsConducted = parseInt(examsCount[0].count, 10);
 
     // Optional: Keep your existing counts if you still want them
     const academicsResult = await pool.query('SELECT COUNT(*) FROM academic_admins');
@@ -193,7 +204,7 @@ export const getDashboardStats = async (req, res) => {
         totalStudents,
         totalFaculties,
         totalCentres,
-        examsConducted,
+        totalExams: examsConducted,
         totalAcademics,     // optional
         totalCourses        // optional
       }
@@ -269,12 +280,41 @@ export const getAcademicInstitutes = async (req, res) => {
   }
 };
 
-export { superAdminLogin, superAdminChangePassword };
-
 export const updateSuperAdminProfile = async (req, res) => {
   try {
     const { fullName, phone } = req.body;
     const userId = req.user.id;
+
+    // Full name validation (only letters and spaces)
+    if (fullName) {
+      const trimmedName = fullName.trim();
+      const nameRegex = /^[A-Za-z ]+$/;
+      if (!nameRegex.test(trimmedName)) {
+        return res.status(400).json({
+          success: false,
+          error: "Full name must contain only letters and spaces"
+        });
+      }
+      if (trimmedName.length < 2 || trimmedName.length > 100) {
+        return res.status(400).json({
+          success: false,
+          error: "Full name must be between 2 and 100 characters"
+        });
+      }
+    }
+
+    // Phone number validation (optional, but strict Indian 10-digit if provided)
+    let cleanedPhone = null;
+    if (phone) {
+      cleanedPhone = phone.replace(/[\s\-+]/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!phoneRegex.test(cleanedPhone)) {
+        return res.status(400).json({
+          success: false,
+          error: "Phone number must be a valid 10-digit Indian number starting with 6-9 (e.g., 9876543210)"
+        });
+      }
+    }
 
     // Build dynamic SET clause
     const updates = [];
@@ -288,7 +328,7 @@ export const updateSuperAdminProfile = async (req, res) => {
     }
     if (phone) {
       updates.push(`phone = $${paramIndex}`);
-      values.push(phone.trim());
+      values.push(cleanedPhone); // store clean version
       paramIndex++;
     }
 
@@ -321,3 +361,5 @@ export const updateSuperAdminProfile = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 };
+
+export { superAdminLogin, superAdminChangePassword };

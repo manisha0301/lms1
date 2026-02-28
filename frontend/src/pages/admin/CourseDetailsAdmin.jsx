@@ -204,7 +204,7 @@ const CourseDetailsAdmin = () => {
         if (!token) return;
 
         const response = await fetch(
-          "http://localhost:5000/api/auth/admin/university-students",
+          `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/students-progress`,
           {
             method: "GET",
             headers: {
@@ -222,7 +222,7 @@ const CourseDetailsAdmin = () => {
             name: s.name || "Unknown Student",
             phone: s.phone || s.mobile_number || "—",
             email: s.email || "—",
-            assignments: "0", // placeholder for now
+            assignments: s.submitted_assignments,
             exams: "0",       // placeholder for now
           }));
 
@@ -561,12 +561,12 @@ const CourseDetailsAdmin = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left min-w-[800px]">
                     <thead>
-                  <tr className="text-gray-600 border-b border-gray-200">
-                    <th className="py-3 px-4">Name</th>
-                    <th className="py-3 px-4">Mobile</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Assignments</th>
-                    <th className="py-3 px-4">Exams</th>
+                      <tr className="text-gray-600 border-b border-gray-200">
+                        <th className="py-3 px-4">Name</th>
+                        <th className="py-3 px-4">Mobile</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Assignments</th>
+                        <th className="py-3 px-4">Exams</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -575,11 +575,11 @@ const CourseDetailsAdmin = () => {
                           key={student.id}
                           className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                         >
-                           <td className="py-4 px-4 font-medium text-gray-900">{student.name}</td>
-                      <td className="py-4 px-4 text-gray-600">{student.phone}</td>
-                      <td className="py-4 px-4 text-gray-600">{student.email}</td>
-                      <td className="py-4 px-4 text-gray-600">{student.assignments} submitted</td>
-                      <td className="py-4 px-4 text-gray-600">{student.exams} attempted</td>
+                          <td className="py-4 px-4 font-medium text-gray-900">{student.name}</td>
+                          <td className="py-4 px-4 text-gray-600">{student.phone}</td>
+                          <td className="py-4 px-4 text-gray-600">{student.email}</td>
+                          <td className="py-4 px-4 text-gray-600">{student.assignments} submitted</td>
+                          <td className="py-4 px-4 text-gray-600">{student.exams} attempted</td>
                         </tr>
                       ))}
                     </tbody>

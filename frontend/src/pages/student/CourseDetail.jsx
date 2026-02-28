@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Play, FileText, Calendar, Clock, CheckCircle, 
   Lock, CreditCard, Users, Video, BookOpen, Award,
-  Download, X, Loader2
+  Download, X, Loader2, Star
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
@@ -13,8 +13,12 @@ export default function CourseDetail() {
   // Helper to format date as DD-MM-YYYY
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}-${month}-${year}`;
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   // Assignment Modal State
@@ -32,6 +36,11 @@ export default function CourseDetail() {
   const [activeExam, setActiveExam] = useState(null);
   const [examLoading, setExamLoading] = useState(true);
 
+  // NEW: Exam Results Modal & Data
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [examResults, setExamResults] = useState([]);
+  const [examResultsLoading, setExamResultsLoading] = useState(false);
+
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -45,6 +54,10 @@ export default function CourseDetail() {
   const [videoData, setVideoData] = useState(null);
   const [loadingVideo, setLoadingVideo] = useState(false);
   const [videoError, setVideoError] = useState('');
+
+  // Added Rating State
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
 
   const todayLiveClass = useMemo(() => {
     if (!course?.liveClasses || course.liveClasses.length === 0) return null;
@@ -156,6 +169,8 @@ export default function CourseDetail() {
           // Handle single object response
           if (dbCourse.contents && Array.isArray(dbCourse.contents)) {
             sections = dbCourse.contents;
+          } else if (dbCourse.sections && Array.isArray(dbCourse.sections)) {
+            sections = dbCourse.sections;
           }
         }
 
@@ -177,33 +192,10 @@ export default function CourseDetail() {
             { topic: 'No upcoming sessions', instructor: 'TBA', date: 'TBA', time: 'TBA', link: '#' }
           ],
 
-          // Real course content from database
-          sections: sections,
+          // Real course content from database - safe fallback
+          sections: sections || [],
 
-          // Dummy content remains unchanged (fallback)
-          modules: [
-            {
-              id: 1,
-              title: 'Module 1: Fundamentals',
-              chapters: [
-                { id: 1, title: 'Introduction to React', duration: '45 min', type: 'video', locked: true },
-                { id: 2, title: 'JSX & Components', duration: '60 min', type: 'video', locked: true },
-                { id: 3, title: 'State & Props', duration: '55 min', type: 'video', locked: true },
-                { id: 4, title: 'Quiz: Basics', type: 'quiz', locked: true }
-              ]
-            },
-            {
-              id: 2,
-              title: 'Module 2: Advanced Concepts',
-              chapters: [
-                { id: 5, title: 'Hooks Deep Dive', duration: '70 min', type: 'video', locked: true },
-                { id: 6, title: 'Context API', duration: '50 min', type: 'video', locked: true },
-                { id: 7, title: 'Assignment: Todo App', type: 'assignment', locked: true }
-              ]
-            }
-          ],
-          examLink: null,
-          notes: []
+          // ... rest of your course object ...
         });
       } catch (err) {
         console.error("Course fetch failed:", err);
@@ -215,6 +207,33 @@ export default function CourseDetail() {
 
     fetchCourse();
   }, [id]);
+
+  // NEW: Fetch the logged-in user's own rating for this course on page load / refresh
+  useEffect(() => {
+    const fetchMyRating = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/student/courses/${id}/my-rating`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
+        if (res.data.success && res.data.rating !== null) {
+          setUserRating(res.data.rating); // Restore your previous rating after refresh
+        }
+      } catch (err) {
+        console.error('Failed to fetch your previous rating:', err);
+      }
+    };
+
+    if (!loading && id) {
+      fetchMyRating();
+    }
+  }, [id, loading]);
 
   // NEW: Fetch real exam activation status
   useEffect(() => {
@@ -243,6 +262,33 @@ export default function CourseDetail() {
     fetchActiveExam();
   }, [id]);
 
+  // NEW: Fetch real exam results when modal opens
+  useEffect(() => {
+    if (!showExamModal || !id) return;
+
+    const fetchExamResults = async () => {
+      setExamResultsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/student/courses/${id}/exam-results`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (res.data.success) {
+          setExamResults(res.data.results || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch exam results:", err);
+        setExamResults([]);
+      } finally {
+        setExamResultsLoading(false);
+      }
+    };
+
+    fetchExamResults();
+  }, [showExamModal, id]);
+
   // Fetch real assignments when modal opens
   useEffect(() => {
     if (showAssignmentModal && id) {
@@ -259,6 +305,7 @@ export default function CourseDetail() {
 
           if (res.data.success) {
             setAssignments(res.data.assignments || []);
+            console.log("Assignments fetched:", res.data.assignments);
           }
         } catch (err) {
           console.error("Failed to load assignments:", err);
@@ -329,10 +376,9 @@ export default function CourseDetail() {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get(
-          `${apiConfig.API_BASE_URL}/api/auth/student/chapter-video/${chapter.id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      
+        `${apiConfig.API_BASE_URL}/api/auth/student/chapter-video/${chapter.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       if (res.data?.success && res.data.video) {
         setVideoData(res.data.video);
@@ -348,6 +394,39 @@ export default function CourseDetail() {
       }
     } finally {
       setLoadingVideo(false);
+    }
+  };
+
+  // NEW: Submit rating to backend
+  const handleSubmitRating = async (selectedRating) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please login to rate this course');
+        return;
+      }
+
+      const response = await axios.post(
+        `${apiConfig.API_BASE_URL}/api/auth/student/courses/${id}/rate`,
+        { rating: selectedRating },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setUserRating(selectedRating); // Update local state to show filled stars
+        alert(`Thank you! You rated this course ${selectedRating}/5`);
+      } else {
+        alert(response.data.error || 'Failed to submit rating');
+      }
+    } catch (err) {
+      console.error('Rating submission error:', err);
+      const errorMsg = err.response?.data?.error || 'Something went wrong. Please try again.';
+      alert(errorMsg);
     }
   };
 
@@ -378,6 +457,32 @@ export default function CourseDetail() {
               <p className="text-blue-100 text-lg leading-relaxed mb-8 max-w-3xl">
                 {course.description}
               </p>
+
+              {/* ⭐ Interactive Rating */}
+              <div className="flex items-left gap-2 mt-4 flex-col">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={28}
+                      className={`cursor-pointer transition ${
+                        (hoverRating || userRating) >= star
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => handleSubmitRating(star)}
+                    />
+                  ))}
+                </div>
+                <span className="text-blue-100 text-sm">
+                  {userRating > 0
+                    ? `You rated this course ${userRating} / 5`
+                    : "Rate this course"}
+                </span>
+              </div>
+
               {!isRegistered && (
                 <div className="flex flex-wrap gap-8 text-blue-50">
                   <div className="flex items-center gap-3">
@@ -558,7 +663,7 @@ export default function CourseDetail() {
                 )}
 
                 {/* Notes */}
-                {course.notes.length > 0 && (
+                {course.notes?.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
                       <FileText className="w-6 h-6 text-[#1e40af]" /> Downloadable Notes
@@ -631,7 +736,84 @@ export default function CourseDetail() {
                       No Active Exam
                     </button>
                   )}
+                  <button 
+                    onClick={() => setShowExamModal(true)}
+                    className="mt-3 text-sm text-blue-600 hover:underline cursor-pointer"
+                  >
+                    View Exam Results
+                  </button>
                 </div>
+
+                {showExamModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 relative max-h-[80vh] overflow-y-auto">
+                      <button
+                        className="absolute top-4 right-4 text-gray-500 hover:text-red-600 text-2xl font-bold cursor-pointer"
+                        onClick={() => setShowExamModal(false)}
+                      >
+                        <X />
+                      </button>
+                      <h2 className="text-2xl font-bold mb-6 text-[#1e3a8a]">Exam Results</h2>
+
+                      {examResultsLoading ? (
+                        <div className="text-center py-10">
+                          <Loader2 className="w-10 h-10 animate-spin text-[#1e3a8a] mx-auto" />
+                          <p className="mt-4 text-gray-600">Loading your results...</p>
+                        </div>
+                      ) : examResults.length === 0 ? (
+                        <div className="text-center py-10 text-gray-600">
+                          No exam results available yet.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+                            <thead className="bg-[#1e3a8a] text-white">
+                              <tr>
+                                <th className="px-4 py-3 text-center text-sm">Submitted At</th>
+                                <th className="px-4 py-3 text-center text-sm">Full Marks</th>
+                                <th className="px-4 py-3 text-center text-sm">Marks Obtained</th>
+                                <th className="px-4 py-3 text-center text-sm">Remarks</th>
+                                <th className="px-4 py-3 text-center text-sm">Answer Sheet</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {examResults.map((exam, index) => (
+                                <tr key={index} className="border-b hover:bg-blue-50">
+                                  <td className="px-4 py-3 text-center text-sm">
+                                    {formatDate(exam.submitted_at)}
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-sm font-medium">
+                                    {exam.full_marks}
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-sm font-medium">
+                                    {exam.marks_obtained ?? 'Not Graded'}
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-sm">
+                                    {exam.remarks || '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {exam.answer_pdf_path ? (
+                                      <a
+                                        href={`${apiConfig.API_BASE_URL}/uploads/${exam.answer_pdf_path}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 font-semibold hover:underline text-sm"
+                                      >
+                                        View Answer Sheet
+                                      </a>
+                                    ) : (
+                                      <span className="text-gray-500 text-sm">Not Available</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
                   <FileText className="w-12 h-12 text-orange-600 mx-auto mb-4" />
@@ -667,10 +849,12 @@ export default function CourseDetail() {
                             <thead className="bg-[#1e3a8a] text-white">
                               <tr>
                                 <th className="px-4 py-3 text-left">Test Name</th>
-                                <th className="px-4 py-3 text-center">Marks</th>
+                                <th className="px-4 py-3 text-center">Full Marks</th>
                                 <th className="px-4 py-3 text-center">Due Date</th>
                                 <th className="px-4 py-3 text-center">Question</th>
                                 <th className="px-4 py-3 text-center">Answer</th>
+                                <th className="px-4 py-3 text-center">Marks Obtained</th>
+                                <th className="px-4 py-3 text-center">Remarks</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -722,6 +906,8 @@ export default function CourseDetail() {
                                       {(a.answer_pdf || uploadedAnswers[a.id]) ? 'Re-upload' : 'Upload'}
                                     </button>
                                   </td>
+                                  <td className="px-4 py-3 text-center">{a.marks_obtained ?? 'Not Assigned'}</td>
+                                  <td className="px-4 py-3 text-center">{a.remarks ?? 'Not Assigned'}</td>
                                 </tr>
                               ))}
                             </tbody>

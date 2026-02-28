@@ -18,7 +18,7 @@ export default function AdminDashboard() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // ─── Real states for notifications ───────────────────────────────
+  // ─── Real states for notifications 
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 

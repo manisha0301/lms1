@@ -1,9 +1,9 @@
 // src/pages/student/ProfileDashboard.jsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   User, Mail, Phone, Calendar, Clock, BookOpen,
   CheckCircle, AlertCircle, Edit2, LogOut, Award,
-  FileText, Users, ChevronRight
+  FileText, Users, ChevronRight, UploadCloud, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -19,6 +19,30 @@ export default function ProfileDashboard() {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+
+  const [assignmentStats, setAssignmentStats] = useState({
+    totalAssignments: 0,
+    submittedAssignments: 0,
+    pendingAssignments: 0,
+    progressPercent: 0
+  });
+
+  const [todayExam, setTodayExam] = useState(null);
+  const [examLoading, setExamLoading] = useState(true);
+
+  // INTERACTIVE UPLOAD STATES
+  const fileInputRef = useRef(null);
+  const [showExamModal, setShowExamModal] = useState(false);
+  const [selectedExamId, setSelectedExamId] = useState("");
+  const [examFile, setExamFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragActive, setDragActive] = useState(false);
+
+  // NEW: State for live grace period tracking
+  const [graceActive, setGraceActive] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -74,6 +98,223 @@ export default function ProfileDashboard() {
     fetchUpcomingClasses();
   }, []);
 
+  useEffect(() => {
+    const fetchAssignmentProgress = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/student/assignment-progress`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (res.data.success) {
+          setAssignmentStats(res.data);
+        }
+      } catch (err) {
+        console.error('Assignment progress fetch error:', err);
+      }
+    };
+
+    fetchAssignmentProgress();
+  }, []);
+
+  // Fetch today's active exam from all enrolled courses
+  useEffect(() => {
+    const fetchTodayExam = async () => {
+      setExamLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const coursesRes = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/auth/student/courses`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!coursesRes.data.success || !coursesRes.data.courses?.length) {
+          setTodayExam(null);
+          setExamLoading(false);
+          return;
+        }
+
+        const enrolledCourses = coursesRes.data.courses;
+
+        let activeExam = null;
+        for (const course of enrolledCourses) {
+          const courseId = course.id || course.course_id;
+          if (!courseId) continue;
+
+          try {
+            const examRes = await axios.get(
+              `${apiConfig.API_BASE_URL}/api/auth/student/courses/${courseId}/exam-link`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (examRes.data.success && examRes.data.exam) {
+              activeExam = examRes.data.exam;
+              break;
+            }
+          } catch (err) {
+            console.warn(`No active exam for course ${courseId}:`, err.message);
+          }
+        }
+
+        setTodayExam(activeExam);
+      } catch (err) {
+        console.error('Failed to fetch today\'s exam:', err);
+        setTodayExam(null);
+      } finally {
+        setExamLoading(false);
+      }
+    };
+
+    fetchTodayExam();
+  }, []);
+
+  // NEW: Live grace period checker (runs immediately + every 60 seconds)
+  useEffect(() => {
+    if (!todayExam) {
+      setGraceActive(false);
+      return;
+    }
+
+    const checkGrace = () => {
+      const active = isWithinGracePeriod();
+      setGraceActive(active);
+    };
+
+    checkGrace(); // run immediately
+
+    const interval = setInterval(checkGrace, 60000); // every 1 minute
+
+    return () => clearInterval(interval);
+  }, [todayExam]);
+
+  const handleFileValidation = (file) => {
+    if (!file) return;
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setErrorMsg("Only PDF or DOC files are allowed.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("File size must be under 5MB.");
+      return;
+    }
+
+    setExamFile(file);
+    setErrorMsg("");
+  };
+
+  const handleUpload = async () => {
+    if (!selectedExamId || !examFile) {
+      setErrorMsg("Please select exam and upload file.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setUploadProgress(0);
+      setErrorMsg("");
+      setSuccessMsg("");
+
+      const token = localStorage.getItem('token');
+
+      const formData = new FormData();
+      formData.append("examId", selectedExamId);
+      formData.append("file", examFile);
+
+      await axios.post(
+        `${apiConfig.API_BASE_URL}/api/auth/student/upload-exam`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data"
+          },
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percent);
+          }
+        }
+      );
+
+      setSuccessMsg("Exam answers uploaded successfully!");
+
+      setTimeout(() => {
+        setShowExamModal(false);
+        setExamFile(null);
+        setUploadProgress(0);
+        setSelectedExamId("");
+        setSuccessMsg("");
+      }, 1500);
+
+    } catch (err) {
+      // ────────────────────────────────────────────────
+      // IMPROVED ERROR HANDLING – shows exact backend message
+      // ────────────────────────────────────────────────
+      let errorMessage = "Upload failed. Please try again.";
+
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.status === 403) {
+        errorMessage = "You have already submitted answers for this exam.";
+      } else if (err.response?.status === 400) {
+        errorMessage = err.response.data?.error || "Invalid file or request.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setErrorMsg(errorMessage);
+      console.error("Upload error:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Helper to format 24h time to 12h AM/PM
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    return `${formattedHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Check if we are still within the 15-minute grace period after exam end
+  const isWithinGracePeriod = () => {
+    if (!todayExam || !todayExam.date || !todayExam.endTime) {
+      return false;
+    }
+
+    // Combine date and time into a valid date string
+    const examEndStr = `${todayExam.date}T${todayExam.endTime}:00`;
+    const examEnd = new Date(examEndStr);
+
+    if (isNaN(examEnd.getTime())) {
+      console.warn("Could not parse exam end time:", examEndStr);
+      return true; // fallback - allow if parsing fails
+    }
+
+    const now = new Date();
+    const graceEnd = new Date(examEnd.getTime() + 15 * 60 * 1000); // +15 minutes
+
+    return now <= graceEnd;
+  };
+
+  const canUploadExam = todayExam && graceActive;
+
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -120,36 +361,6 @@ export default function ProfileDashboard() {
     alert(`Navigating to course: ${id}`);
   };
 
-  const pendingAssignments = 3;
-
-  const registeredCourses = [
-    { id: 'react-101', title: 'React Masterclass', progress: 80, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop',
-      exams: { completed: 1, total: 3, next: { name: 'Midterm Quiz', date: '2025-11-25', link: 'https://exam.kristellar.com/react-midterm' } } },
-    { id: 'vue-301', title: 'Vue.js Essentials', progress: 100, thumbnail: 'https://images.unsplash.com/photo-1619410283995-43d9134e7656?w=200&h=200&fit=crop',
-      exams: { completed: 3, total: 3, next: null } },
-    { id: 'node-201', title: 'Node.js Advanced', progress: 45, thumbnail: 'https://images.unsplash.com/photo-1610986603166-f78428624e76?w=200&h=200&fit=crop',
-      exams: { completed: 0, total: 4, next: { name: 'API Project Review', date: '2025-12-01', link: 'https://exam.kristellar.com/node-review' } } },
-    { id: 'python-401', title: 'Python Basics', progress: 60, thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f65d4af39a5?w=200&h=200&fit=crop',
-      exams: { completed: 2, total: 5, next: { name: 'Data Structures Exam', date: '2025-11-28', link: 'https://exam.kristellar.com/python-ds' } } },
-    { id: 'java-501', title: 'Java Enterprise', progress: 30, thumbnail: 'https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=200&h=200&fit=crop',
-      exams: { completed: 1, total: 4, next: { name: 'Spring Boot Test', date: '2025-12-10', link: 'https://exam.kristellar.com/java-spring' } } }
-  ];
-
-  // Calculate overall progress from registered courses
-  const overallProgress = registeredCourses.length > 0
-    ? Math.round(registeredCourses.reduce((sum, c) => sum + c.progress, 0) / registeredCourses.length)
-    : 0;
-
-  // Calculate exam progress from registered courses
-  const examProgress = registeredCourses.reduce((acc, c) => ({
-    completed: acc.completed + c.exams.completed,
-    total: acc.total + c.exams.total,
-    nextExams: [...acc.nextExams, c.exams.next].filter(Boolean)
-  }), { completed: 0, total: 0, nextExams: [] });
-
-  const upcomingExam = examProgress.nextExams
-    .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
-
   const initials = profile ? `${profile.firstName?.charAt(0) || ''}${profile.lastName?.charAt(0) || ''}`.toUpperCase() : '';
 
   const todayUpcomingClass = useMemo(() => {
@@ -157,6 +368,8 @@ export default function ProfileDashboard() {
     const todayISO = new Date().toISOString().split('T')[0];
     return upcomingClasses.find(cls => cls.rawDate === todayISO);
   }, [upcomingClasses]);
+
+  const overallProgress = assignmentStats.progressPercent || 0;
 
   if (loading) {
     return (
@@ -173,7 +386,6 @@ export default function ProfileDashboard() {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
@@ -240,7 +452,6 @@ export default function ProfileDashboard() {
                   </div>
                 </div>
               )}
-
             </div>
           </div>
         </div>
@@ -303,7 +514,9 @@ export default function ProfileDashboard() {
                   <p className="text-xs text-orange-700">Submit these before the deadline</p>
                 </div>
               </div>
-              <span className="text-3xl font-black text-orange-600">{pendingAssignments}</span>
+              <span className="text-3xl font-black text-orange-600">
+                {assignmentStats.pendingAssignments}
+              </span>
             </div>
           </div>
 
@@ -317,20 +530,60 @@ export default function ProfileDashboard() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="flex flex-col justify-center items-center p-6 border border-gray-100 rounded-xl">
-                <p className="text-4xl font-black text-gray-800">{examProgress.completed}<span className="text-gray-300 text-2xl mx-1">/</span>{examProgress.total}</p>
-                <p className="text-xs text-gray-500 font-bold uppercase mt-2">Exams Completed</p>
+              {/* Left: Add Exam Answers Card */}
+              <div className="flex flex-col justify-center items-center p-8 border border-gray-100 rounded-xl bg-white shadow-sm">
+                <h4 className="text-xl font-bold text-gray-800 mb-4">
+                  Add Exam Answers
+                </h4>
+
+                <button
+                  onClick={() => setShowExamModal(true)}
+                  disabled={!canUploadExam}
+                  className={`px-8 py-3 rounded-lg font-semibold shadow-md transition-all duration-200 hover:shadow-lg ${
+                    canUploadExam
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 cursor-pointer"
+                      : "bg-gray-400 text-gray-200 cursor-not-allowed opacity-70"
+                  }`}
+                >
+                  {canUploadExam ? "Upload Exam Sheet" : "Upload Closed (Grace Period Ended)"}
+                </button>
               </div>
 
+              {/* Right: Real exam data */}
               <div className="bg-green-50 p-6 rounded-xl border border-green-100 flex flex-col justify-between">
                 <div>
-                  <p className="text-xs text-green-700 font-bold uppercase mb-1">Next Upcoming Exam</p>
-                  <p className="text-gray-900 font-bold">{upcomingExam?.name || "None Scheduled"}</p>
-                  <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> {upcomingExam?.date}
-                  </p>
+                  <p className="text-xs text-green-700 font-bold uppercase mb-1">NEXT UPCOMING EXAM</p>
+
+                  {examLoading ? (
+                    <p className="text-gray-500 mt-2">Loading...</p>
+                  ) : todayExam ? (
+                    <>
+                      <p className="text-xl font-bold text-gray-900">{todayExam.topic}</p>
+                      <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {todayExam.date} {todayExam.startTime ? `${formatTime(todayExam.startTime)} - ${formatTime(todayExam.endTime)}` : ''}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xl font-bold text-gray-900">None Scheduled</p>
+                      <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        N/A
+                      </p>
+                    </>
+                  )}
                 </div>
-                <button className="mt-4 w-full py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm">
+
+                <button
+                  onClick={() => todayExam?.examLink && window.open(todayExam.examLink, '_blank', 'noopener,noreferrer')}
+                  disabled={!todayExam?.is_active_now}
+                  className={`mt-4 w-full py-2 rounded-lg text-sm font-bold transition-colors shadow-sm ${
+                    todayExam?.is_active_now
+                      ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
+                      : 'bg-gray-400 text-white cursor-not-allowed'
+                  }`}
+                >
                   Start Exam
                 </button>
               </div>
@@ -394,6 +647,140 @@ export default function ProfileDashboard() {
                 className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE Upload Exam Modal */}
+      {showExamModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+
+            <button
+              onClick={() => {
+                setShowExamModal(false);
+                setExamFile(null);
+                setUploadProgress(0);
+                setErrorMsg("");
+                setSuccessMsg("");
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+
+            <h3 className="text-xl font-bold text-gray-800 mb-6">
+              Upload Exam Answers
+            </h3>
+
+            {successMsg && (
+              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
+                {successMsg}
+              </div>
+            )}
+
+            {errorMsg && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {errorMsg}
+              </div>
+            )}
+
+            <select
+              value={selectedExamId}
+              onChange={(e) => {
+                setSelectedExamId(e.target.value);
+                setErrorMsg("");
+              }}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg mb-4"
+            >
+              <option value="">Select Exam</option>
+              {todayExam && (
+                <option value={todayExam.id}>
+                  {todayExam.topic}
+                </option>
+              )}
+            </select>
+
+            {/* Drag & Drop Area */}
+            <div
+              onDragEnter={() => setDragActive(true)}
+              onDragLeave={() => setDragActive(false)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+                handleFileValidation(e.dataTransfer.files[0]);
+              }}
+              onClick={() => fileInputRef.current.click()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
+                dragActive
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300 hover:border-blue-400"
+              }`}
+            >
+              <UploadCloud className="mx-auto mb-3 text-blue-600" size={40} />
+              <p className="text-sm text-gray-600">
+                Drag & Drop or Click to Upload
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                PDF / DOC / DOCX (Max 5MB)
+              </p>
+
+              <input
+                type="file"
+                hidden
+                ref={fileInputRef}
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => handleFileValidation(e.target.files[0])}
+              />
+            </div>
+
+            {examFile && (
+              <div className="mt-4 bg-gray-100 p-3 rounded-lg flex justify-between items-center">
+                <span className="truncate text-sm">{examFile.name}</span>
+                <button
+                  onClick={() => setExamFile(null)}
+                  className="text-red-500 text-xs"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {uploadProgress > 0 && (
+              <div className="mt-4">
+                <div className="w-full bg-gray-200 h-2 rounded-full">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1 text-right">
+                  {uploadProgress}%
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowExamModal(false)}
+                className="flex-1 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={submitting}
+                onClick={handleUpload}
+                className={`flex-1 py-2.5 rounded-lg text-white ${
+                  submitting
+                    ? "bg-blue-400"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {submitting ? "Uploading..." : "Submit"}
               </button>
             </div>
           </div>

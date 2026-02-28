@@ -200,7 +200,7 @@ export default function AssignmentManagement() {
       const response = await axios.patch(
         `${apiConfig.API_BASE_URL}/api/faculty/submissions/${submissionId}`,
         { 
-          marks: marks ? parseInt(marks, 10) : null,
+          marks: marks !== '' && marks !== null ? parseInt(marks, 10) : null,
           remarks: remarks || null 
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -211,7 +211,13 @@ export default function AssignmentManagement() {
         // Refresh submissions
         setSubmissions(prev => 
           prev.map(s => 
-            s.id === submissionId ? { ...s, marks, remarks } : s
+            s.id === submissionId 
+              ? { 
+                  ...s, 
+                  marks: marks !== '' && marks !== null ? parseInt(marks, 10) : null,
+                  remarks 
+                } 
+              : s
           )
         );
       }
@@ -516,7 +522,7 @@ export default function AssignmentManagement() {
                               type="number"
                               min="0"
                               max={assignments.find(a => a.id === showDetailsModal)?.total_marks || 100}
-                              value={sub.marks || ''}
+                              value={sub.marks ?? ''}
                               onChange={(e) => {
                                 const newMarks = e.target.value;
                                 setSubmissions(prev => 

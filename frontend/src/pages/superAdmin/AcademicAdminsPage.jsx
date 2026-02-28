@@ -72,18 +72,54 @@ const AcademicAdminsPage = () => {
       setError('Please fill all required fields.');
       return;
     }
+
+    // Full name validation (existing)
+    const trimmedName = newAdmin.fullName.trim();
+    if (!/^[A-Za-z ]+$/.test(trimmedName)) {
+      setError('Full name must contain only letters and spaces.');
+      return;
+    }
+
+    // Email validation - strong regex + block numeric-ending TLD
+    const trimmedEmail = newAdmin.email.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError('Please enter a valid email address (e.g., name@example.com)');
+      return;
+    }
+    // Extra check: reject TLD ending with number (blocks .com678, .org123 etc.)
+    const domainPart = trimmedEmail.split('@')[1] || '';
+    const tld = domainPart.split('.').pop() || '';
+    if (/\d$/.test(tld)) {
+      setError('Invalid email: domain appears suspicious (TLD cannot end with a number)');
+      return;
+    }
+
     if (newAdmin.password !== newAdmin.confirmPassword) {
       setError('Passwords do not match!');
       return;
     }
-    if (newAdmin.password.length < 8) {
-      setError('Password must be at least 8 characters.');
+
+    // Password validation - 8–16 chars, uppercase, lowercase, number, special char
+    if (newAdmin.password.length < 8 || newAdmin.password.length > 16) {
+      setError('Password must be between 8 and 16 characters long.');
       return;
     }
 
-    if (newAdmin.mobile && !/^\+?[0-9]{10,15}$/.test(newAdmin.mobile)) {
-      setError('Please enter a valid mobile number.');
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(newAdmin.password)) {
+      setError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
       return;
+    }
+
+    // Phone validation - Indian mobile: exactly 10 digits starting with 6-9
+    if (newAdmin.mobile) {
+      const cleanedPhone = newAdmin.mobile.replace(/[\s\-+]/g, ''); // remove spaces, -, +
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!phoneRegex.test(cleanedPhone)) {
+        setError('Please enter a valid 10-digit Indian mobile number starting with 6-9 (e.g. 9876543210)');
+        return;
+      }
     }
 
     try {
@@ -93,8 +129,8 @@ const AcademicAdminsPage = () => {
       const response = await axios.post(
         `${API_BASE}/academic-admins`,
         {
-          fullName: newAdmin.fullName.trim(),
-          email: newAdmin.email.trim().toLowerCase(),
+          fullName: trimmedName,
+          email: trimmedEmail,
           mobile: newAdmin.mobile || null,
           role: newAdmin.role,
           academicAdmins: newAdmin.academicAdmins.trim(),
@@ -281,9 +317,24 @@ const AcademicAdminsPage = () => {
                     required
                     value={newAdmin.fullName}
                     onChange={(e) => setNewAdmin({ ...newAdmin, fullName: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent ${
+                      newAdmin.fullName && !/^[A-Za-z ]+$/.test(newAdmin.fullName.trim())
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                     placeholder="Enter full name"
+                    title="Only letters and spaces are allowed (no numbers, symbols)"
+                    onKeyPress={(e) => {
+                      if (!/[A-Za-z ]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                   />
+                  {newAdmin.fullName && !/^[A-Za-z ]+$/.test(newAdmin.fullName.trim()) && (
+                    <p className="mt-1 text-sm text-red-600">
+                      Name must contain only letters and spaces.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -295,9 +346,26 @@ const AcademicAdminsPage = () => {
                     required
                     value={newAdmin.email}
                     onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent ${
+                      newAdmin.email.trim() &&
+                      (
+                        !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(newAdmin.email.trim().toLowerCase()) ||
+                        /\d$/.test((newAdmin.email.split('@')[1] || '').split('.').pop() || '')
+                      )
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                     placeholder="name@kristellar.com"
                   />
+                  {newAdmin.email.trim() &&
+                    (
+                      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(newAdmin.email.trim().toLowerCase()) ||
+                      /\d$/.test((newAdmin.email.split('@')[1] || '').split('.').pop() || '')
+                    ) && (
+                      <p className="mt-1 text-sm text-red-600">
+                        Invalid email format
+                      </p>
+                    )}
                 </div>
 
                 <div>
@@ -308,9 +376,20 @@ const AcademicAdminsPage = () => {
                     type="tel"
                     value={newAdmin.mobile}
                     onChange={(e) => setNewAdmin({ ...newAdmin, mobile: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent ${
+                      newAdmin.mobile &&
+                      !/^[6789]\d{9}$/.test(newAdmin.mobile.replace(/[\s\-+]/g, ''))
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                     placeholder="+91 98765 43210"
                   />
+                  {newAdmin.mobile &&
+                    !/^[6789]\d{9}$/.test(newAdmin.mobile.replace(/[\s\-+]/g, '')) && (
+                      <p className="mt-1 text-sm text-red-600">
+                        Phone number must be 10 digits (e.g., 9876543210)
+                      </p>
+                    )}
                 </div>
 
                 <div>
@@ -342,21 +421,6 @@ const AcademicAdminsPage = () => {
                   />
                 </div>
 
-                {/* <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Department <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newAdmin.department}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, department: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
-                    placeholder="e.g., Computer Science & Engineering"
-                  />
-                </div> */}
-
-                {/* Password fields remain unchanged */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Password <span className="text-red-500">*</span>
@@ -366,8 +430,27 @@ const AcademicAdminsPage = () => {
                     required
                     value={newAdmin.password}
                     onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent ${
+                      newAdmin.password &&
+                      (
+                        newAdmin.password.length < 8 ||
+                        newAdmin.password.length > 16 ||
+                        !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/.test(newAdmin.password)
+                      )
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                   />
+                  {newAdmin.password &&
+                    (
+                      newAdmin.password.length < 8 ||
+                      newAdmin.password.length > 16 ||
+                      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/.test(newAdmin.password)
+                    ) && (
+                      <p className="mt-1 text-sm text-red-600">
+                        Password must be 8–16 characters with uppercase, lowercase, number, and special character
+                      </p>
+                    )}
                 </div>
 
                 <div>
@@ -379,8 +462,19 @@ const AcademicAdminsPage = () => {
                     required
                     value={newAdmin.confirmPassword}
                     onChange={(e) => setNewAdmin({ ...newAdmin, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent ${
+                      newAdmin.confirmPassword &&
+                      newAdmin.password !== newAdmin.confirmPassword
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                   />
+                  {newAdmin.confirmPassword &&
+                    newAdmin.password !== newAdmin.confirmPassword && (
+                      <p className="mt-1 text-sm text-red-600">
+                        Passwords do not match
+                      </p>
+                    )}
                 </div>
               </div>
 

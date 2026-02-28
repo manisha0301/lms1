@@ -24,6 +24,9 @@ const FacultyManagement = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
 
+  // State to track real-time validation errors for add form
+  const [addFormErrors, setAddFormErrors] = useState({});
+
   const fetchFacultyData = async () => {
     setLoading(true);
     try {
@@ -84,7 +87,7 @@ const FacultyManagement = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      console.log("Selected file:", file.name); // Debug to confirm file is selected
+      console.log("Selected file:", file.name);
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setFilePreview(reader.result);
@@ -95,11 +98,90 @@ const FacultyManagement = () => {
     }
   };
 
+  // Real-time validation for add form (runs on every change)
+  const validateAddFormLive = (field, value) => {
+    const errors = { ...addFormErrors };
+
+    if (field === "fullName") {
+      const trimmed = (value || "").trim();
+      const nameRegex = /^[A-Za-z ]+$/;
+      if (!trimmed) {
+        errors.fullName = "Full name is required";
+      } else if (!nameRegex.test(trimmed)) {
+        errors.fullName = "Full name must contain only letters and spaces.";
+      } else if (trimmed.length < 2) {
+        errors.fullName = "Full name is too short (minimum 2 characters)";
+      } else if (trimmed.length > 100) {
+        errors.fullName = "Full name is too long (maximum 100 characters)";
+      } else {
+        delete errors.fullName;
+      }
+    }
+
+    if (field === "email") {
+      const trimmed = (value || "").trim().toLowerCase();
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!trimmed) {
+        errors.email = "Email is required";
+      } else if (!emailRegex.test(trimmed)) {
+        errors.email = "Please enter a valid email address";
+      } else {
+        const domainPart = trimmed.split('@')[1] || '';
+        const tld = domainPart.split('.').pop() || '';
+        if (/\d$/.test(tld)) {
+          errors.email = "Invalid email domain – top-level domain cannot end with a number";
+        } else {
+          delete errors.email;
+        }
+      }
+    }
+
+    if (field === "phone") {
+      const cleaned = (value || "").replace(/[\s\-+]/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (cleaned && !phoneRegex.test(cleaned)) {
+        errors.phone = "Mobile number must be a valid 10-digit number (e.g., 9876543210)";
+      } else {
+        delete errors.phone;
+      }
+    }
+
+    if (field === "password") {
+      if (!value) {
+        errors.password = "Password is required";
+      } else if (value.length < 8 || value.length > 16) {
+        errors.password = "Password must be between 8 and 16 characters long";
+      } else {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+        if (!passwordRegex.test(value)) {
+          errors.password = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character";
+        } else {
+          delete errors.password;
+        }
+      }
+    }
+
+    setAddFormErrors(errors);
+  };
+
   const handleAddFaculty = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
 
     const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    // Final validation pass before submit
+    validateAddFormLive("fullName", data.fullName || '');
+    validateAddFormLive("email", data.email || '');
+    validateAddFormLive("phone", data.phone || '');
+    validateAddFormLive("password", data.password || '');
+
+    // If any error remains → don't submit
+    if (Object.keys(addFormErrors).length > 0) {
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -109,17 +191,18 @@ const FacultyManagement = () => {
         body: formData
       });
 
-      const data = await res.json();
+      const responseData = await res.json();
 
-      if (data.success) {
+      if (responseData.success) {
         setShowAddModal(false);
         setSelectedFile(null);
         setFilePreview(null);
-        setFaculties(prev => [data.faculty, ...prev]);
+        setFaculties(prev => [responseData.faculty, ...prev]);
         e.target.reset();
+        setAddFormErrors({});
         alert("Faculty added successfully");
       } else {
-        alert("Error: " + data.error);
+        alert("Error: " + (responseData.error || "Unknown error"));
       }
     } catch (err) {
       console.error("Submit error:", err);
@@ -146,9 +229,7 @@ const FacultyManagement = () => {
       const data = await res.json();
 
       if (data.success) {
-        // Remove from pending
         setPendingRequests(prev => prev.filter(f => f.id !== facultyId));
-        // Add to active faculties
         setFaculties(prev => [data.faculty, ...prev]);
         alert("Faculty approved successfully!");
       } else {
@@ -339,7 +420,7 @@ const FacultyManagement = () => {
                                 className="w-12 h-12 rounded-xl object-cover border border-gray-300"
                               />
                             ) : (
-                              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white font-bold">
+                              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-white font-bold text-3xl">
                                 {request.name.split(" ").map(n => n[0]).join("").toUpperCase()}
                               </div>
                             )}
@@ -516,7 +597,7 @@ const FacultyManagement = () => {
           </div>
         )}
 
-        {/* Edit Modal */}
+        {/* Edit Modal - placeholder (you can expand later) */}
         {modalType === "edit" && selectedFaculty && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -527,7 +608,6 @@ const FacultyManagement = () => {
                 </button>
               </div>
               <form className="p-6 space-y-6">
-                {/* Form fields similar to add modal */}
                 <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
                   <button type="button" onClick={closeModal} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
                     Cancel
@@ -541,56 +621,12 @@ const FacultyManagement = () => {
           </div>
         )}
 
-        {/* Password Modal */}
+        {/* Password Modal - placeholder */}
         {modalType === "password" && selectedFaculty && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
               <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Reset Password</h2>
-                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="p-6 space-y-6">
-                <p className="text-gray-600">Reset password for {selectedFaculty.name}</p>
-                <input type="password" placeholder="New Password" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
-                <div className="flex justify-end gap-4">
-                  <button onClick={closeModal} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
-                    Cancel
-                  </button>
-                  <button className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
-                    Reset Password
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Courses Modal */}
-        {modalType === "courses" && selectedFaculty && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Assigned Courses</h2>
-                <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="p-6 space-y-6">
-                {/* List of courses */}
-                <p className="text-center text-gray-500">Courses list goes here</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {modalType === "delete" && selectedFaculty && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
-              <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Remove Faculty</h2>
                 <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
                   <X className="w-6 h-6" />
                 </button>
@@ -633,46 +669,130 @@ const FacultyManagement = () => {
             <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Add New Faculty</h2>
-                <button onClick={() => setShowAddModal(false)} className="hover:bg-white/20 p-1 rounded">
+                <button 
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setAddFormErrors({});
+                  }} 
+                  className="hover:bg-white/20 p-1 rounded"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
+
               <form className="p-6 space-y-6" onSubmit={handleAddFaculty}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                    <input name="fullName" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Dr. Sarah Johnson" required />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="fullName"
+                      required
+                      onChange={(e) => validateAddFormLive("fullName", e.target.value)}
+                      onKeyPress={(e) => {
+                        if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
+                      }}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        addFormErrors.fullName ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="Dr. Sarah Johnson"
+                    />
+                    {addFormErrors.fullName && (
+                      <p className="mt-1 text-sm text-red-600">{addFormErrors.fullName}</p>
+                    )}
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input name="email" type="email" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="sarah@faculty.com" required />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="email"
+                      type="email"
+                      required
+                      onChange={(e) => validateAddFormLive("email", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        addFormErrors.email ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="sarah@university.edu"
+                    />
+                    {addFormErrors.email && (
+                      <p className="mt-1 text-sm text-red-600">{addFormErrors.email}</p>
+                    )}
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                    <input name="phone" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+91 98765 43210" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+                    <input
+                      name="phone"
+                      onChange={(e) => validateAddFormLive("phone", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        addFormErrors.phone ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="+91 98765 43210"
+                    />
+                    {addFormErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600">{addFormErrors.phone}</p>
+                    )}
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="password"
+                      type="password"
+                      required
+                      onChange={(e) => validateAddFormLive("password", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        addFormErrors.password ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="••••••••"
+                    />
+                    {addFormErrors.password && (
+                      <p className="mt-1 text-sm text-red-600">{addFormErrors.password}</p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                    <input name="address" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="123 Academic Street, Mumbai" />
+                    <input 
+                      name="address" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none"
+                      placeholder="123 Academic Street, Mumbai" 
+                    />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Current Designation</label>
-                    <input name="designation" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Professor" />
+                    <input 
+                      name="designation" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none"
+                      placeholder="Professor" 
+                    />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Highest Qualification</label>
-                    <input name="qualification" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="PhD in Physics" />
+                    <input 
+                      name="qualification" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none"
+                      placeholder="PhD in Physics" 
+                    />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status</label>
-                    <select name="employmentStatus" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                    <select 
+                      name="employmentStatus" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none cursor-pointer"
+                    >
                       <option>Employed</option>
                       <option>Unemployed</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <input name="password" type="password" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" required />
                   </div>
                 </div>
 
@@ -687,7 +807,7 @@ const FacultyManagement = () => {
                     <input
                       id="profilePicInput"
                       type="file"
-                      name="profilePicture"          // ← This is correct and critical
+                      name="profilePicture"
                       accept="image/*"
                       className="hidden"
                       onChange={handleFileSelect}
@@ -701,14 +821,26 @@ const FacultyManagement = () => {
                 </div>
 
                 <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all">
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setAddFormErrors({});
+                    }}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                  >
                     Cancel
                   </button>
                   <button 
                     type="submit" 
-                    disabled={submitting} 
-                    className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all disabled:opacity-70"
+                    disabled={submitting || Object.keys(addFormErrors).length > 0}
+                    className={`px-8 py-3 text-white rounded-xl font-semibold shadow transition-all flex items-center gap-2 ${
+                      submitting || Object.keys(addFormErrors).length > 0
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:scale-105"
+                    }`}
                   >
+                    {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
                     {submitting ? "Adding..." : "Add Faculty"}
                   </button>
                 </div>

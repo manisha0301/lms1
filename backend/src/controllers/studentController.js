@@ -522,3 +522,364 @@ export const getStudentNotifications = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to load notifications' });
   }
 };
+
+export const getStudentAssignmentProgress = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    // 1️⃣ Get student's university
+    const { rows: studentRows } = await pool.query(
+      'SELECT graduation_university FROM students WHERE id = $1',
+      [studentId]
+    );
+
+    if (studentRows.length === 0) {
+      return res.json({
+        success: true,
+        totalAssignments: 0,
+        submittedAssignments: 0,
+        pendingAssignments: 0,
+        progressPercent: 0
+      });
+    }
+
+    const university = studentRows[0].graduation_university?.trim();
+
+    if (!university) {
+      return res.json({
+        success: true,
+        totalAssignments: 0,
+        submittedAssignments: 0,
+        pendingAssignments: 0,
+        progressPercent: 0
+      });
+    }
+
+    // 2️⃣ Get academic admin of that university
+    const { rows: adminRows } = await pool.query(
+      `SELECT id 
+       FROM academic_admins 
+       WHERE academic_name ILIKE $1 AND status = 'Active'
+       LIMIT 1`,
+      [`%${university}%`]
+    );
+
+    if (adminRows.length === 0) {
+      return res.json({
+        success: true,
+        totalAssignments: 0,
+        submittedAssignments: 0,
+        pendingAssignments: 0,
+        progressPercent: 0
+      });
+    }
+
+    const adminId = adminRows[0].id;
+
+    // 3️⃣ Get courses under that admin
+    const { rows: courseRows } = await pool.query(
+      `SELECT course_id 
+       FROM course_academic_assignments
+       WHERE academic_admin_id = $1`,
+      [adminId]
+    );
+
+    if (courseRows.length === 0) {
+      return res.json({
+        success: true,
+        totalAssignments: 0,
+        submittedAssignments: 0,
+        pendingAssignments: 0,
+        progressPercent: 0
+      });
+    }
+
+    const courseIds = courseRows.map(c => c.course_id);
+
+    // 4️⃣ Count total assignments for those courses
+    const { rows: totalRows } = await pool.query(
+      `SELECT COUNT(*) 
+       FROM course_assessments
+       WHERE course_id = ANY($1::int[])`,
+      [courseIds]
+    );
+
+    const totalAssignments = parseInt(totalRows[0].count, 10);
+
+    // 5️⃣ Count submitted assignments by this student
+    const { rows: submittedRows } = await pool.query(
+      `SELECT COUNT(*) 
+       FROM assignment_submissions s
+       JOIN course_assessments a ON s.assignment_id = a.id
+       WHERE s.student_id = $1
+         AND a.course_id = ANY($2::int[])`,
+      [studentId, courseIds]
+    );
+
+    const submittedAssignments = parseInt(submittedRows[0].count, 10);
+
+    const pendingAssignments = totalAssignments - submittedAssignments;
+
+    const progressPercent =
+      totalAssignments > 0
+        ? Math.round((submittedAssignments / totalAssignments) * 100)
+        : 0;
+
+    res.json({
+      success: true,
+      totalAssignments,
+      submittedAssignments,
+      pendingAssignments,
+      progressPercent
+    });
+
+  } catch (error) {
+    console.error('Student assignment progress error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to calculate assignment progress'
+    });
+  }
+};
+
+// export const getAllCoursesForStudents = async (req, res) => {
+//   try {
+//     const { rows } = await pool.query(`
+//       SELECT 
+//         id,
+//         title,
+//         instructor_name,
+//         duration,
+//         price,
+//         original_price,
+//         batch_start_date,
+//         is_live,
+//         thumbnail_url
+//       FROM courses
+//       ORDER BY created_at DESC
+//     `);
+
+//     res.json({
+//       success: true,
+//       courses: rows
+//     });
+
+//   } catch (error) {
+//     console.error("Fetch all courses error:", error);
+//     res.status(500).json({ success: false, error: "Failed to fetch courses" });
+//   }
+// };
+
+// Change student password (mirrors superAdminChangePassword logic)
+export const changeStudentPassword = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    // VALIDATION
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "All password fields are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "New password and confirm password do not match"
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: "New password must be at least 8 characters long"
+      });
+    }
+
+    // Fetch current hashed password
+    const { rows } = await pool.query(
+      'SELECT password FROM students WHERE id = $1',
+      [studentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Student not found"
+      });
+    }
+
+    console.log("Rows fetched for password change:", rows);
+
+    const storedHash = rows[0].password;
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, storedHash);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: "Current password is incorrect"
+      });
+    }
+
+    // Hash new password 
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await pool.query(
+      'UPDATE students SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [newPasswordHash, studentId]
+    );
+
+    console.log("Password updated for student ID:", studentId);
+
+    res.json({
+      success: true,
+      message: "Password changed successfully"
+    });
+
+  } catch (error) {
+    console.error("Student Change Password Error →", error.message);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+// Permanently delete student account
+export const deleteStudentAccount = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const { rowCount } = await pool.query(
+      'DELETE FROM students WHERE id = $1',
+      [studentId]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Account deleted permanently'
+    });
+
+  } catch (error) {
+    console.error('Delete student account error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+
+// Student submits ratings for a course (1–5 stars)
+
+export const submitCourseRating = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { courseId, rating } = req.body;
+
+    if (!courseId || !rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        error: "Course ID and valid rating (1–5) are required"
+      });
+    }
+
+    // 1. Get student's university
+    const { rows: studentRows } = await pool.query(
+      'SELECT graduation_university FROM students WHERE id = $1',
+      [studentId]
+    );
+
+    if (studentRows.length === 0) {
+      return res.status(404).json({ success: false, error: "Student not found" });
+    }
+
+    const university = studentRows[0].graduation_university?.trim();
+    if (!university) {
+      return res.status(400).json({ success: false, error: "Your university is not set" });
+    }
+
+    // 2. Get academic admin ID for this student's university
+    const { rows: adminRows } = await pool.query(
+      'SELECT id FROM academic_admins WHERE academic_name ILIKE $1 AND status = $2 LIMIT 1',
+      [`%${university}%`, 'Active']
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: "No active center found for your university"
+      });
+    }
+
+    const academicAdminId = adminRows[0].id;
+
+    // 3. Check if this course is assigned to the student's center
+    const { rows: assignmentCheck } = await pool.query(
+      'SELECT 1 FROM course_academic_assignments WHERE course_id = $1 AND academic_admin_id = $2',
+      [courseId, academicAdminId]
+    );
+
+    if (assignmentCheck.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: "This course is not available in your university/center"
+      });
+    }
+
+    // 4. Upsert rating
+    const { rows } = await pool.query(
+      `INSERT INTO ratings (academic_admin_id, student_id, course_id, rating)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (student_id, course_id)
+       DO UPDATE SET 
+         rating = EXCLUDED.rating,
+         created_at = CURRENT_TIMESTAMP
+       RETURNING id, rating, created_at`,
+      [academicAdminId, studentId, courseId, rating]
+    );
+
+    res.json({
+      success: true,
+      message: "Rating submitted successfully",
+      rating: rows[0]
+    });
+
+  } catch (error) {
+    console.error('Submit rating error:', error.message);
+    res.status(500).json({ success: false, error: "Failed to submit rating" });
+  }
+};
+
+// Get the logged-in student's rating for a specific course
+export const getMyCourseRating = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { courseId } = req.params;
+
+    const { rows } = await pool.query(
+      `SELECT rating 
+       FROM ratings 
+       WHERE student_id = $1 AND course_id = $2`,
+      [studentId, courseId]
+    );
+
+    if (rows.length === 0) {
+      return res.json({
+        success: true,
+        rating: null  // User hasn't rated yet
+      });
+    }
+
+    res.json({
+      success: true,
+      rating: rows[0].rating
+    });
+  } catch (error) {
+    console.error('Get my rating error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch your rating' });
+  }
+};

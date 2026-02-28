@@ -31,7 +31,11 @@ const createNewAcademicAdmin = async (req, res) => {
       twoFactor 
     } = req.body;
 
+    // ────────────────────────────────────────────────
     // VALIDATION
+    // ────────────────────────────────────────────────
+
+    // Required fields
     if (!fullName || !email || !password || !confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -39,6 +43,33 @@ const createNewAcademicAdmin = async (req, res) => {
       });
     }
 
+    // Trim fullName early
+    const trimmedFullName = (fullName || '').trim();
+
+    // Name validation: only letters and spaces
+    const nameRegex = /^[A-Za-z ]+$/;
+    if (!nameRegex.test(trimmedFullName)) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name must contain only letters and spaces (no numbers, symbols, or special characters)"
+      });
+    }
+
+    // Reasonable length for name
+    if (trimmedFullName.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name is too short (minimum 2 characters)"
+      });
+    }
+    if (trimmedFullName.length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: "Full name is too long (maximum 100 characters)"
+      });
+    }
+
+    // Password validation - 8–16 chars, upper, lower, number, special char
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -46,36 +77,75 @@ const createNewAcademicAdmin = async (req, res) => {
       });
     }
 
-    if (password.length < 8) {
+    if (password.length < 8 || password.length > 16) {
       return res.status(400).json({
         success: false,
-        error: "Password must be at least 8 characters long"
+        error: "Password must be between 8 and 16 characters long"
       });
     }
 
-    if (mobile && !/^\+?[0-9]{10,15}$/.test(mobile)) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(password)) {
       return res.status(400).json({
         success: false,
-        error: "Please enter a valid mobile number"
+        error: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
       });
     }
+
+    // Email validation - strong format + block numeric-ending TLD
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid email address"
+      });
+    }
+
+    // Block suspicious TLD ending with digit (e.g. .com678)
+    const domainPart = trimmedEmail.split('@')[1] || '';
+    const tld = domainPart.split('.').pop() || '';
+    if (/\d$/.test(tld)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email domain – top-level domain cannot end with a number"
+      });
+    }
+
+    // Mobile number - Indian format, exactly 10 digits starting with 6-9
+    let cleanedMobile = null;
+    if (mobile) {
+      cleanedMobile = mobile.replace(/[\s\-+]/g, ''); // remove spaces, -, +
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!phoneRegex.test(cleanedMobile)) {
+        return res.status(400).json({
+          success: false,
+          error: "Mobile number must be a valid 10-digit Indian number starting with 6-9 (e.g., 9876543210)"
+        });
+      }
+    }
+
+    // ────────────────────────────────────────────────
+    // Proceed to create
+    // ────────────────────────────────────────────────
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
     const adminData = {
-      fullName,
-      email,
-      mobile: mobile || null,
+      fullName: trimmedFullName,
+      email: trimmedEmail,
+      mobile: cleanedMobile,
       role: role || 'Academic Admin',
-      academic_name: academicAdmins,
+      academic_name: academicAdmins ? academicAdmins.trim() : '',
       passwordHash,
       twoFactor: !!twoFactor
     };
 
     const newAdmin = await createAcademicAdmin(pool, adminData);
 
+    // Notification
     const notifyMessage = `New Academic Admin created: ${newAdmin.fullName} (${newAdmin.email})`;
     await addNotificationForSuperAdmin(
       pool,
@@ -87,17 +157,23 @@ const createNewAcademicAdmin = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Academic Admin created successfully",
-      admin: newAdmin  // No stats
+      admin: newAdmin
     });
+
   } catch (error) {
     console.error("Create Academic Admin Error →", error.message);
-    if (error.code === '23505') {
+
+    if (error.code === '23505') { // unique violation (PostgreSQL)
       return res.status(409).json({
         success: false,
-        error: "Email or username already exists"
+        error: "Email already exists"
       });
     }
-    res.status(500).json({ success: false, error: "Server error" });
+
+    res.status(500).json({ 
+      success: false, 
+      error: "Server error while creating academic admin" 
+    });
   }
 };
 
@@ -561,6 +637,40 @@ export const getAcademicAdminNotifications = async (req, res) => {
   }
 };
 
+export const getCourseStudentsWithProgress = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const { rows } = await pool.query(`
+      SELECT 
+        st.id,
+        CONCAT(st.first_name, ' ' || st.last_name) AS name,
+        st.email,
+        st.mobile_number AS phone,
+        COUNT(s.id) AS submitted_assignments
+      FROM students st
+      JOIN course_academic_assignments caa 
+        ON caa.academic_admin_id = (
+            SELECT academic_admin_id 
+            FROM course_academic_assignments 
+            WHERE course_id = $1 LIMIT 1
+        )
+      LEFT JOIN course_assessments a 
+        ON a.course_id = $1
+      LEFT JOIN assignment_submissions s 
+        ON s.assignment_id = a.id 
+        AND s.student_id = st.id
+      GROUP BY st.id
+    `, [courseId]);
+
+    res.json({ success: true, students: rows });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false });
+  }
+};
+
 export { 
   getAllAcademicAdmins, 
   createNewAcademicAdmin, 
@@ -570,6 +680,6 @@ export {
   updateAcademicAdminProfile,
   getAssignedCourses,
   getCourseDetails,
-  getUniversityStudents
-  ,getStudentByIdForAdmin
+  getUniversityStudents,
+  getStudentByIdForAdmin
 };

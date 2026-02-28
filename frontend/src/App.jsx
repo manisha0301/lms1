@@ -17,6 +17,7 @@ import Signup from "./pages/auth/Login";
 import Terms from "./pages/legal/terms";
 import Privacy from "./pages/legal/privacy";
 
+
 function RedirectToStudent() {
   useEffect(() => {
     const hostname = window.location.hostname;

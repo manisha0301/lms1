@@ -1,5 +1,5 @@
 // src/pages/faculty/FacultySettings.jsx
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -20,11 +20,15 @@ import {
   Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import apiConfig from '../../config/apiConfig.js';
 
 export default function FacultySettings() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Refs for each section
   const profileRef = useRef(null);
@@ -33,60 +37,190 @@ export default function FacultySettings() {
   const appearanceRef = useRef(null);
   const dangerRef = useRef(null);
 
-  // Mock User Data
-  const [settings, setSettings] = useState({
-    profile: {
-      name: "Dr. Sarah Chen",
-      email: "sarah.chen@cybernetics.edu",
-      phone: "+91 98765 43210"
-    },
-    password: {
-      current: '',
-      new: '',
-      confirm: ''
-    },
-    notifications: {
-      email: true,
-      push: true,
-      sms: false
-    },
-    appearance: {
-      darkMode: false
-    }
+  // Real profile data (fetched from API)
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    phone: ''
   });
 
-  const [editData, setEditData] = useState({ ...settings });
+  const [editData, setEditData] = useState({
+    profile: { ...profile },
+    password: { current: '', new: '', confirm: '' },
+    notifications: { email: true, push: true, sms: false },
+    appearance: { darkMode: false }
+  });
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleSave = () => {
-    // Validate password if changed
-    if (editData.password.new && editData.password.new !== editData.password.confirm) {
-      alert("New passwords do not match!");
+  // Fetch real faculty profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/faculty/login');
+          return;
+        }
+
+        const res = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.data.success && res.data.profile) {
+          const data = res.data.profile;
+          setProfile({
+            name: data.name || '',
+            email: data.email || '',
+            phone: data.phone || ''
+          });
+          setEditData(prev => ({
+            ...prev,
+            profile: {
+              name: data.name || '',
+              email: data.email || '',
+              phone: data.phone || ''
+            }
+          }));
+        } else {
+          setError('Failed to load profile');
+        }
+      } catch (err) {
+        console.error('Profile fetch error:', err);
+        const errorMsg = err.response?.data?.error || 'Unable to load profile';
+        setError(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/faculty/login');
+        return;
+      }
+
+      const res = await axios.put(
+        `${apiConfig.API_BASE_URL}/api/faculty/profile`,
+        {
+          name: editData.profile.name,
+          email: editData.profile.email,
+          phone: editData.profile.phone
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.data.success) {
+        setProfile({ ...editData.profile });
+        alert('Profile updated successfully!');
+      } else {
+        alert(res.data.error || 'Failed to update profile');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Profile update failed. Please try again.';
+      alert(errorMsg);
+      console.error('Profile update error:', err);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!editData.password.current || !editData.password.new || !editData.password.confirm) {
+      alert('All password fields are required');
       return;
     }
-    setSettings({ ...editData });
+
+    if (editData.password.new !== editData.password.confirm) {
+      alert('New passwords do not match!');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(
+        `${apiConfig.API_BASE_URL}/api/faculty/change-password`,
+        {
+          currentPassword: editData.password.current,
+          newPassword: editData.password.new,
+          confirmPassword: editData.password.confirm,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.data.success) {
+        alert('Password changed successfully!');
+        setEditData(prev => ({
+          ...prev,
+          password: { current: '', new: '', confirm: '' }
+        }));
+      } else {
+        alert(res.data.error || 'Failed to change password');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Password change failed. Please try again.';
+      alert(errorMsg);
+      console.error('Password change error:', err);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete your account? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`${apiConfig.API_BASE_URL}/api/faculty/account`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data.success) {
+        alert('Account deleted successfully');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/faculty/login');
+      } else {
+        alert(res.data.error || 'Failed to delete account');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Account deletion failed. Please try again.';
+      alert(errorMsg);
+      console.error('Delete account error:', err);
+    }
+  };
+
+  const handleSave = async () => {
+    // if (activeSection === 'profile') {
+      await handleSaveProfile();
+    // } else if (activeSection === 'password') {
+      await handleChangePassword();
+    // }
     setIsEditing(false);
-    alert("Settings saved successfully!");
-    // Reset password fields after save
-    setEditData(prev => ({
-      ...prev,
-      password: { current: '', new: '', confirm: '' }
-    }));
   };
 
   const handleCancel = () => {
-    setEditData({ ...settings });
+    setEditData({
+      profile: { ...profile },
+      password: { current: '', new: '', confirm: '' },
+      notifications: { email: true, push: true, sms: false },
+      appearance: { darkMode: false }
+    });
     setIsEditing(false);
   };
 
   const handleLogout = () => {
-    alert("Logged out successfully!");
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    alert('Logged out successfully!');
     navigate('/login');
-  };
-
-  const handleDeleteAccount = () => {
-    alert("Account deletion requested. Please contact admin.");
-    setShowDeleteConfirm(false);
   };
 
   const toggleNotification = (type) => {
@@ -118,18 +252,34 @@ export default function FacultySettings() {
   };
 
   const sections = [
-    { id: 'profile', label: 'Profile Information', icon: User },
+    // { id: 'profile', label: 'Profile Information', icon: User },
     { id: 'password', label: 'Change Password', icon: Lock },
     { id: 'notifications', label: 'Notification Preferences', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Eye },
     { id: 'danger', label: 'Danger Zone', icon: AlertTriangle }
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-xl text-gray-600">Loading your settings...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-xl text-red-600">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="mb-8 bg-[#1e3a8a] shadow-sm p-8">
-        <div className="  mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Settings</h1>
             <p className="text-white mt-1">Customize your account preferences</p>
@@ -160,7 +310,7 @@ export default function FacultySettings() {
         </div>
       </div>
 
-      <div className="  mx-auto px-8 pb-12">
+      <div className="mx-auto px-8 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Sidebar */}
           <aside className="lg:sticky lg:top-8 h-fit">
@@ -193,41 +343,6 @@ export default function FacultySettings() {
 
           {/* Right Content Area */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Profile Settings */}
-            <div ref={profileRef} className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center gap-3">
-                <User className="w-7 h-7 text-[#1e3a8a]" />
-                Profile Information
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {[
-                  { label: "Full Name", key: "name", icon: User },
-                  { label: "Email Address", key: "email", icon: Mail },
-                  { label: "Phone Number", key: "phone", icon: Phone },
-                ].map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <p className="text-sm text-gray-600 flex items-center gap-2">
-                      <field.icon className="w-4 h-4" />
-                      {field.label}
-                    </p>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.profile[field.key]}
-                        onChange={(e) => setEditData(prev => ({
-                          ...prev,
-                          profile: { ...prev.profile, [field.key]: e.target.value }
-                        }))}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a]"
-                      />
-                    ) : (
-                      <p className="font-medium text-gray-800">{settings.profile[field.key]}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Password Settings */}
             <div ref={passwordRef} className="bg-white rounded-2xl shadow-lg p-8">
               <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center gap-3">

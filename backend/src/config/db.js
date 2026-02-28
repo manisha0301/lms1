@@ -1,4 +1,5 @@
 // src/config/db.js
+
 import { Pool } from 'pg';
 import 'dotenv/config';
 
@@ -13,5 +14,7 @@ const pool = new Pool({
 pool.on('connect', () => {
   console.log('Connected to PostgreSQL - Kristellar LMS');
 });
+
+
 
 export default pool;

@@ -39,6 +39,9 @@ export default function CourseDetailsFaculty() {
   const [loadingCourse, setLoadingCourse] = useState(true);
   const [courseError, setCourseError] = useState(null);
 
+  // NEW: State for real submissions fetched from backend
+  const [submissionList, setSubmissionList] = useState([]);
+
   useEffect(() => {
     const fetchCourse = async () => {
       if (!courseId) {
@@ -156,8 +159,33 @@ export default function CourseDetailsFaculty() {
     );
   }
 
-  const openViewSubmissions = (week) => {
+  const openViewSubmissions = async (week) => {
     setSelectedWeekForModal(week);
+
+    const selectedWeek = weeks.find(w => w.week === week);
+    const assessmentId = selectedWeek?.assessment?.id;
+
+    if (!assessmentId) {
+      alert("No assessment found for this week");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(
+        `${apiConfig.API_BASE_URL}/api/faculty/assignments/${assessmentId}/submissions`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        setSubmissionList(res.data.submissions);
+      }
+    } catch (err) {
+      console.error("Error fetching submissions:", err);
+      alert("Failed to load submissions");
+    }
+
     setShowViewSubmissionsModal(true);
   };
 
@@ -612,23 +640,24 @@ export default function CourseDetailsFaculty() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="p-3 text-left">Sl.</th>
+                  <th className="p-3 text-left">Student ID</th>
                   <th className="p-3 text-left">Student Name</th>
                   <th className="p-3 text-center">Submission File</th>
                   <th className="p-3 text-left">Remarks</th>
                 </tr>
               </thead>
               <tbody>
-                {weeks
-                  .find(w => w.week === selectedWeekForModal)
-                  ?.assessment?.studentSubmissions?.map((student) => (
-                    <tr key={student.sl} className="border-t">
-                      <td className="p-3">{student.sl}</td>
-                      <td className="p-3">{student.name}</td>
+                {submissionList.length > 0 ? (
+                  submissionList.map((sub) => (
+                    <tr key={sub.id} className="border-t">
+                      <td className="p-3">{sub.student_code}</td>
+
+                      <td className="p-3">{sub.student_name}</td>
+
                       <td className="p-3 text-center">
-                        {student.submissionFile ? (
+                        {sub.answer_pdf_path ? (
                           <a
-                            href={student.submissionFile}
+                            href={`${apiConfig.API_BASE_URL}/uploads/${sub.answer_pdf_path}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#1e40af] hover:underline flex items-center justify-center gap-2"
@@ -639,18 +668,17 @@ export default function CourseDetailsFaculty() {
                           <span className="text-gray-500 italic">No submission</span>
                         )}
                       </td>
-                      <td className="p-3">{student.remarks || 'N/A'}</td>
+
+                      <td className="p-3">{sub.remarks || 'N/A'}</td>
                     </tr>
-                  ))}
-                  {weeks
-                    .find(w => w.week === selectedWeekForModal)
-                    ?.assessment?.studentSubmissions?.length === 0 && (
-                      <tr>
-                        <td colSpan="4" className="p-6 text-center text-gray-500">
-                          No submissions available.
-                        </td>
-                      </tr>
-                    )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="p-6 text-center text-gray-500">
+                      No submissions available.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
 

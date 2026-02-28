@@ -27,6 +27,12 @@ export default function ExamManagement() {
   const [studentSearch, setStudentSearch] = useState('');
   const [isAddingExam, setIsAddingExam] = useState(false);
   const [isAddingResult, setIsAddingResult] = useState(false);
+  const [editedResults, setEditedResults] = useState({});
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [addResultStudent, setAddResultStudent] = useState('');
+  const [addResultMarks, setAddResultMarks] = useState('');
+  const [addResultRemarks, setAddResultRemarks] = useState('');
+  const [editMarks, setEditMarks] = useState('');
   const [newExamForm, setNewExamForm] = useState({
     topic: '',
     courseId: '',
@@ -34,6 +40,8 @@ export default function ExamManagement() {
     totalMarks: '',
     dateTimeSlots: [{ date: '', startTime: '', endTime: '' }]
   });
+  const [submissions, setSubmissions] = useState([]); // ← full submissions data
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   // Fetch faculty's courses and exams on mount
   useEffect(() => {
@@ -44,14 +52,12 @@ export default function ExamManagement() {
     const token = localStorage.getItem('token');
     if (!token) return;
     try {
-      // 1. Get faculty's assigned courses
       const coursesRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/my-courses`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (coursesRes.data.success) {
         setCourses(coursesRes.data.courses || []);
       }
-      // 2. Get exams created by this faculty
       const examsRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/exams`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -66,66 +72,70 @@ export default function ExamManagement() {
     }
   };
 
+  // Fetch real submissions when modal opens
+  useEffect(() => {
+    if (!selectedExam) {
+      setSubmissions([]);
+      return;
+    }
+
+    const fetchSubmittedStudents = async () => {
+      setLoadingStudents(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(
+          `${apiConfig.API_BASE_URL}/api/faculty/exams/${selectedExam}/submissions`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (res.data.success) {
+          setSubmissions(res.data.submissions || []);
+        }
+      } catch (err) {
+        console.error('Failed to load submissions:', err);
+        setSubmissions([]);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+
+    fetchSubmittedStudents();
+  }, [selectedExam]);
+
+  // Save marks and remarks to DB
+  const handleSaveEvaluation = async (submissionId, marks, remarks) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.patch(
+        `${apiConfig.API_BASE_URL}/api/faculty/exams/submissions/${submissionId}`,
+        { 
+          marks: marks ? parseInt(marks) : null,
+          remarks: remarks || null 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        alert('Evaluation saved successfully!');
+        // Update local state
+        setSubmissions(prev =>
+          prev.map(sub =>
+            sub.id === submissionId ? { ...sub, marks, remarks } : sub
+          )
+        );
+      } else {
+        alert('Failed to save');
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error saving evaluation');
+      console.error(err);
+    }
+  };
+
   const filteredExams = exams.filter(exam => {
     const matchesSearch = exam.course.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
-
-  const currentStudents = selectedExam ? examResults[selectedExam] || [] : [];
-  const resultDeclared = selectedExam ? exams.find(e => e.id === selectedExam)?.resultDeclared : false;
-
-  const filteredStudents = currentStudents.filter(student =>
-    student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-    student.id.toLowerCase().includes(studentSearch.toLowerCase())
-  );
-
-  const handleEditClick = (student) => {
-    setEditingStudentId(student.id);
-    setEditMarks(editedResults[student.id]?.marks || student.marks || '');
-  };
-
-  const handleSaveMarks = (studentId) => {
-    if (editMarks === '' || isNaN(editMarks) || editMarks < 0 || editMarks > 100) {
-      alert('Please enter valid marks between 0 and 100');
-      return;
-    }
-    setEditedResults(prev => ({
-      ...prev,
-      [studentId]: {
-        marks: parseInt(editMarks),
-        remarks: editedResults[studentId]?.remarks || ''
-      }
-    }));
-    setEditingStudentId(null);
-    setEditMarks('');
-  };
-
-  const handleCancelEdit = () => {
-    setEditingStudentId(null);
-    setEditMarks('');
-  };
-
-  const getDisplayMarks = (student) => {
-    return editedResults[student.id]?.marks !== undefined 
-      ? editedResults[student.id].marks 
-      : student.marks;
-  };
-
-  const getAllStudents = () => {
-    const allStudents = [];
-    Object.values(examResults).forEach(students => {
-      if (students) {
-        allStudents.push(...students);
-      }
-    });
-    return allStudents;
-  };
-
-  const getAvailableStudents = () => {
-    const currentExamStudents = currentStudents.map(s => s.id);
-    const allStudents = getAllStudents();
-    return allStudents.filter(s => !currentExamStudents.includes(s.id));
-  };
 
   const handleAddResultClick = () => {
     setIsAddingResult(true);
@@ -137,17 +147,7 @@ export default function ExamManagement() {
       return;
     }
 
-    const selectedStudent = getAllStudents().find(s => s.id === addResultStudent);
-    if (selectedStudent) {
-      setEditedResults(prev => ({
-        ...prev,
-        [addResultStudent]: {
-          marks: parseInt(addResultMarks),
-          remarks: addResultRemarks
-        }
-      }));
-    }
-
+    // You can add real save logic here later if needed
     setIsAddingResult(false);
     setAddResultStudent('');
     setAddResultMarks('');
@@ -159,12 +159,6 @@ export default function ExamManagement() {
     setAddResultStudent('');
     setAddResultMarks('');
     setAddResultRemarks('');
-  };
-
-  const areAllResultsAnnounced = () => {
-    if (!selectedExam) return false;
-    const examStudents = currentStudents || [];
-    return examStudents.length > 0 && getAvailableStudents().length === 0;
   };
 
   const handleAddExamClick = () => {
@@ -224,7 +218,7 @@ export default function ExamManagement() {
       const token = localStorage.getItem('token');
       const payload = {
         topic: newExamForm.topic,
-        courseId: newExamForm.courseId, // this is now the real course ID
+        courseId: newExamForm.courseId,
         examLink: newExamForm.link,
         totalMarks: parseInt(newExamForm.totalMarks),
         slots: newExamForm.dateTimeSlots
@@ -252,7 +246,6 @@ export default function ExamManagement() {
           totalMarks: '',
           dateTimeSlots: [{ date: '', startTime: '', endTime: '' }]
         });
-        // Refresh exams list after adding
         fetchAllData();
       }
     } catch (err) {
@@ -294,7 +287,6 @@ export default function ExamManagement() {
                 className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 w-full sm:w-96"
               />
             </div>
-            {/* Status filter removed */}
           </div>
           <button onClick={() => setIsAddingExam(true)} className="flex items-center gap-2 bg-[#1e3a8a] text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition">
             <Plus className="w-5 h-5" />
@@ -319,7 +311,6 @@ export default function ExamManagement() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <h3 className="text-xl font-bold text-gray-800">{exam.topic}</h3>
-                      {/* Status removed */}
                     </div>
                     <p className="text-lg font-medium text-[#1e3a8a] mb-4">{exam.course}</p>
 
@@ -348,7 +339,6 @@ export default function ExamManagement() {
                         <p className="text-3xl font-bold text-green-600">{exam.appeared || 0}</p>
                         <p className="text-sm text-gray-600">Appeared</p>
                       </div>
-                      {/* Pending count/status removed */}
                       <div>
                         <p className="text-3xl font-bold text-gray-800">{exam.totalStudents || 0}</p>
                         <p className="text-sm text-gray-600">Enrolled</p>
@@ -373,23 +363,20 @@ export default function ExamManagement() {
       {/* Student Results Modal */}
       {selectedExam && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-screen overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="p-6 border-b bg-[#1e3a8a] text-white">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {exams.find(e => e.id === selectedExam)?.topic}
+                    {exams.find(e => e.id === selectedExam)?.topic || 'Exam Submissions'}
                   </h2>
                   <p className="text-indigo-100">
-                    {exams.find(e => e.id === selectedExam)?.course}
+                    {exams.find(e => e.id === selectedExam)?.course || 'Course'}
                   </p>
                 </div>
                 <button
-                  onClick={() => {
-                    setSelectedExam(null);
-                    setStudentSearch('');
-                  }}
+                  onClick={() => setSelectedExam(null)}
                   className="p-2 hover:bg-white/20 rounded-lg transition"
                 >
                   <X className="w-6 h-6" />
@@ -409,204 +396,119 @@ export default function ExamManagement() {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-              <button
-                        onClick={handleAddResultClick}
-                        disabled={areAllResultsAnnounced()}
-                        title={areAllResultsAnnounced() ? "All student results have been added" : "Add a new student result"}
-                        className={`inline-flex items-center gap-2 px-6 py-3 font-medium rounded-lg transition ${
-                          areAllResultsAnnounced()
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-[#1e3a8a] text-white hover:shadow-lg'
-                        }`}
-                      >
-                        <Plus className="w-5 h-5" />
-                        Add Result
-                      </button>
             </div>
 
             {/* Results Table */}
-            <div className="flex-1 overflow-y-auto">
-              {resultDeclared ? (
-                <table className="w-full">
-                  <thead className="bg-gray-50 sticky top-0">
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingStudents ? (
+                <div className="text-center py-20">
+                  <p className="text-gray-600 text-lg">Loading submissions...</p>
+                </div>
+              ) : submissions.length === 0 ? (
+                <div className="text-center py-20">
+                  <p className="text-2xl font-semibold text-gray-600 mb-4">
+                    No Submissions Yet
+                  </p>
+                  <p className="text-gray-500">
+                    No students have submitted answers for this exam.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-sm text-left text-gray-700">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Marks</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                      <th className="px-6 py-4">Student ID</th>
+                      <th className="px-6 py-4">Name</th>
+                      <th className="px-6 py-4">Answer PDF</th>
+                      <th className="px-6 py-4">Full Marks</th>
+                      <th className="px-6 py-4">Marks Obtained</th>
+                      <th className="px-6 py-4">Remarks</th>
+                      <th className="px-6 py-4">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {currentStudents
-                      .filter(s => 
-                        s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-                        s.id.toLowerCase().includes(studentSearch.toLowerCase())
+                    {submissions
+                      .filter(sub => 
+                        (sub.student_name?.toLowerCase() || '').includes(studentSearch.toLowerCase()) ||
+                        (sub.student_code?.toLowerCase() || '').includes(studentSearch.toLowerCase())
                       )
-                      .map((student, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">{student.id}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{student.name}</td>
+                      .map((sub) => (
+                        <tr key={sub.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 font-medium">{sub.student_code || 'N/A'}</td>
+                          <td className="px-6 py-4">{sub.student_name || 'Unknown'}</td>
                           <td className="px-6 py-4">
-                            {editingStudentId === student.id ? (
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={editMarks}
-                                onChange={(e) => setEditMarks(e.target.value)}
-                                className="w-24 px-3 py-2 border border-indigo-500 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                                autoFocus
-                              />
-                            ) : (
-                              <span className="inline-block px-4 py-2 bg-green-100 text-green-800 font-semibold rounded-lg text-lg">
-                                {getDisplayMarks(student)}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            {editingStudentId === student.id ? (
-                              <input
-                                type="text"
-                                value={editedResults[student.id]?.remarks || ''}
-                                onChange={(e) => setEditedResults(prev => ({
-                                  ...prev,
-                                  [student.id]: {
-                                    ...prev[student.id],
-                                    remarks: e.target.value
-                                  }
-                                }))}
-                                placeholder="Enter remarks..."
-                                className="w-full px-3 py-2 border border-indigo-500 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                              />
-                            ) : (
-                              <span className="text-sm text-gray-600">
-                                {editedResults[student.id]?.remarks || '-'}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            {editingStudentId === student.id ? (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleSaveMarks(student.id)}
-                                  className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
-                                  title="Save"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={handleCancelEdit}
-                                  className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                                  title="Cancel"
-                                >
-                                  <XIcon className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleEditClick(student)}
-                                className="p-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
-                                title="Edit marks"
+                            {sub.answer_pdf_path ? (
+                              <a
+                                href={`http://localhost:5000/uploads/${sub.answer_pdf_path}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-600 hover:underline flex items-center gap-2"
                               >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                                <Download className="w-4 h-4" />
+                                View PDF
+                              </a>
+                            ) : (
+                              <span className="text-gray-500">Not uploaded</span>
                             )}
+                          </td>
+                          <td className="px-6 py-4 font-medium">{sub.full_marks || '-'}</td>
+                          <td className="px-6 py-4">
+                            <input
+                              type="number"
+                              min="0"
+                              max={sub.full_marks || 100}
+                              value={sub.marks ?? ''}
+                              onChange={(e) => {
+                                const newMarks = e.target.value;
+                                setSubmissions(prev =>
+                                  prev.map(s =>
+                                    s.id === sub.id ? { ...s, marks: newMarks } : s
+                                  )
+                                );
+                              }}
+                              className="w-20 px-3 py-1 border border-gray-300 rounded focus:ring-indigo-500 text-sm"
+                              placeholder="Marks"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <input
+                              type="text"
+                              value={sub.remarks || ''}
+                              onChange={(e) => {
+                                const newRemarks = e.target.value;
+                                setSubmissions(prev =>
+                                  prev.map(s =>
+                                    s.id === sub.id ? { ...s, remarks: newRemarks } : s
+                                  )
+                                );
+                              }}
+                              className="w-full px-3 py-1 border border-gray-300 rounded focus:ring-indigo-500 text-sm"
+                              placeholder="Remarks"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => handleSaveEvaluation(sub.id, sub.marks, sub.remarks)}
+                              className="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm"
+                            >
+                              Save
+                            </button>
                           </td>
                         </tr>
                       ))}
                   </tbody>
                 </table>
-              ) : (
-                <div className="p-20 text-center">
-                  {isAddingResult ? (
-                    <div className="bg-gray-50 border-2 border-indigo-300 rounded-xl p-12 max-w-md mx-auto">
-                      <h3 className="text-2xl font-semibold text-gray-800 mb-6">Add Student Result</h3>
-                      
-                      <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
-                        <select
-                          value={addResultStudent}
-                          onChange={(e) => setAddResultStudent(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        >
-                          <option value="">Choose a student...</option>
-                          {getAvailableStudents().map(student => (
-                            <option key={student.id} value={student.id}>
-                              {student.name} ({student.id})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="mb-8">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Enter Marks Obtained</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          placeholder="0-100"
-                          value={addResultMarks}
-                          onChange={(e) => setAddResultMarks(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div className="mb-8">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Remarks (Optional)</label>
-                        <textarea
-                          placeholder="Add any remarks or comments..."
-                          value={addResultRemarks}
-                          onChange={(e) => setAddResultRemarks(e.target.value)}
-                          rows="3"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                        />
-                      </div>
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleSaveAddResult}
-                          className="flex-1 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
-                        >
-                          <Check className="w-4 h-4" />
-                          Save Result
-                        </button>
-                        <button
-                          onClick={handleCancelAddResult}
-                          className="flex-1 px-4 py-3 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition flex items-center justify-center gap-2"
-                        >
-                          <XIcon className="w-4 h-4" />
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-12">
-                      <p className="text-2xl font-semibold text-gray-600 mb-6">
-                        Result Not Announced Yet
-                      </p>
-                      <p className="text-gray-500">
-                        The results for this exam will be published soon.
-                      </p>
-                    </div>
-                  )}
-                </div>
               )}
             </div>
 
             <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
               <p className="text-sm text-gray-600">
-                {resultDeclared 
-                  ? `Showing ${filteredStudents.length} students with declared results`
-                  : "Results are being processed"
-                }
+                Showing {submissions.length} submission{submissions.length !== 1 ? 's' : ''}
               </p>
-              {resultDeclared && (
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-[#1e3a8a] text-white rounded-lg hover:bg-[#1e3a8a]">
-                  <Download className="w-4 h-4" />
-                  Export Results
-                </button>
-              )}
+              <button className="flex items-center gap-2 px-6 py-2 bg-[#1e3a8a] text-white rounded-lg hover:bg-[#1e3a8a]">
+                <Download className="w-4 h-4" />
+                Export Results
+              </button>
             </div>
           </div>
         </div>
@@ -616,7 +518,6 @@ export default function ExamManagement() {
       {isAddingExam && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
             <div className="p-6 border-b bg-[#1e3a8a] text-white flex justify-between items-center">
               <h2 className="text-2xl font-bold">Add New Exam</h2>
               <button
@@ -627,10 +528,8 @@ export default function ExamManagement() {
               </button>
             </div>
 
-            {/* Form Content */}
             <div className="flex-1 overflow-y-auto p-6">
               <form className="space-y-6">
-                {/* Topic */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Topic *</label>
                   <input
@@ -642,7 +541,6 @@ export default function ExamManagement() {
                   />
                 </div>
 
-                {/* Course - REAL DATA */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Course *</label>
                   {loadingCourses ? (
@@ -663,7 +561,6 @@ export default function ExamManagement() {
                   )}
                 </div>
 
-                {/* Link */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Exam Link *</label>
                   <input
@@ -675,7 +572,6 @@ export default function ExamManagement() {
                   />
                 </div>
 
-                {/* Total Marks */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Total Marks *</label>
                   <input
@@ -688,7 +584,6 @@ export default function ExamManagement() {
                   />
                 </div>
 
-                {/* Date/Time Slots */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Date/Time Slots *</label>
                   <div className="space-y-3">
@@ -739,7 +634,6 @@ export default function ExamManagement() {
               </form>
             </div>
 
-            {/* Footer */}
             <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
               <button
                 onClick={handleCancelAddExam}

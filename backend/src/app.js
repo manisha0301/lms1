@@ -28,13 +28,16 @@ import facultyRoutes from './routes/facultyRoutes.js';
 import { createNotificationsTable } from './models/notificationModel.js';
 // NEW: Student imports
 import studentRoutes from './routes/studentRoutes.js';
-import { createStudentsTable } from './models/studentModel.js';
+import { createStudentsTable,createRatingsTable } from './models/studentModel.js';
 import { createExamsTables } from './models/examModel.js'; // NEW: Import createExamsTables
 
 // NEW: Video model setup
 import { setupVideoTables } from './models/videoModel.js';
 
 import { createEmailVerificationsTable } from './models/verificationModel.js';
+
+// Import landing page routes
+import publicRoutes from './routes/publicRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);         
@@ -78,6 +81,9 @@ const initDatabase = async () => {
     await assessmentsTableSetup(pool);
     await createExamsTables(); // NEW: Initialize exam tables
     await assignmentSubmissionsTableSetup();
+    await createRatingsTable(); // Initialize ratings table
+    
+    
 
     // NEW: Initialize video table
     await setupVideoTables();
@@ -123,6 +129,7 @@ app.use('/api/auth/superadmin', superAdminRoutes);
 app.use('/api/auth/admin', adminRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/auth/student', studentRoutes);
+app.use('/api/public', publicRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

@@ -9,7 +9,8 @@ import {
   updateAcademicAdminProfile,
   getUniversityStudents,
   getStudentByIdForAdmin,
-  getAcademicAdminNotifications
+  getAcademicAdminNotifications,
+  getCourseStudentsWithProgress
 } from '../controllers/academicAdminController.js';
 
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
@@ -56,5 +57,7 @@ router.get('/students/:id', protectAcademicAdmin, getStudentByIdForAdmin);
 router.get('/university-students', protectAcademicAdmin, getUniversityStudents);
 
 router.get('/notifications', protectAcademicAdmin, getAcademicAdminNotifications);
+
+router.get('/courses/:courseId/students-progress', protectAcademicAdmin, getCourseStudentsWithProgress);
 
 export default router;

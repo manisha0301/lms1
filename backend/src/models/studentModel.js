@@ -88,3 +88,19 @@ export const findStudentByMobile = async (mobileNumber) => {
   const { rows } = await pool.query('SELECT * FROM students WHERE mobile_number = $1', [mobileNumber]);
   return rows[0] || null;
 };
+
+export const createRatingsTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS ratings (
+      id SERIAL PRIMARY KEY,
+      academic_admin_id INTEGER NOT NULL REFERENCES academic_admins(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(student_id, course_id)  -- One rating per student per course
+    );
+  `;
+  await pool.query(query);
+  console.log('Ratings table created');
+};
