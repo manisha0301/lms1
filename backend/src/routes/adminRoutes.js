@@ -10,7 +10,8 @@ import {
   getUniversityStudents,
   getStudentByIdForAdmin,
   getAcademicAdminNotifications,
-  getCourseStudentsWithProgress
+  getCourseStudentsWithProgress,
+  updateFacultyDetails
 } from '../controllers/academicAdminController.js';
 
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
@@ -20,7 +21,8 @@ import { createFaculty,
         getFacultyList, 
         uploadProfilePic , 
         approvePendingFaculty,
-        rejectPendingFaculty
+        rejectPendingFaculty,
+        deleteFacultyMember
  } from '../controllers/facultyController.js';
 
 import { 
@@ -47,6 +49,10 @@ router.patch('/faculty/:facultyId/reject', protectAcademicAdmin, rejectPendingFa
 
 router.patch('/courses/:courseId/teachers', protectAcademicAdmin, updateCourseTeachers);
 
+router.delete('/faculty/:facultyId', protectAcademicAdmin, deleteFacultyMember);
+
+router.patch('/faculty/:facultyId', protectAcademicAdmin, updateFacultyDetails);
+
 // NEW: Academic admin specific course schedule (batch timings + meeting link)
 router.get('/courses/:id/schedule', protectAcademicAdmin, getAcademicCourseScheduleCtrl);
 router.post('/courses/:id/schedule', protectAcademicAdmin, saveAcademicCourseScheduleCtrl);
@@ -59,5 +65,7 @@ router.get('/university-students', protectAcademicAdmin, getUniversityStudents);
 router.get('/notifications', protectAcademicAdmin, getAcademicAdminNotifications);
 
 router.get('/courses/:courseId/students-progress', protectAcademicAdmin, getCourseStudentsWithProgress);
+
+
 
 export default router;

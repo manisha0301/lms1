@@ -51,6 +51,13 @@ export default function FacultySettings() {
     appearance: { darkMode: false }
   });
 
+  // NEW: Password validation errors
+  const [passwordErrors, setPasswordErrors] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Fetch real faculty profile on mount
@@ -97,6 +104,36 @@ export default function FacultySettings() {
     fetchProfile();
   }, [navigate]);
 
+  // NEW: Validate password fields in real-time
+  const validatePasswordField = (field, value) => {
+    const errors = { ...passwordErrors };
+
+    if (field === 'current') {
+      errors.current = !value ? 'Current password is required' : '';
+    }
+
+    if (field === 'new') {
+      if (!value) {
+        errors.new = 'New password is required';
+      } else if (value.length < 8 || value.length > 16) {
+        errors.new = 'Password must be 8–16 characters long';
+      } else {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+        errors.new = passwordRegex.test(value) 
+          ? '' 
+          : 'Password must contain uppercase, lowercase, number & special character';
+      }
+    }
+
+    if (field === 'confirm') {
+      errors.confirm = value !== editData.password.new 
+        ? 'Passwords do not match' 
+        : '';
+    }
+
+    setPasswordErrors(errors);
+  };
+
   const handleSaveProfile = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -131,6 +168,16 @@ export default function FacultySettings() {
   };
 
   const handleChangePassword = async () => {
+    // Final validation check
+    validatePasswordField('current', editData.password.current);
+    validatePasswordField('new', editData.password.new);
+    validatePasswordField('confirm', editData.password.confirm);
+
+    if (Object.values(passwordErrors).some(err => err !== '')) {
+      alert('Please fix password validation errors before saving.');
+      return;
+    }
+
     if (!editData.password.current || !editData.password.new || !editData.password.confirm) {
       alert('All password fields are required');
       return;
@@ -161,6 +208,7 @@ export default function FacultySettings() {
           ...prev,
           password: { current: '', new: '', confirm: '' }
         }));
+        setPasswordErrors({ current: '', new: '', confirm: '' });
       } else {
         alert(res.data.error || 'Failed to change password');
       }
@@ -198,11 +246,11 @@ export default function FacultySettings() {
   };
 
   const handleSave = async () => {
-    // if (activeSection === 'profile') {
+    if (activeSection === 'profile') {
       await handleSaveProfile();
-    // } else if (activeSection === 'password') {
+    } else if (activeSection === 'password') {
       await handleChangePassword();
-    // }
+    }
     setIsEditing(false);
   };
 
@@ -213,6 +261,7 @@ export default function FacultySettings() {
       notifications: { email: true, push: true, sms: false },
       appearance: { darkMode: false }
     });
+    setPasswordErrors({ current: '', new: '', confirm: '' });
     setIsEditing(false);
   };
 
@@ -252,7 +301,6 @@ export default function FacultySettings() {
   };
 
   const sections = [
-    // { id: 'profile', label: 'Profile Information', icon: User },
     { id: 'password', label: 'Change Password', icon: Lock },
     { id: 'notifications', label: 'Notification Preferences', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Eye },
@@ -361,15 +409,28 @@ export default function FacultySettings() {
                         <Lock className="w-4 h-4" />
                         {field.label}
                       </p>
-                      <input
-                        type="password"
-                        value={editData.password[field.key]}
-                        onChange={(e) => setEditData(prev => ({
-                          ...prev,
-                          password: { ...prev.password, [field.key]: e.target.value }
-                        }))}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a8a]"
-                      />
+                      <div className="relative">
+                        <input
+                          type="password"
+                          value={editData.password[field.key]}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setEditData(prev => ({
+                              ...prev,
+                              password: { ...prev.password, [field.key]: value }
+                            }));
+                            validatePasswordField(field.key, value);
+                          }}
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#1e3a8a] transition ${
+                            passwordErrors[field.key] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                        {passwordErrors[field.key] && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {passwordErrors[field.key]}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

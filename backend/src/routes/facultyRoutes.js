@@ -11,7 +11,8 @@ import {
   getUpcomingExams,
   getFacultyNotifications,
   changeFacultyPassword,
-  deleteFacultyAccount
+  deleteFacultyAccount,
+  checkFacultyEmailAvailability
 } from '../controllers/facultyController.js';
 
 import { uploadProfilePic } from '../controllers/facultyController.js';
@@ -105,5 +106,8 @@ router.put('/change-password', protectFaculty, changeFacultyPassword);
 
 // Delete faculty account
 router.delete('/account', protectFaculty, deleteFacultyAccount);
+
+// New route to check email availability
+router.post('/check-email', checkFacultyEmailAvailability);
 
 export default router;

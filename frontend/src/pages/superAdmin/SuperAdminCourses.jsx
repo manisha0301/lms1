@@ -1,25 +1,29 @@
 // frontend/src/pages/superAdmin/SuperAdminCourses.jsx
 import React, { useState, useEffect } from "react";
-import { Plus, Clock, IndianRupee, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Clock, IndianRupee, X, Image as ImageIcon, Trash2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const SuperAdminCourses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Modal state
+  // Modal state for adding course
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [newCourse, setNewCourse] = useState({
     title: "",
     description: "",
-    duration: "",
+    durationValue: "",      // new: numeric part
+    durationUnit: "Months", // new: unit dropdown (default Months)
     price: "",
     originalPrice: "",
     thumbnail: null,
     live: true,
   });
+
+  // New states for delete confirmation
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState(null);
 
   // Fetch real courses from backend when page loads
   useEffect(() => {
@@ -27,13 +31,11 @@ const SuperAdminCourses = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("superAdminToken");
-
         const res = await fetch("http://localhost:5000/api/auth/superadmin/courses", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
         const data = await res.json();
         console.log("Result:", data);
         if (data.success) {
@@ -48,7 +50,6 @@ const SuperAdminCourses = () => {
         setLoading(false);
       }
     };
-
     fetchCourses();
   }, []);
 
@@ -67,7 +68,7 @@ const SuperAdminCourses = () => {
 
   const handleAddCourse = async () => {
     // Validation
-    if (!newCourse.title || !newCourse.duration || !newCourse.price || !newCourse.description) {
+    if (!newCourse.title || !newCourse.durationValue || !newCourse.price || !newCourse.description) {
       alert("Please fill in all required fields marked with *");
       return;
     }
@@ -78,16 +79,17 @@ const SuperAdminCourses = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    // Combine duration value and unit into one string for backend
+    const duration = `${newCourse.durationValue} ${newCourse.durationUnit}`;
 
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem("superAdminToken");
-
       const formData = new FormData();
       formData.append("name", newCourse.title);
       formData.append("type", newCourse.live ? "Live" : "Self-Paced");
       formData.append("price", price);
-      formData.append("duration", newCourse.duration);
+      formData.append("duration", duration); // ← now sending combined string
       formData.append("description", newCourse.description || "No description provided");
       formData.append("teachers", JSON.stringify([]));
       formData.append("batches", JSON.stringify([]));
@@ -95,7 +97,6 @@ const SuperAdminCourses = () => {
       if (newCourse.thumbnail) {
         formData.append("image", newCourse.thumbnail);
       }
-
       const res = await fetch("http://localhost:5000/api/auth/superadmin/courses", {
         method: "POST",
         headers: {
@@ -103,15 +104,14 @@ const SuperAdminCourses = () => {
         },
         body: formData,
       });
-
       const data = await res.json();
-
       if (data.success) {
         setCourses((prev) => [data.course, ...prev]);
-
         setNewCourse({
           title: "",
-          duration: "",
+          description: "",
+          durationValue: "",
+          durationUnit: "Months",
           price: "",
           originalPrice: "",
           thumbnail: null,
@@ -130,7 +130,34 @@ const SuperAdminCourses = () => {
     }
   };
 
-  const isFormValid = newCourse.title && newCourse.duration && newCourse.price > 0;
+  // Handle delete course
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    try {
+      const token = localStorage.getItem("superAdminToken");
+      const response = await axios.delete(
+        `http://localhost:5000/api/auth/superadmin/courses/${courseToDelete.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        setCourses((prev) => prev.filter((c) => c.id !== courseToDelete.id));
+        alert("Course deleted successfully!");
+        setDeleteModalOpen(false);
+        setCourseToDelete(null);
+      } else {
+        alert("Delete failed: " + (response.data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete course. Check console.");
+    }
+  };
+
+  const isFormValid = newCourse.title && newCourse.durationValue && newCourse.price > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -160,7 +187,10 @@ const SuperAdminCourses = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+              <div
+                key={course.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition relative"
+              >
                 <div className="h-48 bg-gray-200 border-b border-gray-200 relative">
                   {course.image ? (
                     <img
@@ -177,7 +207,6 @@ const SuperAdminCourses = () => {
                     {course.type?.toUpperCase() || (course.live ? "LIVE" : "SELF-PACED")}
                   </div>
                 </div>
-
                 <div className="p-5">
                   <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">{course.name}</h3>
                   <div className="flex items-center gap-4 text-xs text-gray-500 mt-4">
@@ -187,24 +216,19 @@ const SuperAdminCourses = () => {
                     </div>
                   </div>
 
-                  {/* PRICE DISPLAY  */}
-                  <div className="mt-5 flex items-end justify-between">
+                  {/* PRICE DISPLAY */}
+                  <div className="mt-5 flex flex-col gap-4">
                     <div className="flex flex-col">
-                      {/* Current Price */}
                       <div className="flex items-center gap-1 text-xl font-bold text-[#1e40af] leading-none">
                         <IndianRupee className="w-5 h-5" />
                         <span>{Number(course.price).toLocaleString()}</span>
                       </div>
-
-                      {/* Original Price */}
                       {(() => {
                         const orig = course.original_price || course.originalPrice || course.originalprice;
                         if (orig && Number(orig) > Number(course.price)) {
                           return (
                             <div className="mt-1 text-sm text-gray-500">
-                              <del>
-                                ₹{Number(orig).toLocaleString()}
-                              </del>
+                              <del>₹{Number(orig).toLocaleString()}</del>
                             </div>
                           );
                         }
@@ -212,12 +236,26 @@ const SuperAdminCourses = () => {
                       })()}
                     </div>
 
-                    <Link
-                      to={`/course/${course.id}`}
-                      className="bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition"
-                    >
-                      View Details
-                    </Link>
+                    {/* Buttons container - View Details + Delete Icon side by side */}
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        to={`/course/${course.id}`}
+                        className="bg-[#1e40af] text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-[#1e3a8a] transition"
+                      >
+                        View Details
+                      </Link>
+
+                      <button
+                        onClick={() => {
+                          setCourseToDelete(course);
+                          setDeleteModalOpen(true);
+                        }}
+                        className="p-2 rounded-full hover:bg-red-50 transition cursor-pointer"
+                        title="Delete Course"
+                      >
+                        <Trash2 className="w-5 h-5 text-red-600" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -226,14 +264,13 @@ const SuperAdminCourses = () => {
         )}
       </div>
 
-      {/* Add New Course Model */}
+      {/* Add New Course Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => !isSubmitting && setIsAddModalOpen(false)}
           />
-
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 z-10">
               <div className="flex justify-between items-center">
@@ -246,7 +283,9 @@ const SuperAdminCourses = () => {
                     setIsAddModalOpen(false);
                     setNewCourse({
                       title: "",
-                      duration: "",
+                      description: "",
+                      durationValue: "",
+                      durationUnit: "Months",
                       price: "",
                       originalPrice: "",
                       thumbnail: null,
@@ -260,7 +299,6 @@ const SuperAdminCourses = () => {
                 </button>
               </div>
             </div>
-
             <div className="p-8 space-y-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -275,8 +313,6 @@ const SuperAdminCourses = () => {
                 />
               </div>
 
-
-              {/* Description */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Course Description
@@ -290,19 +326,30 @@ const SuperAdminCourses = () => {
                 />
               </div>
 
-              {/* Duration & Pricing */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Duration <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={newCourse.duration}
-                    onChange={(e) => setNewCourse(prev => ({ ...prev, duration: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
-                    placeholder="e.g., 6 Months"
-                  />
+                  <div className="flex gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={newCourse.durationValue}
+                      onChange={(e) => setNewCourse(prev => ({ ...prev, durationValue: e.target.value }))}
+                      className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                      placeholder="e.g., 6"
+                    />
+                    <select
+                      value={newCourse.durationUnit}
+                      onChange={(e) => setNewCourse(prev => ({ ...prev, durationUnit: e.target.value }))}
+                      className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition cursor-pointer"
+                    >
+                      <option value="Months">Months</option>
+                      <option value="Years">Years</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -334,7 +381,6 @@ const SuperAdminCourses = () => {
                     placeholder="Leave empty for auto-calculation (2x course price)"
                   />
                 </div>
-
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer select-none">
                     <input
@@ -400,7 +446,9 @@ const SuperAdminCourses = () => {
                   setIsAddModalOpen(false);
                   setNewCourse({
                     title: "",
-                    duration: "",
+                    description: "",
+                    durationValue: "",
+                    durationUnit: "Months",
                     price: "",
                     originalPrice: "",
                     thumbnail: null,
@@ -437,7 +485,71 @@ const SuperAdminCourses = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
 
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && courseToDelete && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/30"
+          onClick={() => {
+            setDeleteModalOpen(false);
+            setCourseToDelete(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Delete Course Permanently?</h2>
+              <button
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setCourseToDelete(null);
+                }}
+                className="hover:bg-white/20 p-1 rounded"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 text-center space-y-6">
+              <div className="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-14 h-14 text-red-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">
+                Delete Course Permanently?
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                You are about to delete{" "}
+                <span className="font-bold text-red-600">"{courseToDelete.name}"</span>.<br />
+                This will remove the course, all enrolled students, materials, and records.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                <p className="text-sm font-medium text-red-700">
+                  This action <strong>cannot be undone</strong>.
+                </p>
+              </div>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => {
+                    setDeleteModalOpen(false);
+                    setCourseToDelete(null);
+                  }}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteCourse}
+                  className="px-8 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                >
+                  Yes, Delete Course
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

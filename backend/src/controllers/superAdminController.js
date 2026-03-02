@@ -363,3 +363,47 @@ export const updateSuperAdminProfile = async (req, res) => {
 };
 
 export { superAdminLogin, superAdminChangePassword };
+
+export const deleteAcademicAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM academic_admins WHERE id = $1 RETURNING id',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Academic admin not found' });
+    }
+
+    res.json({ success: true, message: 'Academic admin deleted successfully' });
+  } catch (error) {
+    console.error('Delete academic admin error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete academic admin' });
+  }
+};
+
+export const deleteCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM courses WHERE id = $1 RETURNING id, name',
+      [courseId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+
+    // Optional: Clean up related data (enrollments, schedules, etc.)
+    // await pool.query('DELETE FROM enrollments WHERE course_id = $1', [courseId]);
+    // etc.
+
+    res.json({ success: true, message: 'Course deleted successfully' });
+  } catch (error) {
+    console.error('Delete course error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete course' });
+  }
+};

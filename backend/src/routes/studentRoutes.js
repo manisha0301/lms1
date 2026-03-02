@@ -1,6 +1,20 @@
 // backend/src/routes/studentRoutes.js
 import express from 'express';
-import { studentSignup, studentLogin, getStudentCourses, getStudentProfile, updateStudentProfile, getStudentUpcomingClasses, getStudentNotifications, getStudentAssignmentProgress,  changeStudentPassword, deleteStudentAccount, submitCourseRating, getMyCourseRating } from '../controllers/studentController.js';  
+import { 
+  studentSignup, 
+  studentLogin, 
+  getStudentCourses, 
+  getStudentProfile, 
+  updateStudentProfile, 
+  getStudentUpcomingClasses, 
+  getStudentNotifications, 
+  getStudentAssignmentProgress, 
+  changeStudentPassword, 
+  deleteStudentAccount, 
+  submitCourseRating, 
+  getMyCourseRating,
+  checkEmailAvailability   
+} from '../controllers/studentController.js';
 import { getCourse } from '../controllers/courseController.js';
 import { protectStudent } from '../middleware/authMiddleware.js'; 
 import { getCourseExamLink, submitExamAnswer, getStudentExamResults } from '../controllers/examController.js';
@@ -74,5 +88,8 @@ router.delete('/account', protectStudent, deleteStudentAccount);
 router.post('/courses/:courseId/rate', protectStudent, submitCourseRating);
 
 router.get('/courses/:courseId/my-rating', protectStudent, getMyCourseRating);
+
+// NEW: Check if email is already registered (used during signup before OTP)
+router.post('/check-email', checkEmailAvailability);
 
 export default router;

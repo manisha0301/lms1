@@ -181,20 +181,66 @@ const academicAdminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    // 1. Required fields check (more explicit)
+    if (!email || typeof email !== 'string' || !email.trim()) {
       return res.status(400).json({
         success: false,
-        error: "Email and password are required"
+        error: "Email is required"
       });
     }
 
-    // Find admin by email
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: "Password is required"
+      });
+    }
+
+    // 2. Email format + TLD validation (exact match with frontend)
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid email address"
+      });
+    }
+
+    // Block TLD ending with digit (same as frontend)
+    const domainPart = trimmedEmail.split('@')[1] || '';
+    const tld = domainPart.split('.').pop() || '';
+    if (/\d$/.test(tld)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email domain – top-level domain cannot end with a number"
+      });
+    }
+
+    // 3. Password format + complexity validation (exact match with frontend)
+    if (password.length < 8 || password.length > 16) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be between 8 and 16 characters long"
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      });
+    }
+
+    // 4. Find admin (use trimmed email)
     const { rows } = await pool.query(
       `SELECT * FROM academic_admins WHERE email = $1 AND status = 'Active'`,
-      [email]
+      [trimmedEmail]
     );
 
     const admin = rows[0];
+
     if (!admin) {
       return res.status(401).json({
         success: false,
@@ -202,7 +248,7 @@ const academicAdminLogin = async (req, res) => {
       });
     }
 
-    // Check password
+    // 5. Verify password
     const isMatch = await bcrypt.compare(password, admin.password_hash);
     if (!isMatch) {
       return res.status(401).json({
@@ -211,7 +257,7 @@ const academicAdminLogin = async (req, res) => {
       });
     }
 
-    // Generate JWT
+    // 6. Generate JWT (unchanged)
     const token = jwt.sign(
       {
         id: admin.id,
@@ -224,6 +270,13 @@ const academicAdminLogin = async (req, res) => {
       { expiresIn: '12h' }
     );
 
+    // 7. Update last login
+    await pool.query(
+      `UPDATE academic_admins SET last_login = NOW() WHERE id = $1`,
+      [admin.id]
+    );
+
+    // 8. Success response
     res.json({
       success: true,
       message: "Academic Admin login successful",
@@ -237,15 +290,12 @@ const academicAdminLogin = async (req, res) => {
       }
     });
 
-    // save the current time as last login
-    await pool.query(
-      `UPDATE academic_admins SET last_login = NOW() WHERE id = $1`,
-      [admin.id]
-    );
-
   } catch (error) {
-    console.error("Admin Login Error →", error.message);
-    res.status(500).json({ success: false, error: "Server error" });
+    console.error("Academic Admin Login Error →", error.message);
+    res.status(500).json({
+      success: false,
+      error: "Server error during login"
+    });
   }
 };
 
@@ -668,6 +718,46 @@ export const getCourseStudentsWithProgress = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false });
+  }
+};
+
+export const updateFacultyDetails = async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    const { phone, address, designation, qualification } = req.body;
+
+    const updates = {};
+    if (phone !== undefined) updates.phone = phone ? phone.replace(/[\s\-+]/g, '') : null;
+    if (address !== undefined) updates.address = address?.trim() || null;
+    if (designation !== undefined) updates.designation = designation?.trim() || null;
+    if (qualification !== undefined) updates.qualification = qualification?.trim() || null;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: "No fields provided to update" });
+    }
+
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = $${index + 1}`)
+      .join(', ');
+
+    const values = [...Object.values(updates), facultyId];
+
+    const result = await pool.query(
+      `UPDATE faculty 
+       SET ${setClause}
+       WHERE id = $${values.length}
+       RETURNING id, phone, address, designation, qualification`,
+      values
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: "Faculty not found" });
+    }
+
+    res.json({ success: true, faculty: result.rows[0] });
+  } catch (error) {
+    console.error("Update faculty error:", error);
+    res.status(500).json({ success: false, error: "Failed to update faculty" });
   }
 };
 

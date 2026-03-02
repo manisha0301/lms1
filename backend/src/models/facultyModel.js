@@ -117,6 +117,19 @@ export const getPendingFaculty = async () => {
   return rows;
 };
 
+export const findFacultyByEmail = async (email) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id FROM faculty WHERE email = $1',
+      [email.toLowerCase().trim()]
+    );
+    return rows[0] || null;   // returns faculty row if exists, otherwise null
+  } catch (err) {
+    console.error('Error in findFacultyByEmail:', err.message);
+    throw err;
+  }
+};
+
 export const getAllFacultyWithStatus = async () => {
   const { rows } = await pool.query(`
     SELECT 

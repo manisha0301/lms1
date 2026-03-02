@@ -257,9 +257,9 @@ const CoursesManagement = () => {
                     <button onClick={() => openModal("edit", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
                       <Edit className="w-5 h-5 text-emerald-600" />
                     </button>
-                    <button onClick={() => openModal("delete", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
+                    {/* <button onClick={() => openModal("delete", course)} className="p-2 hover:bg-gray-100 rounded-xl transition">
                       <Trash2 className="w-5 h-5 text-red-600" />
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               ))
@@ -408,7 +408,7 @@ const CoursesManagement = () => {
         )}
 
         {/* Delete Confirmation Modal */}
-        {modalType === "delete" && selectedCourse && (
+        {/* {modalType === "delete" && selectedCourse && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
               <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
@@ -451,7 +451,7 @@ const CoursesManagement = () => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

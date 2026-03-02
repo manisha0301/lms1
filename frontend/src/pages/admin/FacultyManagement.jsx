@@ -27,6 +27,15 @@ const FacultyManagement = () => {
   // State to track real-time validation errors for add form
   const [addFormErrors, setAddFormErrors] = useState({});
 
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    phone: "",
+    address: "",
+    designation: "",
+    qualification: "",
+  });
+  const [editErrors, setEditErrors] = useState({});
+
   const fetchFacultyData = async () => {
     setLoading(true);
     try {
@@ -77,11 +86,24 @@ const FacultyManagement = () => {
   const openModal = (type, faculty) => {
     setSelectedFaculty(faculty);
     setModalType(type);
+
+    // Pre-fill edit form when opening edit modal
+    if (type === "edit" && faculty) {
+      setEditForm({
+        phone: faculty.phone || "",
+        address: faculty.address || "",
+        designation: faculty.designation || "",
+        qualification: faculty.qualification || "",
+      });
+      setEditErrors({});
+    }
   };
 
   const closeModal = () => {
     setSelectedFaculty(null);
     setModalType("");
+    setEditForm({ phone: "", address: "", designation: "", qualification: "" });
+    setEditErrors({});
   };
 
   const handleFileSelect = (e) => {
@@ -266,6 +288,90 @@ const FacultyManagement = () => {
     } catch (err) {
       console.error("Reject error:", err);
       alert("Failed to reject faculty.");
+    }
+  };
+
+  // Handle edit form input change
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({ ...prev, [name]: value }));
+
+    // Basic validation
+    const newErrors = { ...editErrors };
+    if (name === "phone" && value.trim()) {
+      const cleaned = value.replace(/[\s\-+]/g, '');
+      if (!/^[6789]\d{9}$/.test(cleaned)) {
+        newErrors.phone = "Invalid 10-digit mobile number";
+      } else {
+        delete newErrors.phone;
+      }
+    }
+    if (name === "designation" && !value.trim()) {
+      newErrors.designation = "Designation is required";
+    } else if (name === "designation") {
+      delete newErrors.designation;
+    }
+    if (name === "qualification" && !value.trim()) {
+      newErrors.qualification = "Qualification is required";
+    } else if (name === "qualification") {
+      delete newErrors.qualification;
+    }
+    setEditErrors(newErrors);
+  };
+
+  // Save edited faculty
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+
+    // Final validation
+    const errors = {};
+    if (editForm.phone.trim() && !/^[6789]\d{9}$/.test(editForm.phone.replace(/[\s\-+]/g, ''))) {
+      errors.phone = "Invalid 10-digit mobile number";
+    }
+    if (!editForm.designation?.trim()) {
+      errors.designation = "Designation is required";
+    }
+    if (!editForm.qualification?.trim()) {
+      errors.qualification = "Qualification is required";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/api/auth/admin/faculty/${selectedFaculty.id}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local state
+        setFaculties(prev =>
+          prev.map(f =>
+            f.id === selectedFaculty.id ? { ...f, ...editForm } : f
+          )
+        );
+        alert("Faculty updated successfully!");
+        closeModal();
+      } else {
+        alert("Update failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("Failed to update faculty. Check console.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -597,7 +703,7 @@ const FacultyManagement = () => {
           </div>
         )}
 
-        {/* Edit Modal - placeholder (you can expand later) */}
+        {/* Edit Modal */}
         {modalType === "edit" && selectedFaculty && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -607,13 +713,125 @@ const FacultyManagement = () => {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              <form className="p-6 space-y-6">
+
+              <form onSubmit={handleSaveEdit} className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* Read-only reference fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      value={selectedFaculty.name}
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-xl cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      value={selectedFaculty.email}
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-xl cursor-not-allowed"
+                    />
+                  </div>
+
+                  {/* Editable fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="phone"
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={handleEditChange}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        editErrors.phone ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="+91 98765 43210"
+                    />
+                    {editErrors.phone && (
+                      <p className="mt-1 text-sm text-red-600">{editErrors.phone}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="address"
+                      value={editForm.address}
+                      onChange={handleEditChange}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        editErrors.address ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="123 Academic Street, Mumbai"
+                    />
+                    {editErrors.address && (
+                      <p className="mt-1 text-sm text-red-600">{editErrors.address}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Designation <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="designation"
+                      value={editForm.designation}
+                      onChange={handleEditChange}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        editErrors.designation ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="Associate Professor"
+                    />
+                    {editErrors.designation && (
+                      <p className="mt-1 text-sm text-red-600">{editErrors.designation}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Qualification <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="qualification"
+                      value={editForm.qualification}
+                      onChange={handleEditChange}
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#1e3a8a] outline-none transition ${
+                        editErrors.qualification ? "border-red-500 ring-red-500/30" : "border-gray-300"
+                      }`}
+                      placeholder="PhD in Artificial Intelligence"
+                    />
+                    {editErrors.qualification && (
+                      <p className="mt-1 text-sm text-red-600">{editErrors.qualification}</p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-                  <button type="button" onClick={closeModal} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer">
-                    Save Changes
+                  <button
+                    type="submit"
+                    disabled={submitting || Object.keys(editErrors).length > 0}
+                    className={`px-8 py-3 text-white rounded-xl font-semibold shadow transition-all flex items-center gap-2 min-w-[140px] justify-center ${
+                      submitting || Object.keys(editErrors).length > 0
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:scale-105"
+                    }`}
+                  >
+                    {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
+                    {submitting ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>
@@ -621,12 +839,12 @@ const FacultyManagement = () => {
           </div>
         )}
 
-        {/* Password Modal - placeholder */}
-        {modalType === "password" && selectedFaculty && (
+        {/* Delete Confirmation Modal */}
+        {modalType === "delete" && selectedFaculty && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
               <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Reset Password</h2>
+                <h2 className="text-2xl font-bold">Delete Faculty Permanently?</h2>
                 <button onClick={closeModal} className="hover:bg-white/20 p-1 rounded">
                   <X className="w-6 h-6" />
                 </button>
@@ -635,14 +853,14 @@ const FacultyManagement = () => {
                 <div className="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center">
                   <AlertCircle className="w-14 h-14 text-red-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Remove Faculty?</h3>
+                <h3 className="text-2xl font-bold text-gray-900">Delete Faculty Permanently?</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  You are about to remove <span className="font-bold text-red-600">"{selectedFaculty.name}"</span>.<br />
-                  This action cannot be undone.
+                  You are about to delete <span className="font-bold text-red-600">"{selectedFaculty.name}"</span>.<br />
+                  This will remove the faculty, all associated records, and access.
                 </p>
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
                   <p className="text-sm font-medium text-red-700">
-                    All associated data will be deleted.
+                    This action <strong>cannot be undone</strong>.
                   </p>
                 </div>
                 <div className="flex justify-center gap-4">
@@ -653,9 +871,35 @@ const FacultyManagement = () => {
                     Cancel
                   </button>
                   <button
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem("token");
+                        const response = await fetch(`http://localhost:5000/api/auth/admin/faculty/${selectedFaculty.id}`, {
+                          method: "DELETE",
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                            "Content-Type": "application/json",
+                          },
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                          // Remove from UI list
+                          setFaculties((prev) => prev.filter((f) => f.id !== selectedFaculty.id));
+                          alert("Faculty deleted successfully!");
+                          closeModal();
+                        } else {
+                          alert("Delete failed: " + (data.error || "Unknown error"));
+                        }
+                      } catch (err) {
+                        console.error("Delete error:", err);
+                        alert("Failed to delete faculty. Check console.");
+                      }
+                    }}
                     className="px-8 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
                   >
-                    Yes, Remove Faculty
+                    Yes, Delete Faculty
                   </button>
                 </div>
               </div>

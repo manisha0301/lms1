@@ -10,7 +10,10 @@ import {
   superAdminLogin, 
   getAcademicInstitutes,
   updateSuperAdminProfile ,
-  getTotalUserCount  // ← FIXED: from superAdminController.js
+  getTotalUserCount,
+  deleteAcademicAdmin,
+  deleteCourse  // ← FIXED: from superAdminController.js
+  
 } from '../controllers/superAdminController.js';
 
 import { protectSuperAdmin } from '../middleware/authMiddleware.js';
@@ -119,5 +122,10 @@ router.put('/profile', protectSuperAdmin, updateSuperAdminProfile);
 
 // Route to get total user count (students + faculty + academic admins)
 router.get('/user-count', protectSuperAdmin, getTotalUserCount);
+
+
+router.delete('/academic-admins/:id', protectSuperAdmin, deleteAcademicAdmin);
+
+router.delete('/courses/:courseId', protectSuperAdmin, deleteCourse);
 
 export default router;

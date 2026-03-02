@@ -19,6 +19,7 @@ export default function ProfileDashboard() {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [editErrors, setEditErrors] = useState({}); // Validation errors for edit modal
 
   const [assignmentStats, setAssignmentStats] = useState({
     totalAssignments: 0,
@@ -261,9 +262,9 @@ export default function ProfileDashboard() {
       }, 1500);
 
     } catch (err) {
-      // ────────────────────────────────────────────────
+      
       // IMPROVED ERROR HANDLING – shows exact backend message
-      // ────────────────────────────────────────────────
+      
       let errorMessage = "Upload failed. Please try again.";
 
       if (err.response?.data?.error) {
@@ -315,7 +316,78 @@ export default function ProfileDashboard() {
 
   const canUploadExam = todayExam && graceActive;
 
+  // Validate edit form fields (only name, email, phone)
+  const validateEditField = (name, value) => {
+    const errors = { ...editErrors };
+
+    if (name === "firstName" || name === "lastName") {
+      const trimmed = (value || "").trim();
+      const nameRegex = /^[A-Za-z ]+$/;
+      if (!trimmed) {
+        errors[name] = `${name === "firstName" ? "First" : "Last"} name is required`;
+      } else if (!nameRegex.test(trimmed)) {
+        errors[name] = "Name must contain only letters and spaces";
+      } else if (trimmed.length < 2) {
+        errors[name] = "Name is too short (minimum 2 characters)";
+      } else if (trimmed.length > 50) {
+        errors[name] = "Name is too long (maximum 50 characters)";
+      } else {
+        delete errors[name];
+      }
+    }
+
+    if (name === "email") {
+      const trimmed = (value || "").trim().toLowerCase();
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!trimmed) {
+        errors.email = "Email is required";
+      } else if (!emailRegex.test(trimmed)) {
+        errors.email = "Please enter a valid email address";
+      } else {
+        const tld = trimmed.split('@')[1]?.split('.').pop() || '';
+        if (/\d$/.test(tld)) {
+          errors.email = "Invalid email domain – top-level domain cannot end with a number";
+        } else {
+          delete errors.email;
+        }
+      }
+    }
+
+    if (name === "phone") {
+      const cleaned = (value || "").replace(/[\s\-+]/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!cleaned) {
+        errors.phone = "Phone number is required";
+      } else if (!phoneRegex.test(cleaned)) {
+        errors.phone = "Phone must be a valid 10-digit Indian number starting with 6-9";
+      } else {
+        delete errors.phone;
+      }
+    }
+
+    setEditErrors(errors);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({ ...prev, [name]: value }));
+
+    // Validate on change
+    validateEditField(name, value);
+  };
+
   const handleSave = async () => {
+    // Final validation pass (only name, email, phone)
+    validateEditField("firstName", editForm.firstName);
+    validateEditField("lastName", editForm.lastName);
+    validateEditField("email", editForm.email);
+    validateEditField("phone", editForm.phone);
+
+    if (Object.keys(editErrors).length > 0) {
+      alert("Please fix all validation errors before saving.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -326,11 +398,11 @@ export default function ProfileDashboard() {
       const res = await axios.put(
         `${apiConfig.API_BASE_URL}/api/auth/student/profile`,
         {
-          firstName: editForm.firstName,
-          lastName: editForm.lastName,
-          email: editForm.email,
-          phone: editForm.phone,
-          university: editForm.university
+          firstName: editForm.firstName?.trim(),
+          lastName: editForm.lastName?.trim(),
+          email: editForm.email?.trim(),
+          phone: editForm.phone?.trim()
+          // university is NOT sent or included
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -340,6 +412,7 @@ export default function ProfileDashboard() {
       if (res.data.success) {
         setProfile(res.data.profile);
         setIsEditing(false);
+        setEditErrors({});
         alert('Profile updated successfully!');
       } else {
         alert(res.data.error || 'Failed to update profile');
@@ -545,7 +618,7 @@ export default function ProfileDashboard() {
                       : "bg-gray-400 text-gray-200 cursor-not-allowed opacity-70"
                   }`}
                 >
-                  {canUploadExam ? "Upload Exam Sheet" : "Upload Closed (Grace Period Ended)"}
+                  {canUploadExam ? "Upload Exam Sheet" : "Upload Closed "}
                 </button>
               </div>
 
@@ -593,57 +666,117 @@ export default function ProfileDashboard() {
         </div>
       </div>
 
-      {/* Edit Profile Modal */}
+      {/* Edit Profile Modal - No University field */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform scale-100 transition-transform duration-300">
             <h3 className="text-xl font-bold mb-6 text-gray-800">Edit Profile</h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="First Name"
-                value={editForm.firstName || ''}
-                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-              />
-              <input
-                type="text"
-                placeholder="Last Name"
-                value={editForm.lastName || ''}
-                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={editForm.email || ''}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-              />
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={editForm.phone || ''}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-              />
-              <input
-                type="text"
-                placeholder="University"
-                value={editForm.university || ''}
-                onChange={(e) => setEditForm({ ...editForm, university: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
-              />
+
+            <div className="space-y-5">
+              {/* First Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={editForm.firstName || ''}
+                  onChange={handleEditChange}
+                  onKeyPress={(e) => {
+                    if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
+                  }}
+                  placeholder="Ananya"
+                  className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
+                    editErrors.firstName ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                {editErrors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{editErrors.firstName}</p>
+                )}
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={editForm.lastName || ''}
+                  onChange={handleEditChange}
+                  onKeyPress={(e) => {
+                    if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
+                  }}
+                  placeholder="Sharma"
+                  className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
+                    editErrors.lastName ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                {editErrors.lastName && (
+                  <p className="mt-1 text-sm text-red-600">{editErrors.lastName}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editForm.email || ''}
+                  onChange={handleEditChange}
+                  placeholder="ananya@orion.com"
+                  className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
+                    editErrors.email ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                {editErrors.email && (
+                  <p className="mt-1 text-sm text-red-600">{editErrors.email}</p>
+                )}
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={editForm.phone || ''}
+                  onChange={handleEditChange}
+                  placeholder="9876543210"
+                  className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
+                    editErrors.phone ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                {editErrors.phone && (
+                  <p className="mt-1 text-sm text-red-600">{editErrors.phone}</p>
+                )}
+              </div>
             </div>
-            <div className="flex gap-3 mt-6">
+
+            <div className="flex gap-3 mt-8">
               <button
                 onClick={handleSave}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg cursor-pointer"
+                disabled={Object.keys(editErrors).length > 0}
+                className={`flex-1 py-3 rounded-lg font-semibold transition-all shadow-md ${
+                  Object.keys(editErrors).length === 0
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 cursor-pointer"
+                    : "bg-gray-400 text-white cursor-not-allowed opacity-70"
+                }`}
               >
                 Save Changes
               </button>
               <button
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditErrors({});
+                }}
                 className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
               >
                 Cancel

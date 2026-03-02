@@ -8,6 +8,8 @@ import {
   X,
   Loader2,
   User,
+  Trash2,
+  AlertCircle,
 } from 'lucide-react';
 import AdminDetailView from './AdminDetailView';
 import axios from 'axios';
@@ -22,13 +24,16 @@ const AcademicAdminsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // New states for delete confirmation
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [adminToDelete, setAdminToDelete] = useState(null);
+
   const [newAdmin, setNewAdmin] = useState({
     fullName: '',
     email: '',
     mobile: '',
     role: 'Academic Admin',
     academicAdmins: '',
-    // department: '',
     password: '',
     confirmPassword: '',
     twoFactor: false,
@@ -87,7 +92,7 @@ const AcademicAdminsPage = () => {
       setError('Please enter a valid email address (e.g., name@example.com)');
       return;
     }
-    // Extra check: reject TLD ending with number (blocks .com678, .org123 etc.)
+    // Extra check: reject TLD ending with number
     const domainPart = trimmedEmail.split('@')[1] || '';
     const tld = domainPart.split('.').pop() || '';
     if (/\d$/.test(tld)) {
@@ -114,7 +119,7 @@ const AcademicAdminsPage = () => {
 
     // Phone validation - Indian mobile: exactly 10 digits starting with 6-9
     if (newAdmin.mobile) {
-      const cleanedPhone = newAdmin.mobile.replace(/[\s\-+]/g, ''); // remove spaces, -, +
+      const cleanedPhone = newAdmin.mobile.replace(/[\s\-+]/g, '');
       const phoneRegex = /^[6789]\d{9}$/;
       if (!phoneRegex.test(cleanedPhone)) {
         setError('Please enter a valid 10-digit Indian mobile number starting with 6-9 (e.g. 9876543210)');
@@ -134,7 +139,6 @@ const AcademicAdminsPage = () => {
           mobile: newAdmin.mobile || null,
           role: newAdmin.role,
           academicAdmins: newAdmin.academicAdmins.trim(),
-          // department: newAdmin.department.trim(),
           password: newAdmin.password,
           confirmPassword: newAdmin.confirmPassword,
           twoFactor: newAdmin.twoFactor,
@@ -145,17 +149,13 @@ const AcademicAdminsPage = () => {
       );
 
       if (response.data.success) {
-        // Add the new admin to the list
         setAcademicAdmins((prev) => [response.data.admin, ...prev]);
-
-        // Reset form and close modal
         setNewAdmin({
           fullName: '',
           email: '',
           mobile: '',
           role: 'Academic Admin',
           academicAdmins: '',
-          // department: '',
           password: '',
           confirmPassword: '',
           twoFactor: false,
@@ -174,6 +174,39 @@ const AcademicAdminsPage = () => {
     }
   };
 
+  // Handle delete confirmation
+  const handleDeleteAdmin = async () => {
+    if (!adminToDelete) return;
+
+    try {
+      const token = getToken();
+      const response = await axios.delete(
+        `${API_BASE}/academic-admins/${adminToDelete.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        // Remove from UI
+        setAcademicAdmins((prev) =>
+          prev.filter((admin) => admin.id !== adminToDelete.id)
+        );
+        alert('Academic Admin deleted successfully!');
+        setDeleteModalOpen(false);
+        setAdminToDelete(null);
+      } else {
+        alert('Delete failed: ' + (response.data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert(
+        'Failed to delete academic admin. ' +
+          (err.response?.data?.error || 'Check console for details.')
+      );
+    }
+  };
+
   if (selectedAdmin) {
     return <AdminDetailView admin={selectedAdmin} onBack={() => setSelectedAdmin(null)} />;
   }
@@ -182,7 +215,7 @@ const AcademicAdminsPage = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-[#1e3a8a] text-white shadow-lg">
-        <div className="  mx-auto px-8 py-6 flex justify-between items-start">
+        <div className="mx-auto px-8 py-6 flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold">Admin Management</h1>
             <p className="opacity-90 mt-1">Overview of all academic administrators</p>
@@ -196,7 +229,7 @@ const AcademicAdminsPage = () => {
         </div>
       </header>
 
-      <div className="  mx-auto px-8 py-8">
+      <div className="mx-auto px-8 py-8">
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -221,21 +254,20 @@ const AcademicAdminsPage = () => {
             {academicAdmins.map((admin) => (
               <div
                 key={admin.id}
-                // onClick={() => setSelectedAdmin(admin)}
-                className="bg-white rounded-xl shadow-xl border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group"
+                className="bg-white rounded-xl shadow-xl border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group relative"
               >
                 <div className="flex items-start justify-between mb-6">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#1e3a8a] to-blue-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                      {admin.academicAdmins && admin.academicAdmins.trim().charAt(0).toUpperCase()}
+                    {admin.academicAdmins && admin.academicAdmins.trim().charAt(0).toUpperCase()}
                   </div>
                   <span
-                  className={`px-4 py-2 rounded-full text-sm font-bold ${
-                    admin.status === "Active"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : admin.status === "Inactive"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
+                    className={`px-4 py-2 rounded-full text-sm font-bold ${
+                      admin.status === "Active"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : admin.status === "Inactive"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
                   >
                     {admin.status}
                   </span>
@@ -263,16 +295,17 @@ const AcademicAdminsPage = () => {
                   </div>
                 </div>
 
-              {/* <div className="mt-6 pt-6 border-t border-gray-100">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-600">Students Managed</span>
-                  <span className="font-bold text-gray-900">{admin.stats.studentsManaged}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Courses Administered</span>
-                  <span className="font-bold text-gray-900">{admin.stats.coursesAdministered}</span>
-                </div>
-              </div> */}
+                {/* Delete Icon - bottom right */}
+                <button
+                  onClick={() => {
+                    setAdminToDelete(admin);
+                    setDeleteModalOpen(true);
+                  }}
+                  className="absolute bottom-6 right-6 p-2 rounded-full hover:bg-red-50 transition cursor-pointer opacity-70 hover:opacity-100"
+                  title="Delete Academic Admin"
+                >
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </button>
               </div>
             ))}
           </div>
@@ -528,6 +561,75 @@ const AcademicAdminsPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+
+      {deleteModalOpen && adminToDelete && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/30"
+          onClick={() => {
+            setDeleteModalOpen(false);
+            setAdminToDelete(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+          >
+            <div className="bg-[#1e3a8a] text-white p-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Delete Academic Admin Permanently?</h2>
+              <button
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setAdminToDelete(null);
+                }}
+                className="hover:bg-white/20 p-1 rounded"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 text-center space-y-6">
+              <div className="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-14 h-14 text-red-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">
+                Delete Academic Admin Permanently?
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                You are about to delete{" "}
+                <span className="font-bold text-red-600">
+                  "{adminToDelete.academicAdmins}"
+                </span>
+                .<br />
+                This will remove the admin, all associated records, and access.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                <p className="text-sm font-medium text-red-700">
+                  This action <strong>cannot be undone</strong>.
+                </p>
+              </div>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => {
+                    setDeleteModalOpen(false);
+                    setAdminToDelete(null);
+                  }}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAdmin}
+                  className="px-8 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 font-semibold shadow-lg hover:scale-105 transition-all cursor-pointer"
+                >
+                  Yes, Delete Admin
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
