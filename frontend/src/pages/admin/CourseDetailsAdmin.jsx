@@ -69,7 +69,7 @@ const CourseDetailsAdmin = () => {
     const fetchCourseDetails = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         if (!token) return;
 
         // Fetch course basic info + structure
@@ -200,7 +200,7 @@ const CourseDetailsAdmin = () => {
     const fetchUniversityStudents = async () => {
       try {
         setStudentsLoading(true);
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         if (!token) return;
 
         const response = await fetch(
@@ -244,7 +244,7 @@ const CourseDetailsAdmin = () => {
   // Save batch schedule
   const handleSaveBatch = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
 
       if (!batchForm.startDate || !batchForm.endDate || !batchForm.startTime || !batchForm.endTime) {
         alert('Please fill all fields');
@@ -278,7 +278,7 @@ const CourseDetailsAdmin = () => {
   // Save meeting link
   const handleSaveLink = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       if (!meetingLinkForm.meetingLink.trim()) {
         alert('Please enter a meeting link');
         return;

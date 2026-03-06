@@ -11,7 +11,11 @@ import {
   getStudentByIdForAdmin,
   getAcademicAdminNotifications,
   getCourseStudentsWithProgress,
-  updateFacultyDetails
+  updateFacultyDetails,
+  markAdminNotificationAsRead,
+  getAdminDashboardStats,
+  academicAdminSendDualOtp,
+  academicAdminFinalizeLogin
 } from '../controllers/academicAdminController.js';
 
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
@@ -30,6 +34,8 @@ import {
   getAcademicCourseScheduleCtrl,
   saveAcademicCourseScheduleCtrl
 } from '../controllers/courseController.js';
+
+import { verifyOTP } from '../controllers/otpController.js';
 
 const router = express.Router();
 
@@ -66,6 +72,12 @@ router.get('/notifications', protectAcademicAdmin, getAcademicAdminNotifications
 
 router.get('/courses/:courseId/students-progress', protectAcademicAdmin, getCourseStudentsWithProgress);
 
+router.put('/notifications/:notificationId/read', protectAcademicAdmin, markAdminNotificationAsRead);
 
+router.get('/dashboard-stats', protectAcademicAdmin, getAdminDashboardStats);
 
+router.post('/login/send-otp', academicAdminSendDualOtp);
+router.post('/login/verify-otp', verifyOTP);          // reuse from otpController
+router.post('/login/finalize', academicAdminFinalizeLogin);
+  
 export default router;

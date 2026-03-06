@@ -64,7 +64,7 @@ export default function FacultySettings() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         if (!token) {
           navigate('/faculty/login');
           return;
@@ -136,7 +136,7 @@ export default function FacultySettings() {
 
   const handleSaveProfile = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       if (!token) {
         navigate('/faculty/login');
         return;
@@ -189,7 +189,7 @@ export default function FacultySettings() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const res = await axios.put(
         `${apiConfig.API_BASE_URL}/api/faculty/change-password`,
         {
@@ -225,7 +225,7 @@ export default function FacultySettings() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const res = await axios.delete(`${apiConfig.API_BASE_URL}/api/faculty/account`, {
         headers: { Authorization: `Bearer ${token}` },
       });

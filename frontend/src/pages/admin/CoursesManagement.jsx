@@ -34,7 +34,7 @@ const CoursesManagement = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         if (!token) {
           alert("Please login again");
           navigate("/login");
@@ -133,7 +133,7 @@ const CoursesManagement = () => {
 
   const handleSaveTeachers = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const res = await axios.patch(
         `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${selectedCourse.id}/teachers`,
         { teacherIds: selectedTeachers },

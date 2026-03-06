@@ -39,7 +39,7 @@ const FacultyManagement = () => {
   const fetchFacultyData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const res = await fetch('http://localhost:5000/api/auth/admin/faculty', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -61,7 +61,7 @@ const FacultyManagement = () => {
     // Fetch all courses for course count per faculty
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         const res = await fetch('http://localhost:5000/api/auth/admin/courses', {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -206,7 +206,7 @@ const FacultyManagement = () => {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const res = await fetch('http://localhost:5000/api/auth/admin/faculty', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -239,7 +239,7 @@ const FacultyManagement = () => {
     if (!window.confirm("Approve this faculty member? They will be able to log in.")) return;
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const res = await fetch(`http://localhost:5000/api/auth/admin/faculty/${facultyId}/approve`, {
         method: 'PATCH',
         headers: {
@@ -268,7 +268,7 @@ const FacultyManagement = () => {
     if (!window.confirm("Reject this faculty request? This action cannot be undone.")) return;
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const res = await fetch(`http://localhost:5000/api/auth/admin/faculty/${facultyId}/reject`, {
         method: 'PATCH',
         headers: {
@@ -343,7 +343,7 @@ const FacultyManagement = () => {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const response = await fetch(`http://localhost:5000/api/auth/admin/faculty/${selectedFaculty.id}`, {
         method: "PATCH",
         headers: {
@@ -873,7 +873,7 @@ const FacultyManagement = () => {
                   <button
                     onClick={async () => {
                       try {
-                        const token = localStorage.getItem("token");
+                        const token = localStorage.getItem("adminToken");
                         const response = await fetch(`http://localhost:5000/api/auth/admin/faculty/${selectedFaculty.id}`, {
                           method: "DELETE",
                           headers: {

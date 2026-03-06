@@ -41,7 +41,7 @@ export default function AssignmentManagement() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         const response = await axios.get(
           `${apiConfig.API_BASE_URL}/api/faculty/dashboard`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -71,7 +71,7 @@ export default function AssignmentManagement() {
     if (!courseId) return;
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const response = await axios.get(
         `${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}/assessments`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -100,7 +100,7 @@ export default function AssignmentManagement() {
     const fetchSubmissions = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         const response = await axios.get(
           `${apiConfig.API_BASE_URL}/api/faculty/assignments/${showDetailsModal}/submissions`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -147,7 +147,7 @@ export default function AssignmentManagement() {
       }
 
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
 
       const formData = new FormData();
       formData.append('title', newAssignment.title.trim());
@@ -195,7 +195,7 @@ export default function AssignmentManagement() {
   const handleSaveEvaluation = async (submissionId, marks, remarks) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
 
       const response = await axios.patch(
         `${apiConfig.API_BASE_URL}/api/faculty/submissions/${submissionId}`,

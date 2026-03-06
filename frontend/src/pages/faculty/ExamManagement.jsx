@@ -49,7 +49,7 @@ export default function ExamManagement() {
   }, []);
 
   const fetchAllData = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('facultyToken');
     if (!token) return;
     try {
       const coursesRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/my-courses`, {
@@ -82,7 +82,7 @@ export default function ExamManagement() {
     const fetchSubmittedStudents = async () => {
       setLoadingStudents(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         const res = await axios.get(
           `${apiConfig.API_BASE_URL}/api/faculty/exams/${selectedExam}/submissions`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -105,7 +105,7 @@ export default function ExamManagement() {
   // Save marks and remarks to DB
   const handleSaveEvaluation = async (submissionId, marks, remarks) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const res = await axios.patch(
         `${apiConfig.API_BASE_URL}/api/faculty/exams/submissions/${submissionId}`,
         { 
@@ -215,7 +215,7 @@ export default function ExamManagement() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const payload = {
         topic: newExamForm.topic,
         courseId: newExamForm.courseId,

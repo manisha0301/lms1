@@ -19,7 +19,19 @@ export default function ProfileDashboard() {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [editErrors, setEditErrors] = useState({}); // Validation errors for edit modal
+  const [editErrors, setEditErrors] = useState({});
+
+  // Change detection & verification states
+  const [originalEmail, setOriginalEmail] = useState("");
+  const [originalPhone, setOriginalPhone] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingPhone, setPendingPhone] = useState("");
+  const [showEmailOtpModal, setShowEmailOtpModal] = useState(false);
+  const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+  const [phoneVerifying, setPhoneVerifying] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const [assignmentStats, setAssignmentStats] = useState({
     totalAssignments: 0,
@@ -42,7 +54,7 @@ export default function ProfileDashboard() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
 
-  // NEW: State for live grace period tracking
+  // State for live grace period tracking
   const [graceActive, setGraceActive] = useState(false);
 
   useEffect(() => {
@@ -75,7 +87,7 @@ export default function ProfileDashboard() {
     fetchProfile();
   }, [navigate]);
 
-  // Fetch real upcoming classes
+  // Fetch upcoming classes
   useEffect(() => {
     const fetchUpcomingClasses = async () => {
       try {
@@ -121,7 +133,6 @@ export default function ProfileDashboard() {
     fetchAssignmentProgress();
   }, []);
 
-  // Fetch today's active exam from all enrolled courses
   useEffect(() => {
     const fetchTodayExam = async () => {
       setExamLoading(true);
@@ -174,7 +185,6 @@ export default function ProfileDashboard() {
     fetchTodayExam();
   }, []);
 
-  // NEW: Live grace period checker (runs immediately + every 60 seconds)
   useEffect(() => {
     if (!todayExam) {
       setGraceActive(false);
@@ -186,12 +196,24 @@ export default function ProfileDashboard() {
       setGraceActive(active);
     };
 
-    checkGrace(); // run immediately
+    checkGrace();
 
-    const interval = setInterval(checkGrace, 60000); // every 1 minute
-
+    const interval = setInterval(checkGrace, 60000);
     return () => clearInterval(interval);
   }, [todayExam]);
+
+  useEffect(() => {
+    if (isEditing && profile) {
+      setOriginalEmail(profile.email || "");
+      setOriginalPhone(profile.phone || "");
+      setPendingEmail("");
+      setPendingPhone("");
+      setShowEmailOtpModal(false);
+      setShowPhoneOtpModal(false);
+      setEmailVerified(false);
+      setPhoneVerified(false);
+    }
+  }, [isEditing, profile]);
 
   const handleFileValidation = (file) => {
     if (!file) return;
@@ -262,9 +284,6 @@ export default function ProfileDashboard() {
       }, 1500);
 
     } catch (err) {
-      
-      // IMPROVED ERROR HANDLING – shows exact backend message
-      
       let errorMessage = "Upload failed. Please try again.";
 
       if (err.response?.data?.error) {
@@ -284,7 +303,6 @@ export default function ProfileDashboard() {
     }
   };
 
-  // Helper to format 24h time to 12h AM/PM
   const formatTime = (timeStr) => {
     if (!timeStr) return 'N/A';
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -293,30 +311,27 @@ export default function ProfileDashboard() {
     return `${formattedHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
-  // Check if we are still within the 15-minute grace period after exam end
   const isWithinGracePeriod = () => {
     if (!todayExam || !todayExam.date || !todayExam.endTime) {
       return false;
     }
 
-    // Combine date and time into a valid date string
     const examEndStr = `${todayExam.date}T${todayExam.endTime}:00`;
     const examEnd = new Date(examEndStr);
 
     if (isNaN(examEnd.getTime())) {
       console.warn("Could not parse exam end time:", examEndStr);
-      return true; // fallback - allow if parsing fails
+      return true;
     }
 
     const now = new Date();
-    const graceEnd = new Date(examEnd.getTime() + 15 * 60 * 1000); // +15 minutes
+    const graceEnd = new Date(examEnd.getTime() + 15 * 60 * 1000);
 
     return now <= graceEnd;
   };
 
   const canUploadExam = todayExam && graceActive;
 
-  // Validate edit form fields (only name, email, phone)
   const validateEditField = (name, value) => {
     const errors = { ...editErrors };
 
@@ -372,12 +387,80 @@ export default function ProfileDashboard() {
     const { name, value } = e.target;
     setEditForm(prev => ({ ...prev, [name]: value }));
 
-    // Validate on change
     validateEditField(name, value);
   };
 
+  // FIXED: Define handleVerifyEmail
+  const handleVerifyEmail = async () => {
+    const email = editForm.email?.trim();
+
+    if (!email) {
+      alert("Please enter an email address first");
+      return;
+    }
+
+    validateEditField('email', email);
+    if (editErrors.email) {
+      alert('Please fix the email format error first');
+      return;
+    }
+
+    setEmailVerifying(true);
+
+    try {
+      await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-email/send-otp`, {
+        email,
+        user_type: 'student'
+      });
+
+      // For now, show modal instead of navigating
+      setShowEmailOtpModal(true);
+    } catch (err) {
+      console.error('Email OTP error:', err);
+      alert('Failed to send OTP to email. Please try again.');
+    } finally {
+      setEmailVerifying(false);
+    }
+  };
+
+  // FIXED: Define handleVerifyPhone
+  const handleVerifyPhone = async () => {
+    const phone = editForm.phone?.trim().replace(/[\s\-+]/g, '');
+
+    if (!phone) {
+      alert("Please enter a phone number first");
+      return;
+    }
+
+    validateEditField('phone', phone);
+    if (editErrors.phone) {
+      alert('Please fix the phone number error first');
+      return;
+    }
+
+    if (phone.length !== 10 || !/^[6789]\d{9}$/.test(phone)) {
+      alert('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+
+    setPhoneVerifying(true);
+
+    try {
+      await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-phone/send-otp`, {
+        phone,
+        user_type: 'student'
+      });
+
+      setShowPhoneOtpModal(true);
+    } catch (err) {
+      console.error('Phone OTP error:', err);
+      alert('Failed to send OTP to phone. Please try again.');
+    } finally {
+      setPhoneVerifying(false);
+    }
+  };
+
   const handleSave = async () => {
-    // Final validation pass (only name, email, phone)
     validateEditField("firstName", editForm.firstName);
     validateEditField("lastName", editForm.lastName);
     validateEditField("email", editForm.email);
@@ -388,6 +471,38 @@ export default function ProfileDashboard() {
       return;
     }
 
+    const emailChanged = editForm.email?.trim() !== originalEmail.trim();
+    const phoneChanged = editForm.phone?.trim() !== originalPhone.trim();
+
+    if (!emailChanged && !phoneChanged) {
+      await performSave();
+      return;
+    }
+
+    if (emailChanged && !phoneChanged) {
+      setPendingEmail(editForm.email.trim());
+      await sendOtpForEmail(editForm.email.trim());
+      setShowEmailOtpModal(true);
+      return;
+    }
+
+    if (phoneChanged && !emailChanged) {
+      const cleanPhone = editForm.phone.trim().replace(/\D/g, '');
+      setPendingPhone(cleanPhone);
+      await sendOtpForPhone(cleanPhone);
+      setShowPhoneOtpModal(true);
+      return;
+    }
+
+    if (emailChanged && phoneChanged) {
+      setPendingEmail(editForm.email.trim());
+      await sendOtpForEmail(editForm.email.trim());
+      setShowEmailOtpModal(true);
+      return;
+    }
+  };
+
+  const performSave = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -400,9 +515,8 @@ export default function ProfileDashboard() {
         {
           firstName: editForm.firstName?.trim(),
           lastName: editForm.lastName?.trim(),
-          email: editForm.email?.trim(),
-          phone: editForm.phone?.trim()
-          // university is NOT sent or included
+          email: pendingEmail || editForm.email?.trim(),
+          phone: pendingPhone || editForm.phone?.trim()
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -413,6 +527,8 @@ export default function ProfileDashboard() {
         setProfile(res.data.profile);
         setIsEditing(false);
         setEditErrors({});
+        setPendingEmail("");
+        setPendingPhone("");
         alert('Profile updated successfully!');
       } else {
         alert(res.data.error || 'Failed to update profile');
@@ -421,6 +537,54 @@ export default function ProfileDashboard() {
       console.error('Update error:', err);
       alert('Failed to update profile: ' + (err.response?.data?.error || err.message));
     }
+  };
+
+  const sendOtpForEmail = async (email) => {
+    try {
+      setEmailVerifying(true);
+      await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-email/send-otp`, {
+        email,
+        user_type: 'student'
+      });
+    } catch (err) {
+      alert('Failed to send email OTP. Please try again.');
+    } finally {
+      setEmailVerifying(false);
+    }
+  };
+
+  const sendOtpForPhone = async (phone) => {
+    try {
+      setPhoneVerifying(true);
+      await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-phone/send-otp`, {
+        phone,
+        user_type: 'student'
+      });
+    } catch (err) {
+      alert('Failed to send phone OTP. Please try again.');
+    } finally {
+      setPhoneVerifying(false);
+    }
+  };
+
+  const onEmailOtpSuccess = async () => {
+    setShowEmailOtpModal(false);
+    setEmailVerified(true);
+
+    if (editForm.phone?.trim() !== originalPhone.trim()) {
+      const cleanPhone = editForm.phone.trim().replace(/\D/g, '');
+      setPendingPhone(cleanPhone);
+      await sendOtpForPhone(cleanPhone);
+      setShowPhoneOtpModal(true);
+    } else {
+      await performSave();
+    }
+  };
+
+  const onPhoneOtpSuccess = async () => {
+    setShowPhoneOtpModal(false);
+    setPhoneVerified(true);
+    await performSave();
   };
 
   const handleLogout = () => {
@@ -460,9 +624,14 @@ export default function ProfileDashboard() {
     );
   }
 
+  const emailChanged = editForm.email?.trim() !== originalEmail.trim();
+  const phoneChanged = editForm.phone?.trim() !== originalPhone.trim();
+  const canSave = !Object.keys(editErrors).length && 
+                  !(emailChanged && !emailVerified) && 
+                  !(phoneChanged && !phoneVerified);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Consistent Blue Header with breadcrumb-style text */}
       <div className="bg-[#1e3a8a] text-white p-8 mb-8">
         <div className="mx-auto">
           <h1 className="text-3xl font-bold text-white">My Profile</h1>
@@ -471,14 +640,12 @@ export default function ProfileDashboard() {
       </div>
 
       <div className="mx-auto px-4 flex flex-col lg:flex-row gap-8">
-        {/* LEFT COLUMN: Profile Sidebar */}
         <div className="lg:w-1/3 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
             <div className="relative inline-block mb-4">
               <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg mx-auto">
                 {initials}
               </div>
-              {/* Active Status Badge */}
               <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Active
               </div>
@@ -499,7 +666,6 @@ export default function ProfileDashboard() {
             </button>
           </div>
 
-          {/* Upcoming Classes Sidebar Card - REAL DATA */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
               <div className="p-1.5 bg-purple-100 rounded-md">
@@ -529,9 +695,7 @@ export default function ProfileDashboard() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Content Area */}
         <div className="lg:w-2/3 space-y-6">
-          {/* Section 1: Personal Information Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
             <div className="flex items-center gap-2 mb-8 pb-3 border-b border-gray-50">
               <User className="w-5 h-5 text-blue-600" />
@@ -560,7 +724,6 @@ export default function ProfileDashboard() {
             </div>
           </div>
 
-          {/* Section 2: Overall Progress Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
@@ -593,7 +756,6 @@ export default function ProfileDashboard() {
             </div>
           </div>
 
-          {/* Section 3: Exam Progress Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
             <div className="flex items-center gap-2 mb-6">
               <div className="p-1.5 bg-green-100 rounded-md">
@@ -603,7 +765,6 @@ export default function ProfileDashboard() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Left: Add Exam Answers Card */}
               <div className="flex flex-col justify-center items-center p-8 border border-gray-100 rounded-xl bg-white shadow-sm">
                 <h4 className="text-xl font-bold text-gray-800 mb-4">
                   Add Exam Answers
@@ -622,7 +783,6 @@ export default function ProfileDashboard() {
                 </button>
               </div>
 
-              {/* Right: Real exam data */}
               <div className="bg-green-50 p-6 rounded-xl border border-green-100 flex flex-col justify-between">
                 <div>
                   <p className="text-xs text-green-700 font-bold uppercase mb-1">NEXT UPCOMING EXAM</p>
@@ -662,18 +822,23 @@ export default function ProfileDashboard() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* Edit Profile Modal - No University field */}
+      {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform scale-100 transition-transform duration-300">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <X size={24} />
+            </button>
+
             <h3 className="text-xl font-bold mb-6 text-gray-800">Edit Profile</h3>
 
             <div className="space-y-5">
-              {/* First Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   First Name <span className="text-red-500">*</span>
@@ -683,20 +848,14 @@ export default function ProfileDashboard() {
                   name="firstName"
                   value={editForm.firstName || ''}
                   onChange={handleEditChange}
-                  onKeyPress={(e) => {
-                    if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
-                  }}
                   placeholder="Ananya"
                   className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
                     editErrors.firstName ? "border-red-500" : "border-gray-300"
                   }`}
                 />
-                {editErrors.firstName && (
-                  <p className="mt-1 text-sm text-red-600">{editErrors.firstName}</p>
-                )}
+                {editErrors.firstName && <p className="mt-1 text-sm text-red-600">{editErrors.firstName}</p>}
               </div>
 
-              {/* Last Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Last Name <span className="text-red-500">*</span>
@@ -706,91 +865,186 @@ export default function ProfileDashboard() {
                   name="lastName"
                   value={editForm.lastName || ''}
                   onChange={handleEditChange}
-                  onKeyPress={(e) => {
-                    if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
-                  }}
                   placeholder="Sharma"
                   className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
                     editErrors.lastName ? "border-red-500" : "border-gray-300"
                   }`}
                 />
-                {editErrors.lastName && (
-                  <p className="mt-1 text-sm text-red-600">{editErrors.lastName}</p>
-                )}
+                {editErrors.lastName && <p className="mt-1 text-sm text-red-600">{editErrors.lastName}</p>}
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={editForm.email || ''}
-                  onChange={handleEditChange}
-                  placeholder="ananya@orion.com"
-                  className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
-                    editErrors.email ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
-                {editErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">{editErrors.email}</p>
-                )}
+                <div className="relative">
+                  <input
+                    type="email"
+                    name="email"
+                    value={editForm.email || ''}
+                    onChange={handleEditChange}
+                    placeholder="ananya@orion.com"
+                    disabled={emailVerified}
+                    className={`w-full pr-32 pl-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
+                      editErrors.email ? "border-red-500" : emailVerified ? "bg-green-50 border-green-300 text-green-700 cursor-not-allowed" : "border-gray-300"
+                    }`}
+                  />
+                  {emailVerified ? (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-700 font-medium text-sm flex items-center gap-1">
+                      Verified ✓
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleVerifyEmail}
+                      disabled={emailVerifying || emailVerified || !editForm.email?.trim() || !!editErrors.email}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {emailVerifying ? 'Sending...' : 'Verify'}
+                    </button>
+                  )}
+                </div>
+                {editErrors.email && <p className="mt-1 text-sm text-red-600">{editErrors.email}</p>}
               </div>
 
-              {/* Phone */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={editForm.phone || ''}
-                  onChange={handleEditChange}
-                  placeholder="9876543210"
-                  className={`w-full px-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
-                    editErrors.phone ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
-                {editErrors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{editErrors.phone}</p>
-                )}
+                <div className="relative">
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={editForm.phone || ''}
+                    onChange={handleEditChange}
+                    placeholder="9876543210"
+                    disabled={phoneVerified}
+                    className={`w-full pr-32 pl-4 py-3 border rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition ${
+                      editErrors.phone ? "border-red-500" : phoneVerified ? "bg-green-50 border-green-300 text-green-700 cursor-not-allowed" : "border-gray-300"
+                    }`}
+                  />
+                  {phoneVerified ? (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-700 font-medium text-sm flex items-center gap-1">
+                      Verified ✓
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleVerifyPhone}
+                      disabled={phoneVerifying || phoneVerified || !editForm.phone?.trim() || !!editErrors.phone}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {phoneVerifying ? 'Sending...' : 'Verify'}
+                    </button>
+                  )}
+                </div>
+                {editErrors.phone && <p className="mt-1 text-sm text-red-600">{editErrors.phone}</p>}
               </div>
             </div>
 
             <div className="flex gap-3 mt-8">
               <button
                 onClick={handleSave}
-                disabled={Object.keys(editErrors).length > 0}
+                disabled={!canSave || loading}
                 className={`flex-1 py-3 rounded-lg font-semibold transition-all shadow-md ${
-                  Object.keys(editErrors).length === 0
+                  canSave && !loading
                     ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 cursor-pointer"
                     : "bg-gray-400 text-white cursor-not-allowed opacity-70"
                 }`}
               >
-                Save Changes
+                {loading ? "Saving..." : "Save Changes"}
               </button>
               <button
                 onClick={() => {
                   setIsEditing(false);
                   setEditErrors({});
+                  setEmailVerified(false);
+                  setPhoneVerified(false);
                 }}
                 className="flex-1 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
               >
                 Cancel
               </button>
             </div>
+
+            {(!canSave && (emailChanged || phoneChanged)) && (
+              <p className="mt-3 text-sm text-red-600 text-center">
+                {emailChanged && !emailVerified && "Email changed — please verify. "}
+                {phoneChanged && !phoneVerified && "Phone changed — please verify."}
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {/* INTERACTIVE Upload Exam Modal */}
+      {/* Email OTP Modal */}
+      {showEmailOtpModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-8 max-w-sm w-full mx-4">
+            <h4 className="text-lg font-bold mb-4">Verify New Email</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter OTP sent to <strong>{pendingEmail}</strong>
+            </p>
+            <input
+              type="text"
+              placeholder="Enter 6-digit OTP"
+              className="w-full p-3 border rounded-lg mb-4 text-center text-xl tracking-widest"
+              maxLength={6}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEmailOtpModal(false)}
+                className="flex-1 py-2 border rounded-lg hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onEmailOtpSuccess}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Verify Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phone OTP Modal */}
+      {showPhoneOtpModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-8 max-w-sm w-full mx-4">
+            <h4 className="text-lg font-bold mb-4">Verify New Phone</h4>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter OTP sent to <strong>{pendingPhone}</strong>
+            </p>
+            <input
+              type="text"
+              placeholder="Enter 6-digit OTP"
+              className="w-full p-3 border rounded-lg mb-4 text-center text-xl tracking-widest"
+              maxLength={6}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPhoneOtpModal(false)}
+                className="flex-1 py-2 border rounded-lg hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onPhoneOtpSuccess}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Verify Phone
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exam Upload Modal */}
       {showExamModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-
             <button
               onClick={() => {
                 setShowExamModal(false);
@@ -836,7 +1090,6 @@ export default function ProfileDashboard() {
               )}
             </select>
 
-            {/* Drag & Drop Area */}
             <div
               onDragEnter={() => setDragActive(true)}
               onDragLeave={() => setDragActive(false)}
@@ -848,9 +1101,7 @@ export default function ProfileDashboard() {
               }}
               onClick={() => fileInputRef.current.click()}
               className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-                dragActive
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-300 hover:border-blue-400"
+                dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
               }`}
             >
               <UploadCloud className="mx-auto mb-3 text-blue-600" size={40} />
@@ -908,9 +1159,7 @@ export default function ProfileDashboard() {
                 disabled={submitting}
                 onClick={handleUpload}
                 className={`flex-1 py-2.5 rounded-lg text-white ${
-                  submitting
-                    ? "bg-blue-400"
-                    : "bg-blue-600 hover:bg-blue-700"
+                  submitting ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 {submitting ? "Uploading..." : "Submit"}

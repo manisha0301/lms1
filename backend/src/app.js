@@ -10,7 +10,7 @@ import pool from './config/db.js';
 // Start the cron job
 import './utils/reminderCron.js';
 
-import { createDefaultSuperAdmin, createSuperAdminTable } from './models/superAdminModel.js';
+import { createDefaultSuperAdmin, createSuperAdminTable, createRevenueTable } from './models/superAdminModel.js';
 import { 
   createCourseAcademicRelationTable, 
   createCoursesTable,
@@ -82,6 +82,7 @@ const initDatabase = async () => {
     await createExamsTables(); // NEW: Initialize exam tables
     await assignmentSubmissionsTableSetup();
     await createRatingsTable(); // Initialize ratings table
+    await createRevenueTable(pool);
     
     
 

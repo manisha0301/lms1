@@ -28,7 +28,7 @@ const ViewStudentDetails = () => {
   useEffect(() => {
     const fetchStudent = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         const response = await axios.get(
           `${apiConfig.API_BASE_URL}/api/auth/admin/students/${id}`,
           {

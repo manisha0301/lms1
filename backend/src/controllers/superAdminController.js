@@ -11,12 +11,19 @@ export const getTotalUserCount = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch user count' });
   }
 };
+
 // backend/src/controllers/superAdminController.js
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { findSuperAdminByEmail, updateSuperAdminPassword } from '../models/superAdminModel.js';
+import axios from 'axios';
+import { findSuperAdminByEmail, updateSuperAdminPassword,  getPlatformRevenueStats } from '../models/superAdminModel.js';
 import pool from '../config/db.js';
 import { getNotificationsByUser } from '../models/notificationModel.js';
+import { saveOtp, verifyOtp, deleteOtp } from '../models/otpModel.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
+
+
+
 
 // Simple email validation regex
 const isValidEmail = (email) => {
@@ -407,3 +414,240 @@ export const deleteCourse = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to delete course' });
   }
 };
+
+export const markSuperAdminNotificationAsRead = async (req, res) => {
+  try {
+    const superAdminId = req.user.id;
+    const { notificationId } = req.params;
+
+    if (!notificationId || isNaN(notificationId)) {
+      return res.status(400).json({ success: false, error: 'Invalid notification ID' });
+    }
+
+    const { rowCount } = await pool.query(`
+      UPDATE notifications
+      SET status = 'read'
+      WHERE id = $1
+        AND recipient_type = 'superadmin'
+        AND recipient_id = $2
+        AND status = 'unread'
+    `, [notificationId, superAdminId]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Notification not found, already read, or not yours'
+      });
+    }
+
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Mark superadmin notification read error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// Add near other exports (getDashboardStats, etc.)
+
+export const getRevenueOverview = async (req, res) => {
+  try {
+    const stats = await getPlatformRevenueStats(pool);
+
+    res.json({
+      success: true,
+      data: {
+        totalRevenue: stats.totalRevenue,
+        formattedTotal: stats.formattedTotal,              // e.g. ₹28.5L
+        thisMonthRevenue: stats.currentMonthRevenue,
+        formattedThisMonth: stats.formattedThisMonth,      // e.g. ₹3.2L
+        percentageChange: stats.percentageChange,          // e.g. 12.5
+        changeSign: stats.changeSign                       // '+' or ''
+      }
+    });
+  } catch (error) {
+    console.error('Get revenue overview error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch revenue data' });
+  }
+};
+
+// NEW: Monthly revenue trend (last 12 months)
+export const getMonthlyRevenueTrend = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        TO_CHAR(payment_timestamp, 'Mon YYYY') AS month,
+        SUM(paid_amount) AS revenue
+      FROM revenue
+      WHERE payment_status = 'Completed'
+        AND payment_timestamp >= CURRENT_DATE - INTERVAL '12 months'
+      GROUP BY TO_CHAR(payment_timestamp, 'Mon YYYY'), 
+               DATE_TRUNC('month', payment_timestamp)
+      ORDER BY DATE_TRUNC('month', payment_timestamp) ASC
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        month: row.month,
+        revenue: parseFloat(row.revenue || 0)
+      }))
+    });
+  } catch (error) {
+    console.error('Monthly trend error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch monthly trend' });
+  }
+};
+
+// NEW: Revenue by course
+export const getRevenueByCourse = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.name AS course_name,
+        SUM(r.paid_amount) AS revenue
+      FROM revenue r
+      JOIN courses c ON r.course_id = c.id
+      WHERE r.payment_status = 'Completed'
+      GROUP BY c.name
+      ORDER BY revenue DESC
+      LIMIT 6
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        name: row.course_name,
+        value: parseFloat(row.revenue || 0),
+        color: '#1e3a8a'  // you can make dynamic colors later
+      }))
+    });
+  } catch (error) {
+    console.error('Revenue by course error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch course revenue' });
+  }
+};
+
+// NEW: Revenue by academic centre (using graduation_university)
+export const getRevenueByCentre = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        graduation_university AS centre,
+        SUM(paid_amount) AS revenue
+      FROM revenue
+      WHERE payment_status = 'Completed'
+      GROUP BY graduation_university
+      ORDER BY revenue DESC
+      LIMIT 6
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        centre: row.centre,
+        revenue: parseFloat(row.revenue || 0)
+      }))
+    });
+  } catch (error) {
+    console.error('Revenue by centre error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch centre revenue' });
+  }
+};
+
+
+// Validate credentials → generate ONE OTP → send same OTP to email + phone
+
+export const superAdminSendDualOtp = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email and password are required',
+    });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    // 1. Find superadmin
+    const superAdmin = await findSuperAdminByEmail(pool, cleanEmail);
+    if (!superAdmin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
+      });
+    }
+
+    // 2. Verify password
+    const passwordMatch = await bcrypt.compare(password, superAdmin.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
+      });
+    }
+
+    // 3. Generate one 6-digit OTP (same format as your phone OTP)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 4. Store OTP in the phone OTP table (with user_type = superadmin)
+    await saveOtp(superAdmin.phone, otp, 'superadmin');
+
+    // 5. Send via SMS (MSG91) – same logic as otpController
+    let smsSuccess = false;
+    try {
+      const smsResponse = await axios.post(
+        'https://api.msg91.com/api/v5/otp',
+        {
+          template_id: process.env.MSG91_TEMPLATE_ID,
+          mobile: `91${superAdmin.phone}`,
+          otp,
+          sender: process.env.MSG91_SENDER_ID,
+        },
+        {
+          headers: {
+            authkey: process.env.MSG91_AUTH_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      smsSuccess = smsResponse.data?.type === 'success';
+      if (!smsSuccess) {
+        console.warn('MSG91 failed:', smsResponse.data);
+      }
+    } catch (smsErr) {
+      console.error('MSG91 error:', smsErr.message);
+    }
+
+    // 6. Send via Email – force the **same** OTP
+    let emailSuccess = false;
+    try {
+      emailSuccess = await sendVerificationEmail(cleanEmail, otp);
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr.message);
+    }
+
+    // 7. Masked values for frontend display
+    const maskedEmail = cleanEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+    const maskedPhone = superAdmin.phone?.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2') || 'not set';
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent to registered email and phone',
+      maskedEmail,
+      maskedPhone,
+      // Pass real values back so frontend can use them in verify step
+      realEmail: cleanEmail,
+      realPhone: superAdmin.phone,
+    });
+  } catch (err) {
+    console.error('superAdminSendDualOtp error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during OTP sending',
+    });
+  }
+};
+

@@ -19,7 +19,7 @@ const TotalCourses = () => {
   useEffect(() => {
     const fetchAssignedCourses = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         if (!token) {
           navigate('/login');
           return;

@@ -2,6 +2,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
+import axios from 'axios';
 import {
   addFaculty,
   getAllFaculty,
@@ -18,6 +19,8 @@ import path from 'path';
 import fs from 'fs';
 import { getCourseById, getCourseStructure } from '../models/courseModel.js';
 import { addNotificationForAcademicAdmins } from '../models/notificationModel.js';
+import { saveOtp } from '../models/otpModel.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 // Ensure uploads/faculty folder exists
 const uploadDir = path.join(process.cwd(), 'uploads/faculty');
@@ -1300,5 +1303,208 @@ export const checkFacultyEmailAvailability = async (req, res) => {
       available: false,
       message: errorMessage
     });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const facultyId = req.user.id;
+    const { notificationId } = req.params;
+
+    if (!notificationId || isNaN(notificationId)) {
+      return res.status(400).json({ success: false, error: 'Invalid notification ID' });
+    }
+
+    const { rowCount } = await pool.query(`
+      UPDATE notifications
+      SET status = 'read'
+      WHERE id = $1
+        AND recipient_type = 'faculty'
+        AND recipient_id = $2
+        AND status = 'unread'          -- prevent unnecessary updates
+    `, [notificationId, facultyId]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Notification not found, already read, or not yours'
+      });
+    }
+
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Mark faculty notification read error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+export const facultySendDualOtp = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    // 1. Find faculty
+    const { rows } = await pool.query(
+      `SELECT id, email, password_hash, phone, full_name, designation, status
+       FROM faculty 
+       WHERE email = $1`,
+      [cleanEmail]
+    );
+
+    const faculty = rows[0];
+    if (!faculty) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    if (faculty.status !== 'Active') {
+      return res.status(403).json({ success: false, message: 'Account is not active' });
+    }
+
+    // 2. Check password
+    const passwordMatch = await bcrypt.compare(password, faculty.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // 3. Must have phone
+    if (!faculty.phone || faculty.phone.length < 10) {
+      return res.status(400).json({ success: false, message: 'No registered phone number found' });
+    }
+
+    // 4. Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 5. Save OTP (reuse your existing function)
+    await saveOtp(faculty.phone, otp, 'faculty');   // ← important: user_type = 'faculty'
+
+    // 6. Send SMS via MSG91 (updated block as requested)
+    let smsSuccess = false;
+
+    try {
+      const mobileNumber = `91${faculty.phone}`; // add country code
+
+      const payload = {
+        template_id: process.env.MSG91_TEMPLATE_ID,
+        mobile: mobileNumber,
+        otp: otp
+      };
+
+      console.log("[SMS] Sending OTP to:", mobileNumber);
+
+      const smsResponse = await axios.post(
+        "https://api.msg91.com/api/v5/otp",
+        payload,
+        {
+          headers: {
+            authkey: process.env.MSG91_AUTH_KEY,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      console.log("[SMS] Response:", smsResponse.data);
+
+      if (smsResponse.data.type === "success") {
+        smsSuccess = true;
+      }
+
+    } catch (smsErr) {
+      console.error("[SMS] Failed:", smsErr.response?.data || smsErr.message);
+    }
+
+    // 7. Send Email (same OTP)
+    let emailSuccess = false;
+    try {
+      emailSuccess = await sendVerificationEmail(cleanEmail, otp);
+    } catch (err) {
+      console.error('Email send failed:', err.message);
+    }
+
+    if (!smsSuccess && !emailSuccess) {
+      return res.status(500).json({ success: false, message: 'Failed to send OTP to any channel' });
+    }
+
+    // 8. Masked values for frontend
+    const maskedEmail = cleanEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+    const maskedPhone = faculty.phone.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2');
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      maskedEmail,
+      maskedPhone,
+      realEmail: cleanEmail,
+      realPhone: faculty.phone,
+    });
+
+  } catch (err) {
+    console.error('facultySendDualOtp error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+export const facultyFinalizeLogin = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, email, full_name, phone, designation, academic_admin_id, status
+       FROM faculty 
+       WHERE email = $1 AND status = 'Active'`,
+      [cleanEmail]
+    );
+
+    const faculty = rows[0];
+    if (!faculty) {
+      return res.status(404).json({ success: false, message: 'Account not found or inactive' });
+    }
+
+    const token = jwt.sign(
+      {
+        id: faculty.id,
+        email: faculty.email,
+        role: "faculty",
+        fullName: faculty.full_name,
+        phone: faculty.phone,
+        designation: faculty.designation,
+        academicAdminId: faculty.academic_admin_id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    // await pool.query(
+    //   'UPDATE faculty SET last_login = NOW() WHERE id = $1',
+    //   [faculty.id]
+    // );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: faculty.id,
+        email: faculty.email,
+        fullName: faculty.full_name || 'Faculty',
+        role: "faculty",
+        phone: faculty.phone,
+        designation: faculty.designation
+      }
+    });
+
+  } catch (err) {
+    console.error('facultyFinalizeLogin error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };

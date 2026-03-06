@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NotificationDetailPanel from "../../components/notifications/NotificationDetailPanel";
+import axios from 'axios';
 
 export default function AdminDashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -22,30 +24,33 @@ export default function AdminDashboard() {
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // ─── Stats states (already existed) ──────────────────────────────
+  // New state for selected notification detail modal
+  const [selectedNotification, setSelectedNotification] = useState(null);
+
+  // ─── Stats states ──────────────────────────────
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalFaculty: 0,
     totalCourses: 0,
+    studentGrowth: "0%",
+    courseGrowth: "0%",
+    facultyGrowth: "0%"
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
-  // Add this after other useState declarations, before useEffect
-  // const [branchHierarchy, setBranchHierarchy] = useState([]);
-
   // ─── Fetch both stats and real notifications ─────────────────────
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/auth/admin/courses', {
+        const token = localStorage.getItem('adminToken');
+        const response = await axios.get('http://localhost:5000/api/auth/admin/dashboard-stats', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        const data = await response.json();
-        if (data.success) {
-          setStats(data.stats);
+
+        if (response.data.success) {
+          setStats(response.data.stats);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
@@ -56,7 +61,7 @@ export default function AdminDashboard() {
 
     const fetchNotifications = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         const res = await fetch('http://localhost:5000/api/auth/admin/notifications?limit=5', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -80,7 +85,12 @@ export default function AdminDashboard() {
                   notif.type === 'student' || notif.type === 'new-enrollment' ? Users :
                   notif.type === 'faculty' ? GraduationCap :
                   notif.type === 'alert' ? AlertCircle :
-                  notif.type === 'achievement' ? Award : Users // fallback
+                  notif.type === 'achievement' ? Award : Users, // fallback
+            // ─── FIXED: Added created_at so modal can use it for date display
+            created_at: notif.created_at,
+            // Also pass priority & status (already in DB, good for modal)
+            priority: notif.priority,
+            status: notif.status
           }));
 
           setRecentNotifications(formatted);
@@ -92,7 +102,7 @@ export default function AdminDashboard() {
       }
     };
 
-    fetchStats();
+    fetchDashboardStats();
     fetchNotifications();
   }, []);
 
@@ -105,12 +115,37 @@ export default function AdminDashboard() {
     { id: 6, name: "Chennai", dean: "Prof. Arjun Nair", students: 122, faculty: 3 },
   ];
 
-  
-
   const handlelogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
     navigate('/login');
+  };
+
+  // Handle clicking a notification → open modal + mark as read
+  const handleNotificationClick = async (notif) => {
+    // Open modal immediately
+    setSelectedNotification(notif);
+
+    // If already read → skip API
+    if (notif.status === 'read') return;
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(
+        `http://localhost:5000/api/auth/admin/notifications/${notif.id}/read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Optimistic update
+      setRecentNotifications(prev =>
+        prev.map(n =>
+          n.id === notif.id ? { ...n, status: 'read' } : n
+        )
+      );
+    } catch (err) {
+      console.error('Failed to mark admin notification as read:', err);
+    }
   };
 
   return (
@@ -144,9 +179,9 @@ export default function AdminDashboard() {
                   </span>
                 </button>
 
-                {/* Notification Dropdown */}
+                {/* Notification Dropdown – now clickable */}
                 {isNotificationOpen && (
-                  <div className="absolute right-0 mt-4 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                  <div className="absolute right-0 mt-4 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
                     <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
                       <h3 className="font-bold text-lg">Notifications</h3>
                       <button onClick={() => setIsNotificationOpen(false)} className="hover:bg-white/20 p-1 rounded cursor-pointer">
@@ -155,7 +190,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {recentNotifications.map(notif => (
-                        <div key={notif.id} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition">
+                        <div 
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}  // ← Added click handler
+                          className="p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
+                        >
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                               notif.type === 'alert' ? 'bg-red-100' :
@@ -242,26 +281,35 @@ export default function AdminDashboard() {
         </header>
 
         <div className="mx-auto px-8 py-10 ">
-          {/* Statistics Grid - Same Style */}
+          {/* Statistics Grid - Updated with real MoM % */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {[
               { 
                 label: "Total Students", 
                 value: loadingStats ? '...' : stats.totalStudents.toLocaleString(), 
                 icon: Users, 
-                growth: "+12%" 
+                growth: loadingStats ? '...' : stats.studentGrowth,
+                color: loadingStats ? 'bg-gray-100 text-gray-700' : 
+                      stats.studentGrowth?.startsWith('+') ? 'bg-emerald-100 text-emerald-700' :
+                      stats.studentGrowth?.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
               },
               { 
                 label: "Active Courses", 
                 value: loadingStats ? '...' : stats.totalCourses, 
                 icon: BookOpen, 
-                growth: "+3" 
+                growth: loadingStats ? '...' : stats.courseGrowth,
+                color: loadingStats ? 'bg-gray-100 text-gray-700' : 
+                      stats.courseGrowth?.startsWith('+') ? 'bg-emerald-100 text-emerald-700' :
+                      stats.courseGrowth?.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
               },
               { 
                 label: "Faculty Members", 
                 value: loadingStats ? '...' : stats.totalFaculty, 
                 icon: GraduationCap, 
-                growth: "+8" 
+                growth: loadingStats ? '...' : stats.facultyGrowth,
+                color: loadingStats ? 'bg-gray-100 text-gray-700' : 
+                      stats.facultyGrowth?.startsWith('+') ? 'bg-emerald-100 text-emerald-700' :
+                      stats.facultyGrowth?.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
               },
             ].map((stat, i) => (
               <div
@@ -277,7 +325,7 @@ export default function AdminDashboard() {
                   <div className={`w-14 h-14 bg-[#1e3a8a] rounded-2xl shadow-lg flex items-center justify-center`}>
                     <stat.icon className="w-8 h-8 text-white" />
                   </div>
-                  <span className="px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm">
+                  <span className={`px-4 py-2 ${stat.color} font-bold rounded-full text-sm`}>
                     {stat.growth}
                   </span>
                 </div>
@@ -343,7 +391,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Notifications Panel - Now with REAL data */}
+            {/* Recent Notifications Panel - Now CLICKABLE */}
             <div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 ">
                 <div className="bg-white text-[#1e3a8a] px-8 pt-6 rounded-t-xl">
@@ -366,7 +414,8 @@ export default function AdminDashboard() {
                     recentNotifications.map((notif) => (
                       <div 
                         key={notif.id} 
-                        className="flex gap-5 p-5 bg-gray-50 rounded-2xl hover:bg-[#1e3a8a]/5 transition group"
+                        onClick={() => handleNotificationClick(notif)}  // ← Added click handler here
+                        className="flex gap-5 p-5 bg-gray-50 rounded-2xl hover:bg-[#1e3a8a]/5 transition group cursor-pointer"
                       >
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                           notif.type === 'alert' ? 'bg-red-100' :
@@ -399,6 +448,15 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <NotificationDetailPanel
+          notification={selectedNotification}
+          recipient_type="academicadmin"  
+          onClose={() => setSelectedNotification(null)}
+        />
+      )}
     </>
   );
 }

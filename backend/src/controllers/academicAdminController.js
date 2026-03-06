@@ -1,9 +1,12 @@
 // src/controllers/academicAdminController.js
 import bcrypt from 'bcryptjs';
+import axios from 'axios';
 import { createAcademicAdmin, findAllAcademicAdmins, updateAcademicAdminPassword } from '../models/academicAdminModel.js';
 import pool from '../config/db.js';
 import jwt from 'jsonwebtoken';
 import { addNotificationForSuperAdmin } from '../models/notificationModel.js';
+import { saveOtp } from '../models/otpModel.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 const getAllAcademicAdmins = async (req, res) => {
   try {
@@ -761,6 +764,330 @@ export const updateFacultyDetails = async (req, res) => {
   }
 };
 
+// Mark a single notification as read for the logged-in admin
+export const markAdminNotificationAsRead = async (req, res) => {
+  try {
+    const adminId = req.user.id; // from JWT (protectAdmin middleware)
+    const { notificationId } = req.params;
+
+    if (!notificationId || isNaN(notificationId)) {
+      return res.status(400).json({ success: false, error: 'Invalid notification ID' });
+    }
+
+    const { rowCount } = await pool.query(`
+      UPDATE notifications
+      SET status = 'read'
+      WHERE id = $1
+        AND recipient_type = 'academicadmin'
+        AND recipient_id = $2
+        AND status = 'unread'          -- only update if still unread
+    `, [notificationId, adminId]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Notification not found, already read, or not assigned to this admin'
+      });
+    }
+
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Mark admin notification read error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// NEW: Get dashboard stats with MoM percentage
+export const getAdminDashboardStats = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+
+    // Get the admin's academic_name (center/university)
+    const { rows: adminRows } = await pool.query(
+      'SELECT academic_name FROM academic_admins WHERE id = $1',
+      [adminId]
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Admin not found' });
+    }
+
+    const university = adminRows[0].academic_name?.trim();
+
+    if (!university) {
+      return res.status(400).json({ success: false, error: 'No university assigned to this admin' });
+    }
+
+    // ─── Current month start/end ──────────────────────────────────────
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+
+    const currentStartStr = currentMonthStart.toISOString().split('T')[0];
+    const prevStartStr = previousMonthStart.toISOString().split('T')[0];
+    const prevEndStr = previousMonthEnd.toISOString().split('T')[0];
+
+    // ─── 1. Total Students (all time) + MoM new enrollments ───────────
+    const studentQuery = `
+      SELECT 
+        COUNT(*) AS total_students,
+        COUNT(CASE WHEN created_at >= $1 THEN 1 END) AS current_month_new,
+        COUNT(CASE WHEN created_at >= $2 AND created_at <= $3 THEN 1 END) AS prev_month_new
+      FROM students
+      WHERE graduation_university ILIKE $4
+    `;
+    const studentRes = await pool.query(studentQuery, [
+      currentStartStr,
+      prevStartStr,
+      prevEndStr,
+      `%${university}%`
+    ]);
+
+    const totalStudents = parseInt(studentRes.rows[0].total_students || 0);
+    const currNewStudents = parseInt(studentRes.rows[0].current_month_new || 0);
+    const prevNewStudents = parseInt(studentRes.rows[0].prev_month_new || 0);
+
+    // MoM % change for students (based on new enrollments)
+    const studentMoM = prevNewStudents === 0 
+      ? (currNewStudents > 0 ? 100 : 0) 
+      : ((currNewStudents - prevNewStudents) / prevNewStudents) * 100;
+
+    // ─── 2. Active Courses (assigned to this admin) ───────────────────
+    const courseQuery = `
+      SELECT 
+        COUNT(*) AS total_courses,
+        COUNT(CASE WHEN c.created_at >= $1 THEN 1 END) AS current_month_new,
+        COUNT(CASE WHEN c.created_at >= $2 AND c.created_at <= $3 THEN 1 END) AS prev_month_new
+      FROM courses c
+      JOIN course_academic_assignments ca ON c.id = ca.course_id
+      WHERE ca.academic_admin_id = $4
+    `;
+    const courseRes = await pool.query(courseQuery, [
+      currentStartStr,
+      prevStartStr,
+      prevEndStr,
+      adminId
+    ]);
+
+    const totalCourses = parseInt(courseRes.rows[0].total_courses || 0);
+    const currNewCourses = parseInt(courseRes.rows[0].current_month_new || 0);
+    const prevNewCourses = parseInt(courseRes.rows[0].prev_month_new || 0);
+
+    const coursesMoM = prevNewCourses === 0 
+      ? (currNewCourses > 0 ? 100 : 0) 
+      : ((currNewCourses - prevNewCourses) / prevNewCourses) * 100;
+
+    // ─── 3. Faculty Members (active in this center) ───────────────────
+    const facultyQuery = `
+      SELECT 
+        COUNT(*) AS total_faculty,
+        COUNT(CASE WHEN created_at >= $1 THEN 1 END) AS current_month_new,
+        COUNT(CASE WHEN created_at >= $2 AND created_at <= $3 THEN 1 END) AS prev_month_new
+      FROM faculty
+      WHERE academic_admin_id = $4 AND status = 'Active'
+    `;
+    const facultyRes = await pool.query(facultyQuery, [
+      currentStartStr,
+      prevStartStr,
+      prevEndStr,
+      adminId
+    ]);
+
+    const totalFaculty = parseInt(facultyRes.rows[0].total_faculty || 0);
+    const currNewFaculty = parseInt(facultyRes.rows[0].current_month_new || 0);
+    const prevNewFaculty = parseInt(facultyRes.rows[0].prev_month_new || 0);
+
+    const facultyMoM = prevNewFaculty === 0 
+      ? (currNewFaculty > 0 ? 100 : 0) 
+      : ((currNewFaculty - prevNewFaculty) / prevNewFaculty) * 100;
+
+    // ─── Format percentages ───────────────────────────────────────────
+    const formatPercent = (val) => {
+      if (val > 0) return `+${Math.round(val)}%`;
+      if (val < 0) return `${Math.round(val)}%`;
+      return "0%";
+    };
+
+    res.json({
+      success: true,
+      stats: {
+        totalStudents,
+        totalCourses,
+        totalFaculty,
+        studentGrowth: formatPercent(studentMoM),
+        courseGrowth: formatPercent(coursesMoM),
+        facultyGrowth: formatPercent(facultyMoM)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get Admin Dashboard Stats Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load dashboard stats' });
+  }
+};
+
+export const academicAdminSendDualOtp = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    // 1. Find admin
+    const { rows } = await pool.query(
+      'SELECT id, email, password_hash, mobile, full_name, academic_name, status FROM academic_admins WHERE email = $1',
+      [cleanEmail]
+    );
+
+    const admin = rows[0];
+    if (!admin) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    if (admin.status !== 'Active') {
+      return res.status(403).json({ success: false, message: 'Account is not active' });
+    }
+
+    // 2. Verify password
+    const passwordMatch = await bcrypt.compare(password, admin.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // 3. Check if phone exists
+    if (!admin.mobile || admin.mobile.length < 10) {
+      return res.status(400).json({ success: false, message: 'No registered phone number found' });
+    }
+
+    // 4. Generate ONE OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 5. Store OTP (against phone + user_type)
+    await saveOtp(admin.mobile, otp, 'admin');  // ← 'admin' matches your list
+
+    // 6. Send SMS (MSG91)
+    let smsSuccess = false;
+    try {
+      const smsResponse = await axios.post(
+        'https://api.msg91.com/api/v5/otp',
+        {
+          template_id: process.env.MSG91_TEMPLATE_ID,
+          mobile: `91${admin.mobile}`,
+          otp,
+          sender: process.env.MSG91_SENDER_ID,
+        },
+        {
+          headers: {
+            authkey: process.env.MSG91_AUTH_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      smsSuccess = smsResponse.data?.type === 'success';
+    } catch (smsErr) {
+      console.error('MSG91 SMS error:', smsErr.message);
+    }
+
+    // 7. Send Email (same OTP)
+    let emailSuccess = false;
+    try {
+      emailSuccess = await sendVerificationEmail(cleanEmail, otp);
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr.message);
+    }
+
+    // Optional: fail if both failed
+    if (!smsSuccess && !emailSuccess) {
+      return res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    }
+
+    // 8. Masked values for UI
+    const maskedEmail = cleanEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+    const maskedPhone = admin.mobile.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2');
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent to registered email and phone',
+      maskedEmail,
+      maskedPhone,
+      realEmail: cleanEmail,
+      realPhone: admin.mobile,
+    });
+
+  } catch (err) {
+    console.error('academicAdminSendDualOtp error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+
+// NEW: Finalize login after OTP verify (issue token)
+
+export const academicAdminFinalizeLogin = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, email, full_name, mobile, academic_name, role, status 
+       FROM academic_admins 
+       WHERE email = $1 AND status = 'Active'`,
+      [cleanEmail]
+    );
+
+    const admin = rows[0];
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Account not found or inactive' });
+    }
+
+    const token = jwt.sign(
+      {
+        id: admin.id,
+        email: admin.email,
+        role: "academicadmin",
+        academic_name: admin.academic_name,
+        fullName: admin.full_name
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    // Optional: update last login
+    await pool.query(
+      'UPDATE academic_admins SET last_login = NOW() WHERE id = $1',
+      [admin.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: admin.id,
+        email: admin.email,
+        fullName: admin.full_name || 'Academic Admin',
+        role: "academicadmin",
+        academic_name: admin.academic_name,
+        phone: admin.mobile
+      }
+    });
+
+  } catch (err) {
+    console.error('academicAdminFinalizeLogin error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 export { 
   getAllAcademicAdmins, 
   createNewAcademicAdmin, 
@@ -771,5 +1098,6 @@ export {
   getAssignedCourses,
   getCourseDetails,
   getUniversityStudents,
-  getStudentByIdForAdmin
+  getStudentByIdForAdmin,
+ 
 };

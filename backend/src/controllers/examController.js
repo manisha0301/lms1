@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-import { addNotificationForFaculty } from '../models/notificationModel.js';
+import { addNotificationForFaculty, addNotificationForStudents } from '../models/notificationModel.js';
 
 // ────────────────────────────────────────────────
 // ENSURE FOLDERS EXIST (same as assessments)
@@ -82,6 +82,7 @@ export const getFacultyCourses = async (req, res) => {
 };
 
 // Create new exam + multiple slots
+// Create new exam + multiple slots
 export const createExam = async (req, res) => {
   try {
     const facultyId = req.user.id;
@@ -120,20 +121,84 @@ export const createExam = async (req, res) => {
       );
     }
 
-    // Notify the faculty who created the exam
+    // ────────────────────────────────────────────────────────────────
+    // Get course name (for better notification messages)
+    // ────────────────────────────────────────────────────────────────
     const { rows: [course] } = await pool.query(
       'SELECT name FROM courses WHERE id = $1',
       [courseId]
     );
     const courseName = course?.name || 'the course';
-    const message = `You created a new exam: "${topic}" in ${courseName} (${slots.length} slots)`;
+
+    // ────────────────────────────────────────────────────────────────
+    // Notify the faculty who created it (your existing code)
+    // ────────────────────────────────────────────────────────────────
+    const messageFaculty = `You created a new exam: "${topic}" in ${courseName} (${slots.length} slots)`;
     await addNotificationForFaculty(
       pool,
-      message,
+      messageFaculty,
       'exam',
       'medium',
       facultyId
     );
+
+    // ────────────────────────────────────────────────────────────────
+    // NEW: Notify students of the same university/center
+    // ────────────────────────────────────────────────────────────────
+    try {
+      // Find academic admin(s) this course belongs to
+      const { rows: caaRows } = await pool.query(`
+        SELECT academic_admin_id
+        FROM course_academic_assignments
+        WHERE course_id = $1
+      `, [courseId]);
+
+      if (caaRows.length === 0) {
+        console.log(`No academic admin found for course ${courseId} → skipping student exam notification`);
+      } else {
+        const adminIds = caaRows.map(r => r.academic_admin_id);
+
+        // Find students in these centers/universities
+        const { rows: students } = await pool.query(`
+          SELECT id
+          FROM students
+          WHERE graduation_university IS NOT NULL
+            AND LOWER(graduation_university) IN (
+              SELECT LOWER(academic_name)
+              FROM academic_admins
+              WHERE id = ANY($1)
+            )
+        `, [adminIds]);
+
+        if (students.length > 0) {
+          const studentIds = students.map(s => s.id);
+
+          // Optional: format first slot or date range for message
+          const firstSlot = slots[0] || {};
+          const dateStr = firstSlot.date 
+            ? new Date(firstSlot.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+            : 'scheduled';
+
+          const messageStudent = `New Exam Scheduled: "${topic}" in ${courseName} (${slots.length} slots) - starts ${dateStr}`;
+
+          // Use the bulk student notifier (already in your notificationModel.js)
+          await addNotificationForStudents(
+            pool,
+            messageStudent,
+            'exam',
+            'high',           // ← 'high' so it stands out (red dot if your UI supports it)
+            studentIds
+          );
+
+          console.log(`Notified ${studentIds.length} students about new exam "${topic}"`);
+        } else {
+          console.log(`No students found in this center → no exam notifications sent`);
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Student exam notification failed (non-blocking):', notifyErr.message);
+      // Do NOT fail exam creation because of notification issue
+    }
 
     res.status(201).json({
       success: true,

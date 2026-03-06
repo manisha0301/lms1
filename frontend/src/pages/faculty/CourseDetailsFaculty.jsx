@@ -51,7 +51,7 @@ export default function CourseDetailsFaculty() {
       }
 
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         if (!token) return navigate('/login');
 
         const res = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/courses/${courseId}`, {
@@ -171,7 +171,7 @@ export default function CourseDetailsFaculty() {
     }
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("facultyToken");
 
       const res = await axios.get(
         `${apiConfig.API_BASE_URL}/api/faculty/assignments/${assessmentId}/submissions`,
@@ -216,7 +216,7 @@ export default function CourseDetailsFaculty() {
     formData.append('dueDate', dueDate);
     formData.append('weekId', selectedWeekForModal);
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('facultyToken');
     if (!token) return navigate('/login');
 
     try {

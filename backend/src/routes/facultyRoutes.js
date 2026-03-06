@@ -12,7 +12,10 @@ import {
   getFacultyNotifications,
   changeFacultyPassword,
   deleteFacultyAccount,
-  checkFacultyEmailAvailability
+  checkFacultyEmailAvailability,
+  markNotificationAsRead,
+  facultySendDualOtp,
+  facultyFinalizeLogin
 } from '../controllers/facultyController.js';
 
 import { uploadProfilePic } from '../controllers/facultyController.js';
@@ -109,5 +112,11 @@ router.delete('/account', protectFaculty, deleteFacultyAccount);
 
 // New route to check email availability
 router.post('/check-email', checkFacultyEmailAvailability);
+
+router.put('/notifications/:notificationId/read', protectFaculty, markNotificationAsRead);
+
+router.post('/login/send-otp', facultySendDualOtp);
+router.post('/login/verify-otp', verifyOTP);           // ← reuse existing
+router.post('/login/finalize', facultyFinalizeLogin);
 
 export default router;

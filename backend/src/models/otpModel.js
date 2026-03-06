@@ -3,21 +3,32 @@ import pool from '../config/db.js';
 
 // Auto-create OTP table if it doesn't exist
 const createOtpTable = async () => {
-  const query = `
-    CREATE TABLE IF NOT EXISTS otps (
-      id SERIAL PRIMARY KEY,
-      phone VARCHAR(15) NOT NULL,
-      otp VARCHAR(4) NOT NULL,
-      user_type VARCHAR(20) NOT NULL,          -- NEW: student or faculty
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
   try {
-    await pool.query(query);
-    console.log('✅ OTP table is ready.');
+    // 1️⃣ Create table if not exists
+    const createQuery = `
+      CREATE TABLE IF NOT EXISTS otps (
+        id SERIAL PRIMARY KEY,
+        phone VARCHAR(15) NOT NULL,
+        otp VARCHAR(6) NOT NULL,
+        user_type VARCHAR(20) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await pool.query(createQuery);
+
+    // 2️⃣ Ensure OTP column supports 6 digits
+    const alterQuery = `
+      ALTER TABLE otps
+      ALTER COLUMN otp TYPE VARCHAR(6);
+    `;
+
+    await pool.query(alterQuery);
+
+    console.log("✅ OTP table ready with 6-digit support");
+
   } catch (error) {
-    console.error('❌ Error creating OTP table:', error);
+    console.error("❌ Error creating/updating OTP table:", error);
   }
 };
 

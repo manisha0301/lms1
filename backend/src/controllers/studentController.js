@@ -2,6 +2,9 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs'; 
 import pool from '../config/db.js';
+import axios from "axios";
+import { saveOtp } from "../models/otpModel.js";
+import { sendVerificationEmail } from "../utils/emailService.js";
 import {
   createStudent,
   findStudentByEmail,
@@ -1032,5 +1035,216 @@ export const checkEmailAvailability = async (req, res) => {
       available: false,
       message: "Server error while checking email"
     });
+  }
+};
+
+// Mark a single notification as read (for the logged-in student)
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { notificationId } = req.params;  // from URL: /notifications/:id/read
+
+    if (!notificationId || isNaN(notificationId)) {
+      return res.status(400).json({ success: false, error: 'Invalid notification ID' });
+    }
+
+    const { rowCount } = await pool.query(`
+      UPDATE notifications
+      SET status = 'read'
+          
+      WHERE id = $1
+        AND recipient_type = 'student'
+        AND recipient_id = $2
+        AND status = 'unread'          -- only update if still unread
+    `, [notificationId, studentId]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Notification not found or already read'
+      });
+    }
+
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Mark as read error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// Add at bottom of studentController.js
+
+export const studentSendDualOtp = async (req, res) => {
+  const { email, mobileNumber, password } = req.body;
+
+  if ((!email && !mobileNumber) || !password) {
+    return res.status(400).json({ success: false, message: 'Email/Phone and password required' });
+  }
+
+  const identifier = email ? email.trim().toLowerCase() : mobileNumber.trim();
+  const isEmail = !!email;
+
+  try {
+    // Find student
+    let student;
+    if (isEmail) {
+      student = await findStudentByEmail(identifier);
+    } else {
+      student = await findStudentByMobile(identifier);
+    }
+
+    if (!student) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Check password
+    const passwordMatch = await bcrypt.compare(password, student.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Must have mobile for OTP
+    if (!student.mobile_number || String(student.mobile_number).length < 10) {
+      return res.status(400).json({ success: false, message: 'No registered phone number found' });
+    }
+
+    // Normalize phone from DB to 10 digits expected by MSG91
+    let normalizedPhone = String(student.mobile_number).replace(/\D/g, '');
+    if (normalizedPhone.startsWith('91') && normalizedPhone.length === 12) {
+      normalizedPhone = normalizedPhone.slice(2);
+    }
+    if (!/^[6789]\d{9}$/.test(normalizedPhone)) {
+      return res.status(400).json({ success: false, message: 'Registered phone number is invalid' });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save OTP
+    await saveOtp(normalizedPhone, otp, 'student');
+
+    // Send SMS
+    // Send SMS OTP
+    let smsSuccess = false;
+
+    try {
+      const mobileNumber = `91${normalizedPhone}`;
+      console.log(`Sending OTP ${otp} to +${mobileNumber} via MSG91`);
+      const smsResponse = await axios.post(
+        'https://api.msg91.com/api/v5/otp',
+        {
+          template_id: process.env.MSG91_TEMPLATE_ID,
+          mobile: mobileNumber,
+          otp,
+        },
+        {
+          headers: {
+            authkey: process.env.MSG91_AUTH_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log("MSG91 response:", smsResponse.data);
+
+      if (smsResponse.data.type === "success") {
+        smsSuccess = true;
+      }
+      if(smsResponse.data.type === "error") {
+        console.error("MSG91 error response:", smsResponse.data);
+      }
+
+    } catch (smsErr) {
+      console.error("MSG91 SMS error:", smsErr.response?.data || smsErr.message);
+    }
+
+        // Send Email (optional fallback/secondary channel)
+        let emailSuccess = false;
+        try {
+          emailSuccess = await sendVerificationEmail(student.email, otp);
+        } catch (err) {
+          console.error('Student email send failed:', err.message);
+        }
+
+        // Phone OTP is mandatory for student login
+        if (!smsSuccess) {
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to send OTP to your phone number. Please try again.'
+          });
+        }
+
+        // Masked values
+        const maskedEmail = student.email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+        const maskedPhone = normalizedPhone.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2');
+
+        return res.status(200).json({
+          success: true,
+          message: 'OTP sent successfully',
+          maskedEmail,
+          maskedPhone,
+          realEmail: student.email,
+          realPhone: normalizedPhone,
+        });
+
+      } catch (err) {
+        console.error('studentSendDualOtp error:', err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+      }
+    };
+
+export const studentFinalizeLogin = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, first_name, last_name, email, mobile_number, graduation_university
+       FROM students 
+       WHERE email = $1`,
+      [cleanEmail]
+    );
+
+    const student = rows[0];
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Account not found' });
+    }
+
+    const token = jwt.sign(
+      {
+        id: student.id,
+        email: student.email,
+        role: "student",
+        firstName: student.first_name,
+        lastName: student.last_name,
+        mobileNumber: student.mobile_number,
+        graduationUniversity: student.graduation_university
+      },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: student.id,
+        firstName: student.first_name,
+        lastName: student.last_name,
+        email: student.email,
+        mobileNumber: student.mobile_number,
+        graduationUniversity: student.graduation_university
+      }
+    });
+
+  } catch (err) {
+    console.error('studentFinalizeLogin error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };

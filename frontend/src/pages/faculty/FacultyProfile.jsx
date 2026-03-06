@@ -42,7 +42,7 @@ export default function FacultyProfile() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         if (!token) {
           navigate('/login');
           return;
@@ -143,7 +143,7 @@ export default function FacultyProfile() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const response = await axios.patch(`${apiConfig.API_BASE_URL}/api/faculty/profile`, {
         full_name: editData.name.trim(),
         phone: editData.phone.trim(),

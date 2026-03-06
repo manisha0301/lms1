@@ -13,7 +13,10 @@ import {
   deleteStudentAccount, 
   submitCourseRating, 
   getMyCourseRating,
-  checkEmailAvailability   
+  checkEmailAvailability,
+  markNotificationAsRead ,
+  studentSendDualOtp,
+  studentFinalizeLogin  
 } from '../controllers/studentController.js';
 import { getCourse } from '../controllers/courseController.js';
 import { protectStudent } from '../middleware/authMiddleware.js'; 
@@ -91,5 +94,12 @@ router.get('/courses/:courseId/my-rating', protectStudent, getMyCourseRating);
 
 // NEW: Check if email is already registered (used during signup before OTP)
 router.post('/check-email', checkEmailAvailability);
+
+// Example: assuming you use router from express
+router.put('/notifications/:notificationId/read', protectStudent, markNotificationAsRead);
+
+router.post('/login/send-otp', studentSendDualOtp);
+router.post('/login/verify-otp', verifyOTP);       // reuse
+router.post('/login/finalize', studentFinalizeLogin);
 
 export default router;

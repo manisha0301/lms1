@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import pool from '../config/db.js';
 
-import { addNotificationForFaculty } from '../models/notificationModel.js';
+import { addNotificationForFaculty, addNotificationForStudents } from '../models/notificationModel.js';
 
 // Ensure folders exist
 const questionUploadDir = path.join(process.cwd(), 'uploads/assessments/questions');
@@ -173,6 +173,7 @@ export const createCourseAssessment = (req, res) => {
         dueDate
       ]);
 
+      // Faculty self-notification (unchanged)
       if (facultyId) {
         const { rows: [course] } = await pool.query(
           'SELECT name FROM courses WHERE id = $1',
@@ -197,49 +198,61 @@ export const createCourseAssessment = (req, res) => {
         );
       }
 
+      // Notify all students belonging to the same university/center
+      
       try {
-        const { rows: courseAdmin } = await pool.query(`
-          SELECT caa.academic_admin_id
-          FROM course_academic_assignments caa
-          WHERE caa.course_id = $1
-          LIMIT 1
+        // Find all academic admins this course is assigned to
+        const { rows: courseAdmins } = await pool.query(`
+          SELECT academic_admin_id
+          FROM course_academic_assignments
+          WHERE course_id = $1
         `, [courseId]);
 
-        if (courseAdmin.length === 0) return;
+        if (courseAdmins.length === 0) {
+          console.log(`No academic admin assignment found for course ${courseId} → skipping student notifications`);
+        } else {
+          const adminIds = courseAdmins.map(row => row.academic_admin_id);
 
-        const adminId = courseAdmin[0].academic_admin_id;
+          // Get all students whose graduation_university matches any of these centers
+          const { rows: students } = await pool.query(`
+            SELECT id
+            FROM students
+            WHERE graduation_university IS NOT NULL
+              AND LOWER(graduation_university) IN (
+                SELECT LOWER(academic_name)
+                FROM academic_admins
+                WHERE id = ANY($1)
+              )
+          `, [adminIds]);
 
-        const { rows: adminInfo } = await pool.query(`
-          SELECT academic_name 
-          FROM academic_admins 
-          WHERE id = $1
-        `, [adminId]);
+          if (students.length > 0) {
+            const studentIds = students.map(s => s.id);
 
-        if (adminInfo.length === 0) return;
+            const dueFormatted = new Date(dueDate).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            });
 
-        const universityName = adminInfo[0].academic_name.trim();
+            const message = `New Assignment: "${title}" (Due: ${dueFormatted})`;
 
-        const { rows: students } = await pool.query(`
-          SELECT id 
-          FROM students 
-          WHERE graduation_university ILIKE $1
-        `, [`%${universityName}%`]);
+            // Send bulk notification to all relevant students
+            await addNotificationForStudents(
+              pool,
+              message,
+              'assignment',
+              'medium',           // change to 'high' if you want it to stand out more
+              studentIds
+            );
 
-        const studentIds = students.map(s => s.id);
-
-        if (studentIds.length > 0) {
-          const dueFormatted = new Date(dueDate).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          });
-
-          const message = `New Assignment Posted: "${title}" (Due: ${dueFormatted})`;
-
-          // await notifyStudents(pool, message, 'assignment', 'medium', studentIds);  // Uncomment if function exists
+            console.log(`Sent new assignment notification to ${studentIds.length} students`);
+          } else {
+            console.log(`No matching students found for this center → no notifications sent`);
+          }
         }
-      } catch (err) {
-        console.error('Failed to notify students about new assignment:', err.message);
+      } catch (notifyError) {
+        console.error('Failed to send student notifications (non-blocking):', notifyError.message);
+        // Notification failure should NOT fail the assignment creation
       }
 
       res.status(201).json({

@@ -7,6 +7,8 @@ import {
   Megaphone, Activity, X
 } from 'lucide-react';
 import axios from 'axios';
+import NotificationDetailPanel from "../../components/notifications/NotificationDetailPanel";
+
 
 export default function CoursesDashboard() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function CoursesDashboard() {
   const [showAllCourses, setShowAllCourses] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const [courses, setCourses] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -82,6 +85,36 @@ export default function CoursesDashboard() {
   // Calculate unread count for bell badge
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
+  // Handle clicking a notification → mark as read if unread
+  const handleNotificationClick = async (notif) => {
+    // Open the detail panel immediately
+    setSelectedNotification(notif);
+
+    // If already read, no need to call API
+    if (notif.status === 'read') return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:5000/api/auth/student/notifications/${notif.id}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Optimistically update local state (instant UI feedback)
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notif.id ? { ...n, status: 'read' } : n
+        )
+      );
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+      // Optional: you can show a toast here later if you have a toast library
+    }
+  };
+
   // Dummy data for sidebar (keep as fallback or remove later)
   const announcements = [
     { id: 1, title: "New Batch Starting!", desc: "Full Stack Web Dev - 15th Dec 2025", time: "2 hours ago" },
@@ -141,11 +174,17 @@ export default function CoursesDashboard() {
                     ) : (
                       notifications.map((notif) => (
                         <div 
-                          key={notif.id} 
-                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
-                            notif.priority === 'high' ? 'bg-red-50' :
-                            notif.priority === 'medium' ? 'bg-yellow-50' : ''
-                          }`}
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
+                          notif.status === 'unread'
+                            ? notif.priority === 'high'
+                              ? 'bg-red-50'
+                              : notif.priority === 'medium'
+                              ? 'bg-yellow-50'
+                              : 'bg-blue-50'
+                            : 'bg-white'
+                        }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
@@ -350,6 +389,16 @@ export default function CoursesDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Reusable Notification Detail Panel – NOW WITH recipient_type PROP */}
+      {selectedNotification && (
+        <NotificationDetailPanel
+          notification={selectedNotification}
+          recipient_type="student"  // ← This was missing – now fixed!
+          onClose={() => setSelectedNotification(null)}
+        />
+      )}
+
     </div>
   );
 }
