@@ -120,6 +120,12 @@ const FacultyManagement = () => {
     }
   };
 
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    document.getElementById('profilePicInput').value = '';
+  };
+
   // Real-time validation for add form (runs on every change)
   const validateAddFormLive = (field, value) => {
     const errors = { ...addFormErrors };
@@ -1058,8 +1064,18 @@ const FacultyManagement = () => {
                     />
                   </div>
                   {filePreview && (
-                    <div className="mt-4">
-                      <img src={filePreview} alt="Preview" className="w-32 h-32 object-cover rounded-xl mx-auto border" />
+                    <div className="mt-4 flex justify-center">
+                      <div className="relative inline-block">
+                        <img src={filePreview} alt="Preview" className="w-32 h-32 object-cover rounded-xl border" />
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition -translate-y-2 translate-x-2 shadow-lg"
+                          title="Remove picture"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

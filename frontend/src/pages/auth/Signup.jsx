@@ -444,23 +444,23 @@ const Signup = () => {
             </div>
 
             {/* Social Buttons */}
-            <div className="space-y-3 mb-8">
+            {/* <div className="space-y-3 mb-8">
               <button className="w-full flex items-center justify-center gap-3 bg-[#1e40af] text-white py-4 rounded-xl font-medium hover:bg-[#1e3a8a] transition">
                 <Mail className="w-5 h-5" /> Continue with Google
               </button>
               <button className="w-full flex items-center justify-center gap-3 border-2 border-gray-300 py-4 rounded-xl font-medium hover:border-[#1e40af] transition">
                 <Phone className="w-5 h-5" /> Continue with Phone
               </button>
-            </div>
+            </div> */}
 
-            <div className="relative mb-8">
+            {/* <div className="relative mb-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
+              </div> */}
+              {/* <div className="relative flex justify-center text-sm">
                 <span className="bg-white px-4 text-gray-500">OR</span>
               </div>
-            </div>
+            </div> */}
 
             <form onSubmit={handleSignup} className="space-y-5">
               {/* First Name */}

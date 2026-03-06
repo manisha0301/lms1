@@ -13,7 +13,7 @@ const getAllAcademicAdmins = async (req, res) => {
     const admins = await findAllAcademicAdmins(pool);
     res.json({
       success: true,
-      academicAdmins: admins  // No stats object anymore
+      academicAdmins: admins  
     });
   } catch (error) {
     console.error("Get Academic Admins Error →", error.message);
@@ -34,10 +34,8 @@ const createNewAcademicAdmin = async (req, res) => {
       twoFactor 
     } = req.body;
 
-    // ────────────────────────────────────────────────
+    
     // VALIDATION
-    // ────────────────────────────────────────────────
-
     // Required fields
     if (!fullName || !email || !password || !confirmPassword) {
       return res.status(400).json({
@@ -128,10 +126,8 @@ const createNewAcademicAdmin = async (req, res) => {
       }
     }
 
-    // ────────────────────────────────────────────────
+    
     // Proceed to create
-    // ────────────────────────────────────────────────
-
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
@@ -153,7 +149,7 @@ const createNewAcademicAdmin = async (req, res) => {
     await addNotificationForSuperAdmin(
       pool,
       notifyMessage,
-      'admin',          // matches your frontend icon/color logic
+      'admin',          
       'medium'
     );
 
@@ -166,7 +162,7 @@ const createNewAcademicAdmin = async (req, res) => {
   } catch (error) {
     console.error("Create Academic Admin Error →", error.message);
 
-    if (error.code === '23505') { // unique violation (PostgreSQL)
+    if (error.code === '23505') { 
       return res.status(409).json({
         success: false,
         error: "Email already exists"
@@ -305,7 +301,7 @@ const academicAdminLogin = async (req, res) => {
 const academicAdminChangePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
-    const userId = req.user.id; // From JWT via middleware
+    const userId = req.user.id; 
     console.log("User ID from token:", userId);
 
     // VALIDATION
@@ -379,7 +375,7 @@ const academicAdminChangePassword = async (req, res) => {
 // Get Academic Admin Profile
 const getAcademicAdminProfile = async (req, res) => {
   try {
-    const adminId = req.user.id; // from protect middleware
+    const adminId = req.user.id; 
 
     const { rows } = await pool.query(`
       SELECT 
@@ -509,7 +505,7 @@ const getAssignedCourses = async (req, res) => {
       SELECT COUNT(*) AS total 
       FROM students 
       WHERE graduation_university ILIKE $1
-    `, [`%${universityName}%`]); // ILIKE for case-insensitive partial match
+    `, [`%${universityName}%`]); 
 
     const totalStudents = parseInt(studentCount[0].total || 0, 10);
 
@@ -573,9 +569,6 @@ const getCourseDetails = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Course not found or not assigned' });
     }
 
-    // Return the full result set (array of rows) so the frontend can reconstruct
-    // the nested structure (weeks → modules → contents)
-    
     res.json({ success: true, course: rows });
   } catch (error) {
     console.error('Get Course Details Error →', error.message);
@@ -583,7 +576,7 @@ const getCourseDetails = async (req, res) => {
   }
 };
 
-// NEW: Get all students enrolled in this admin's university
+// Get all students enrolled in this admin's university
 const getUniversityStudents = async (req, res) => {
   try {
     const adminId = req.user.id;
@@ -600,7 +593,7 @@ const getUniversityStudents = async (req, res) => {
 
     const university = admin[0].academic_name;
 
-    // Fetch students where graduation_university matches (case-insensitive partial match)
+    // Fetch students where graduation_university matches 
     const { rows: students } = await pool.query(`
       SELECT 
         id,
@@ -623,7 +616,7 @@ const getUniversityStudents = async (req, res) => {
   }
 };
 
-// NEW: Get a single student by ID (for admin view)
+// Get a single student by ID (for admin view)
 const getStudentByIdForAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -767,7 +760,7 @@ export const updateFacultyDetails = async (req, res) => {
 // Mark a single notification as read for the logged-in admin
 export const markAdminNotificationAsRead = async (req, res) => {
   try {
-    const adminId = req.user.id; // from JWT (protectAdmin middleware)
+    const adminId = req.user.id; 
     const { notificationId } = req.params;
 
     if (!notificationId || isNaN(notificationId)) {
@@ -797,7 +790,7 @@ export const markAdminNotificationAsRead = async (req, res) => {
   }
 };
 
-// NEW: Get dashboard stats with MoM percentage
+// Get dashboard stats with MoM percentage
 export const getAdminDashboardStats = async (req, res) => {
   try {
     const adminId = req.user.id;
@@ -818,17 +811,17 @@ export const getAdminDashboardStats = async (req, res) => {
       return res.status(400).json({ success: false, error: 'No university assigned to this admin' });
     }
 
-    // ─── Current month start/end ──────────────────────────────────────
+    // Current month start/end 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); 
 
     const currentStartStr = currentMonthStart.toISOString().split('T')[0];
     const prevStartStr = previousMonthStart.toISOString().split('T')[0];
     const prevEndStr = previousMonthEnd.toISOString().split('T')[0];
 
-    // ─── 1. Total Students (all time) + MoM new enrollments ───────────
+    // Total Students (all time) 
     const studentQuery = `
       SELECT 
         COUNT(*) AS total_students,
@@ -853,7 +846,7 @@ export const getAdminDashboardStats = async (req, res) => {
       ? (currNewStudents > 0 ? 100 : 0) 
       : ((currNewStudents - prevNewStudents) / prevNewStudents) * 100;
 
-    // ─── 2. Active Courses (assigned to this admin) ───────────────────
+    // 2. Active Courses (assigned to this admin)
     const courseQuery = `
       SELECT 
         COUNT(*) AS total_courses,
@@ -878,7 +871,7 @@ export const getAdminDashboardStats = async (req, res) => {
       ? (currNewCourses > 0 ? 100 : 0) 
       : ((currNewCourses - prevNewCourses) / prevNewCourses) * 100;
 
-    // ─── 3. Faculty Members (active in this center) ───────────────────
+    // 3. Faculty Members (active in this center)
     const facultyQuery = `
       SELECT 
         COUNT(*) AS total_faculty,
@@ -902,7 +895,7 @@ export const getAdminDashboardStats = async (req, res) => {
       ? (currNewFaculty > 0 ? 100 : 0) 
       : ((currNewFaculty - prevNewFaculty) / prevNewFaculty) * 100;
 
-    // ─── Format percentages ───────────────────────────────────────────
+    // Format percentages
     const formatPercent = (val) => {
       if (val > 0) return `+${Math.round(val)}%`;
       if (val < 0) return `${Math.round(val)}%`;
@@ -967,7 +960,7 @@ export const academicAdminSendDualOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 5. Store OTP (against phone + user_type)
-    await saveOtp(admin.mobile, otp, 'admin');  // ← 'admin' matches your list
+    await saveOtp(admin.mobile, otp, 'admin');  
 
     // 6. Send SMS (MSG91)
     let smsSuccess = false;
@@ -1026,7 +1019,7 @@ export const academicAdminSendDualOtp = async (req, res) => {
 };
 
 
-// NEW: Finalize login after OTP verify (issue token)
+// Finalize login after OTP verify 
 
 export const academicAdminFinalizeLogin = async (req, res) => {
   const { email } = req.body;
@@ -1062,7 +1055,7 @@ export const academicAdminFinalizeLogin = async (req, res) => {
       { expiresIn: '12h' }
     );
 
-    // Optional: update last login
+    //update last login
     await pool.query(
       'UPDATE academic_admins SET last_login = NOW() WHERE id = $1',
       [admin.id]

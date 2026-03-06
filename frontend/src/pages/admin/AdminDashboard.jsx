@@ -88,7 +88,6 @@ export default function AdminDashboard() {
                   notif.type === 'achievement' ? Award : Users, // fallback
             // ─── FIXED: Added created_at so modal can use it for date display
             created_at: notif.created_at,
-            // Also pass priority & status (already in DB, good for modal)
             priority: notif.priority,
             status: notif.status
           }));
@@ -123,10 +122,8 @@ export default function AdminDashboard() {
 
   // Handle clicking a notification → open modal + mark as read
   const handleNotificationClick = async (notif) => {
-    // Open modal immediately
     setSelectedNotification(notif);
 
-    // If already read → skip API
     if (notif.status === 'read') return;
 
     try {
@@ -137,7 +134,6 @@ export default function AdminDashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Optimistic update
       setRecentNotifications(prev =>
         prev.map(n =>
           n.id === notif.id ? { ...n, status: 'read' } : n
@@ -147,6 +143,9 @@ export default function AdminDashboard() {
       console.error('Failed to mark admin notification as read:', err);
     }
   };
+
+  // Count unread for bell badge
+  const unreadCount = recentNotifications.filter(n => n.status === 'unread' || n.status === 'Unread').length;
 
   return (
     <>
@@ -167,19 +166,21 @@ export default function AdminDashboard() {
 
             <div className="flex items-center gap-6">
 
-              {/* Notification Bell */}
+              {/* Notification Bell – updated with real unread count */}
               <div className="relative">
                 <button
                   onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                   className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
                 >
                   <Bell className="w-6 h-6" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                    5
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </button>
 
-                {/* Notification Dropdown – now clickable */}
+                {/* Notification Dropdown – matched faculty style */}
                 {isNotificationOpen && (
                   <div className="absolute right-0 mt-4 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
                     <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
@@ -189,33 +190,48 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      {recentNotifications.map(notif => (
-                        <div 
-                          key={notif.id}
-                          onClick={() => handleNotificationClick(notif)}  // ← Added click handler
-                          className="p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                              notif.type === 'alert' ? 'bg-red-100' :
-                              notif.type === 'achievement' ? 'bg-emerald-100' :
-                              'bg-indigo-100'
-                            }`}>
-                              <notif.icon className={`w-5 h-5 ${
-                                notif.type === 'alert' ? 'text-red-600' :
-                                notif.type === 'achievement' ? 'text-emerald-600' :
-                                'text-indigo-600'
-                              }`} />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">{notif.message}</p>
-                              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {notif.time}
-                              </p>
+                      {notificationsLoading ? (
+                        <div className="p-6 text-center text-gray-500">Loading notifications...</div>
+                      ) : recentNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-gray-500">No notifications yet</div>
+                      ) : (
+                        recentNotifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
+                              notif.status === 'unread' || notif.status === 'Unread'
+                                ? notif.priority === 'high'
+                                  ? 'bg-red-50'
+                                  : notif.priority === 'medium'
+                                  ? 'bg-yellow-50'
+                                  : 'bg-blue-50'
+                                : 'bg-white'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                                notif.priority === 'high' ? 'bg-red-500' :
+                                notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                              }`}></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 line-clamp-2">{notif.message}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(notif.created_at).toLocaleString('en-IN', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short'
+                                  })}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 bg-gray-50 text-center">
+                      <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">
+                        View all notifications
+                      </button>
                     </div>
                   </div>
                 )}
@@ -391,17 +407,17 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Notifications Panel - Now CLICKABLE */}
+            {/* Recent Notifications Panel - matched faculty style */}
             <div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 ">
                 <div className="bg-white text-[#1e3a8a] px-8 pt-6 rounded-t-xl">
                   <h2 className="text-2xl font-bold flex items-center gap-4">
                     <Bell className="w-8 h-8" />
-                    Recent Notifications
+                    Notifications
                   </h2>
                   <p className="opacity-90 mt-1">Latest system updates</p>
                 </div>
-                <div className="p-8 space-y-5 overflow-y-auto flex-1 max-h-[525px]">
+                <div className="p-6 max-h-[525px] overflow-y-auto">
                   {notificationsLoading ? (
                     <div className="text-center py-10 text-gray-500">
                       Loading notifications...
@@ -411,31 +427,37 @@ export default function AdminDashboard() {
                       No new notifications yet
                     </div>
                   ) : (
-                    recentNotifications.map((notif) => (
-                      <div 
-                        key={notif.id} 
-                        onClick={() => handleNotificationClick(notif)}  // ← Added click handler here
-                        className="flex gap-5 p-5 bg-gray-50 rounded-2xl hover:bg-[#1e3a8a]/5 transition group cursor-pointer"
-                      >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          notif.type === 'alert' ? 'bg-red-100' :
-                          notif.type === 'achievement' ? 'bg-emerald-100' :
-                          'bg-indigo-100'
-                        }`}>
-                          <notif.icon className={`w-6 h-6 ${
-                            notif.type === 'alert' ? 'text-red-600' :
-                            notif.type === 'achievement' ? 'text-emerald-600' :
-                            'text-indigo-600'
-                          }`} />
+                    <div className="divide-y divide-gray-200">
+                      {recentNotifications.map((notif) => (
+                        <div 
+                          key={notif.id} 
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`py-4 flex items-start gap-3 hover:bg-gray-50 transition cursor-pointer ${
+                            (notif.status === 'unread' || notif.status === 'Unread')
+                              ? notif.priority === 'high'
+                                ? 'bg-red-50'
+                                : notif.priority === 'medium'
+                                ? 'bg-yellow-50'
+                                : 'bg-blue-50'
+                              : ''
+                          }`}
+                        >
+                          <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                            notif.priority === 'high' ? 'bg-red-500' :
+                            notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 line-clamp-2">{notif.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(notif.created_at).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-900">{notif.message}</p>
-                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                            <Clock className="w-4 h-4" /> {notif.time}
-                          </p>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>

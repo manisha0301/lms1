@@ -280,7 +280,7 @@ const FacultyLogin = () => {
             </div>
 
             {/* Social buttons (kept as-is) */}
-            <div className="space-y-3 mb-8">
+            {/* <div className="space-y-3 mb-8">
               <button className="w-full flex items-center justify-center gap-3 bg-[#1e40af] text-white py-4 rounded-xl font-medium hover:bg-[#1e3a8a] transition">
                 <Mail className="w-5 h-5" />
                 Continue with Google
@@ -298,7 +298,7 @@ const FacultyLogin = () => {
               <div className="relative flex justify-center text-sm">
                 <span className="bg-white px-4 text-gray-500">OR</span>
               </div>
-            </div>
+            </div> */}
 
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-center">

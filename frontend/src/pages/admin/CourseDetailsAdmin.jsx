@@ -59,9 +59,22 @@ const CourseDetailsAdmin = () => {
     modules: [{ name: "", chapters: [""] }],
   });
 
-  const openContentModal = () => {
-    setNewSection({ name: "", modules: [{ name: "", chapters: [""] }] });
-    setShowContentModal(true);
+  // Validate date to ensure year is 4 digits
+  const validateAndSetBatchDate = (dateValue, field) => {
+    if (!dateValue) {
+      setBatchForm(prev => ({ ...prev, [field]: dateValue }));
+      return;
+    }
+    
+    // Check if date format is valid (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (dateRegex.test(dateValue)) {
+      const year = dateValue.split('-')[0];
+      // Ensure year is exactly 4 digits
+      if (year.length === 4) {
+        setBatchForm(prev => ({ ...prev, [field]: dateValue }));
+      }
+    }
   };
 
   // Fetch course details + university students
@@ -607,7 +620,7 @@ const CourseDetailsAdmin = () => {
                     <input
                       type="date"
                       value={batchForm.startDate}
-                      onChange={(e) => setBatchForm(prev => ({ ...prev, startDate: e.target.value }))}
+                      onChange={(e) => validateAndSetBatchDate(e.target.value, 'startDate')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>
@@ -616,7 +629,7 @@ const CourseDetailsAdmin = () => {
                     <input
                       type="date"
                       value={batchForm.endDate}
-                      onChange={(e) => setBatchForm(prev => ({ ...prev, endDate: e.target.value }))}
+                      onChange={(e) => validateAndSetBatchDate(e.target.value, 'endDate')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>

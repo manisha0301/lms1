@@ -173,7 +173,7 @@ export const createCourseAssessment = (req, res) => {
         dueDate
       ]);
 
-      // Faculty self-notification (unchanged)
+      // Faculty self notification 
       if (facultyId) {
         const { rows: [course] } = await pool.query(
           'SELECT name FROM courses WHERE id = $1',
@@ -201,6 +201,7 @@ export const createCourseAssessment = (req, res) => {
       // Notify all students belonging to the same university/center
       
       try {
+
         // Find all academic admins this course is assigned to
         const { rows: courseAdmins } = await pool.query(`
           SELECT academic_admin_id
@@ -241,7 +242,7 @@ export const createCourseAssessment = (req, res) => {
               pool,
               message,
               'assignment',
-              'medium',           // change to 'high' if you want it to stand out more
+              'medium',           
               studentIds
             );
 
@@ -252,7 +253,7 @@ export const createCourseAssessment = (req, res) => {
         }
       } catch (notifyError) {
         console.error('Failed to send student notifications (non-blocking):', notifyError.message);
-        // Notification failure should NOT fail the assignment creation
+        
       }
 
       res.status(201).json({
@@ -353,7 +354,7 @@ export const getAssignmentSubmissions = async (req, res) => {
     const { assignmentId } = req.params;
     const facultyId = req.user.id;
 
-    // Security: Only faculty who teaches the course can see submissions
+    //Only faculty who teaches the course can see submissions
     const { rows: permCheck } = await pool.query(`
       SELECT ca.course_id 
       FROM course_assessments ca 
@@ -427,7 +428,7 @@ export const updateSubmissionEvaluation = async (req, res) => {
   }
 };
 
-// FIXED: Add this missing function that studentRoutes.js is looking for
+
 export const getCourseAssignmentsForStudent = async (req, res) => {
   try {
     const { courseId } = req.params;

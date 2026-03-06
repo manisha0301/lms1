@@ -51,10 +51,10 @@ const storage = multer.diskStorage({
     let slug = fullName
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, '-')           // spaces to -
-      .replace(/[^a-z0-9-]/g, '')     // remove special chars
-      .replace(/-+/g, '-')            // multiple - to single
-      .replace(/^-|-$/g, '');         // remove leading/trailing -
+      .replace(/\s+/g, '-')           
+      .replace(/[^a-z0-9-]/g, '')     
+      .replace(/-+/g, '-')            
+      .replace(/^-|-$/g, '');         
 
     if (!slug) slug = 'faculty';
 
@@ -153,8 +153,8 @@ export const createFaculty = async (req, res) => {
       employment_status: employmentStatus,
       password_hash,
       profile_picture,
-      status: 'Active',  // Admin bypasses approval
-      academic_admin_id: academicAdminId || req.user.id  // ← NEW: Set the admin ID
+      status: 'Active',  
+      academic_admin_id: academicAdminId || req.user.id  
     });
 
     // Notify the Academic Admin this faculty belongs to
@@ -166,9 +166,9 @@ export const createFaculty = async (req, res) => {
       await addNotificationForAcademicAdmins(
         pool,
         message,
-        'faculty',       // notification type
-        'medium',        // priority
-        [targetAdminId]  // only this one admin gets notified
+        'faculty',       
+        'medium',        
+        [targetAdminId]  
       );
     }
 
@@ -205,7 +205,7 @@ export const getFacultyList = async (req, res) => {
     const { rows: pending } = await pool.query(`
       SELECT 
         id, code, full_name AS name, email, phone,
-        designation, qualification
+        designation, qualification, profile_picture
       FROM faculty
       WHERE status = 'Pending' AND academic_admin_id = $1
       ORDER BY created_at DESC
@@ -307,8 +307,7 @@ export const deleteFacultyMember = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Faculty ID required' });
     }
 
-    // Optional: You can add cleanup logic here (e.g., remove from courses.teachers array, notifications, etc.)
-    // For now, just delete the faculty row
+    
     const deleted = await deleteFaculty(facultyId);
 
     if (!deleted) {
@@ -393,7 +392,7 @@ export const facultySignup = async (req, res) => {
     });
 
 
-    // NEW: Notify the matching Academic Admin(s) for approval
+    // Notify the matching Academic Admin for approval
     
     let targetAdminIds = [];
 
@@ -401,8 +400,7 @@ export const facultySignup = async (req, res) => {
     if (assignedAdminId) {
       targetAdminIds = [assignedAdminId];
     } else {
-      // Fallback: If no university match, notify ALL active admins (or none)
-      // Option: Broadcast to all active admins (recommended for MVP)
+      
       targetAdminIds = await getAllActiveAcademicAdminIds(pool);
     }
 
@@ -412,8 +410,8 @@ export const facultySignup = async (req, res) => {
       await addNotificationForAcademicAdmins(
         pool,
         message,
-        'faculty_request',   // Special type so you can style it differently (e.g., yellow/orange)
-        'high',              // High priority — needs action soon
+        'faculty_request',   
+        'high',              
         targetAdminIds
       );
     }
@@ -437,7 +435,7 @@ export const facultyLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // ────────────────────── Required fields check ──────────────────────
+    // Required fields check
     if (!email || typeof email !== 'string' || !email.trim()) {
       return res.status(400).json({ 
         success: false, 
@@ -452,7 +450,7 @@ export const facultyLogin = async (req, res) => {
       });
     }
 
-    // ────────────────────── Email validation (same as signup) ──────────────────────
+    //Email validation 
     const trimmedEmail = email.trim().toLowerCase();
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -473,7 +471,7 @@ export const facultyLogin = async (req, res) => {
       });
     }
 
-    // ────────────────────── Password validation (same as signup/change-password) ──────────────────────
+    // Password validation 
     if (password.length < 8 || password.length > 16) {
       return res.status(400).json({ 
         success: false, 
@@ -489,7 +487,7 @@ export const facultyLogin = async (req, res) => {
       });
     }
 
-    // ────────────────────── Database lookup ──────────────────────
+    // Database lookup 
     const { rows } = await pool.query(
       'SELECT * FROM faculty WHERE email = $1', 
       [trimmedEmail]
@@ -771,7 +769,7 @@ export const updateFacultyProfile = async (req, res) => {
 
     const updates = {};
 
-    // ────────────────────── Full name validation ──────────────────────
+    // Full name validation 
     if (full_name !== undefined) {
       const trimmedName = (full_name + '').trim();
 
@@ -806,7 +804,7 @@ export const updateFacultyProfile = async (req, res) => {
       updates.full_name = trimmedName;
     }
 
-    // ────────────────────── Phone number validation ──────────────────────
+    //Phone number validation 
     if (phone !== undefined) {
       let cleanedPhone = (phone + '').trim();
 
@@ -835,7 +833,7 @@ export const updateFacultyProfile = async (req, res) => {
       }
     }
 
-    // ────────────────────── Optional fields (no strict validation needed) ──────────────────────
+   
     if (designation !== undefined) {
       updates.designation = designation?.trim() || null;
     }
@@ -848,7 +846,7 @@ export const updateFacultyProfile = async (req, res) => {
       updates.profile_picture = profile_picture;
     }
 
-    // If nothing to update
+    
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({
         success: false,
@@ -856,7 +854,7 @@ export const updateFacultyProfile = async (req, res) => {
       });
     }
 
-    // ────────────────────── Build dynamic UPDATE query ──────────────────────
+    
     const fields = Object.keys(updates)
       .map((key, index) => `${key} = $${index + 1}`)
       .join(', ');
@@ -992,7 +990,7 @@ export const getUpcomingClasses = async (req, res) => {
       return timeA.localeCompare(timeB);
     });
 
-    // Optional: limit to next 60 days worth of classes to avoid huge response
+    
     const maxDaysAhead = 60;
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() + maxDaysAhead);

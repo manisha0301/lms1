@@ -17,9 +17,6 @@ import {
   addNotificationForFaculty
 } from '../models/notificationModel.js';
 
-
-
-
 // Create new course
 export const createCourse = async (req, res) => {
   try {
@@ -32,7 +29,7 @@ export const createCourse = async (req, res) => {
       teachers = req.body.teachers ? JSON.parse(req.body.teachers) : [];
       batches = req.body.batches ? JSON.parse(req.body.batches) : [];
     } catch (e) {
-      // ignore parse errors
+      
     }
 
     let finalOriginalPrice = null;
@@ -52,7 +49,7 @@ export const createCourse = async (req, res) => {
       originalPrice: finalOriginalPrice
     });
 
-    // ─── 1. Notify the SuperAdmin who created it ─────────────────────
+    // 1. Notify the SuperAdmin who created it
     const superNotifyMessage = `New course created: "${newCourse.name}" (${newCourse.type}, ₹${newCourse.price})`;
     await addNotificationForSuperAdmin(
       pool,
@@ -61,7 +58,7 @@ export const createCourse = async (req, res) => {
       'medium'
     );
 
-    // ─── 2. NEW: Broadcast to ALL active Academic Admins ─────────────
+    // 2. Broadcast to ALL active Academic Admins 
     const adminIds = await getAllActiveAcademicAdminIds(pool);
 
     if (adminIds.length > 0) {
@@ -70,13 +67,13 @@ export const createCourse = async (req, res) => {
       await addNotificationForAcademicAdmins(
         pool,
         broadcastMessage,
-        'course',        // type
-        'low',           // lower priority than direct assignment
-        adminIds         // send to everyone active
+        'course',        
+        'low',          
+        adminIds         
       );
     }
 
-    // ─── Send success response ───────────────────────────────────────
+    // Send success response 
     res.status(201).json({ success: true, course: newCourse });
   } catch (error) {
     console.error('Create course error:', error);
@@ -97,7 +94,7 @@ export const getCourses = async (req, res) => {
 
 
 // Get single course – NOW WITH REAL BATCH SCHEDULE & MEETING LINK
-// Get single course – DYNAMIC DAILY SESSIONS (same time/link, different dates)
+
 export const getCourse = async (req, res) => {
   try {
     const course = await getCourseById(req.params.id);
@@ -131,7 +128,7 @@ export const getCourse = async (req, res) => {
     // }
     // course.enrolledStudents = enrolledCount;
 
-    // ── DYNAMIC DAILY LIVE SESSIONS: Generate from start_date to end_date ────────────────────────────────
+    //DAILY LIVE SESSIONS
     const { rows: [schedule] } = await pool.query(`
       SELECT start_date, end_date, start_time, end_time, meeting_link
       FROM academic_course_schedules
@@ -282,9 +279,9 @@ export const assignCourseToAdmins = async (req, res) => {
       await addNotificationForAcademicAdmins(
         pool,
         message,
-        'course',       // type
+        'course',       
         'medium',
-        adminIds        // array of academic admin IDs
+        adminIds        
       );
     }
 
@@ -417,7 +414,7 @@ export const getCoursesForManagement = async (req, res) => {
 
     console.log(`Fetched ${academicsData.length} academics`);
 
-    // Process faculty safely - no await in map
+    // Process faculty safely 
     const processedAcademics = [];
     for (const ac of academicsData) {
       const processedCourses = [];

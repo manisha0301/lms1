@@ -6,9 +6,8 @@ import fs from 'fs';
 
 import { addNotificationForFaculty, addNotificationForStudents } from '../models/notificationModel.js';
 
-// ────────────────────────────────────────────────
-// ENSURE FOLDERS EXIST (same as assessments)
-// ────────────────────────────────────────────────
+
+// ENSURE FOLDERS EXIST 
 const examSubmissionUploadDir = path.join(process.cwd(), 'uploads/exams/submissions');
 
 if (!fs.existsSync(examSubmissionUploadDir)) {
@@ -16,9 +15,8 @@ if (!fs.existsSync(examSubmissionUploadDir)) {
   console.log('Created uploads/exams/submissions folder');
 }
 
-// ────────────────────────────────────────────────
-// MULTER FOR STUDENT EXAM ANSWER UPLOAD (same style as uploadAnswer)
-// ────────────────────────────────────────────────
+// MULTER FOR STUDENT EXAM ANSWER UPLOAD 
+
 const examAnswerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, examSubmissionUploadDir);
@@ -47,14 +45,10 @@ export const uploadExamAnswer = multer({
       cb(new Error('Only PDF, DOC, DOCX files are allowed'), false);
     }
   },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB (you can match assignments' 10MB if you want)
-}).single('file');  // ← field name must match frontend FormData key: 'file'
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB 
+}).single('file');  
 
-// ────────────────────────────────────────────────
-// CONTROLLER FUNCTIONS
-// ────────────────────────────────────────────────
-
-// Get all courses assigned to this faculty (for dropdown)
+// Get all courses assigned to this faculty 
 export const getFacultyCourses = async (req, res) => {
   try {
     const facultyId = req.user.id;
@@ -81,7 +75,7 @@ export const getFacultyCourses = async (req, res) => {
   }
 };
 
-// Create new exam + multiple slots
+
 // Create new exam + multiple slots
 export const createExam = async (req, res) => {
   try {
@@ -121,18 +115,14 @@ export const createExam = async (req, res) => {
       );
     }
 
-    // ────────────────────────────────────────────────────────────────
-    // Get course name (for better notification messages)
-    // ────────────────────────────────────────────────────────────────
+    // Get course name 
     const { rows: [course] } = await pool.query(
       'SELECT name FROM courses WHERE id = $1',
       [courseId]
     );
     const courseName = course?.name || 'the course';
 
-    // ────────────────────────────────────────────────────────────────
-    // Notify the faculty who created it (your existing code)
-    // ────────────────────────────────────────────────────────────────
+    // Notify the faculty who created it 
     const messageFaculty = `You created a new exam: "${topic}" in ${courseName} (${slots.length} slots)`;
     await addNotificationForFaculty(
       pool,
@@ -142,11 +132,11 @@ export const createExam = async (req, res) => {
       facultyId
     );
 
-    // ────────────────────────────────────────────────────────────────
-    // NEW: Notify students of the same university/center
-    // ────────────────────────────────────────────────────────────────
+    
+    //Notify students of the same university/center
+
     try {
-      // Find academic admin(s) this course belongs to
+      // Find academic admin this course belongs to
       const { rows: caaRows } = await pool.query(`
         SELECT academic_admin_id
         FROM course_academic_assignments
@@ -173,7 +163,7 @@ export const createExam = async (req, res) => {
         if (students.length > 0) {
           const studentIds = students.map(s => s.id);
 
-          // Optional: format first slot or date range for message
+          //format first slot or date range for message
           const firstSlot = slots[0] || {};
           const dateStr = firstSlot.date 
             ? new Date(firstSlot.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -186,7 +176,7 @@ export const createExam = async (req, res) => {
             pool,
             messageStudent,
             'exam',
-            'high',           // ← 'high' so it stands out (red dot if your UI supports it)
+            'high',          
             studentIds
           );
 
@@ -339,9 +329,8 @@ export const submitExamAnswer = (req, res) => {
         return res.status(400).json({ success: false, error: 'examId is required' });
       }
 
-      // ────────────────────────────────────────────────
+
       // CHECK IF STUDENT ALREADY SUBMITTED THIS EXAM
-      // ────────────────────────────────────────────────
       const { rows: existing } = await pool.query(`
         SELECT id, answer_pdf_path 
         FROM exam_submissions 
@@ -359,9 +348,8 @@ export const submitExamAnswer = (req, res) => {
         });
       }
 
-      // ────────────────────────────────────────────────
       // Fetch faculty_id and total_marks from the exam
-      // ────────────────────────────────────────────────
+
       const { rows: examData } = await pool.query(`
         SELECT faculty_id, total_marks 
         FROM exams 
@@ -378,9 +366,8 @@ export const submitExamAnswer = (req, res) => {
 
       const { faculty_id, total_marks } = examData[0];
 
-      // ────────────────────────────────────────────────
       // Proceed with insertion - include faculty_id and full_marks
-      // ────────────────────────────────────────────────
+
       const answerPath = `exams/submissions/${req.file.filename}`;
 
       await pool.query(`
@@ -459,7 +446,7 @@ export const getExamSubmissions = async (req, res) => {
   }
 };
 
-// NEW: Update marks and remarks for a submission
+// Update marks and remarks for a submission
 export const updateExamSubmissionEvaluation = async (req, res) => {
   try {
     const { submissionId } = req.params;

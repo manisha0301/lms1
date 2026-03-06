@@ -120,13 +120,61 @@ export default function NotificationDetailPanel({
           </>
         );
 
+        case "student":
+          return (
+            <>
+              <h2 className="text-2xl font-bold text-indigo-700 mb-4">
+                👨‍🎓 New Student Joined
+              </h2>
+
+              <p className="text-gray-700 text-lg mb-4 leading-relaxed">
+                A new student has successfully joined your center.
+              </p>
+
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6">
+                <p className="text-gray-800 font-medium">
+                  {notification.message}
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-500">
+                You can now track this student's progress and course activity from your faculty dashboard.
+              </p>
+            </>
+          );
+
+          case "course":
+            return (
+              <>
+                <h2 className="text-2xl font-bold text-blue-700 mb-4">
+                  📘 Course Assignment
+                </h2>
+
+                <p className="text-gray-700 text-lg mb-4 leading-relaxed">
+                  You have been assigned as the instructor for a new course.
+                </p>
+
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
+                  <p className="text-gray-800 font-medium">
+                    {notification.message}
+                  </p>
+                </div>
+
+                <p className="text-sm text-gray-500">
+                  You can now manage course materials, schedule classes,
+                  and monitor student progress from your faculty dashboard.
+                </p>
+              </>
+            );
+
       default:
         return renderGeneric(notification);
     }
   };
 
-  const renderAdmin = (notification) => {
+  const renderAcademicAdmin = (notification) => {
     switch (notification.type) {
+
       case "faculty_request":
         return (
           <>
@@ -134,15 +182,20 @@ export default function NotificationDetailPanel({
               📥 New Faculty Approval Request
             </h2>
 
-            <p className="text-gray-700 text-lg mb-4">
+            <p className="text-gray-700 text-lg mb-4 leading-relaxed">
               {notification.message}
             </p>
 
-            <div className="bg-indigo-50 p-4 rounded-xl">
-              Please review and take necessary action.
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+              <p className="text-gray-800">
+                A faculty member has submitted a request to join your academic
+                center. Please review their details and approve or reject the
+                request from the faculty management section.
+              </p>
             </div>
           </>
         );
+
 
       case "course":
         return (
@@ -151,18 +204,42 @@ export default function NotificationDetailPanel({
               📘 Course Update
             </h2>
 
-            <p className="text-gray-700 text-lg">
+            <p className="text-gray-700 text-lg mb-4 leading-relaxed">
               {notification.message}
             </p>
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
-                <p className="text-gray-800">
-                This course has been recently updated. Please review the changes
-                to stay aligned with the latest content and structure.
-                </p>
-            </div>
 
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
+              <p className="text-gray-800">
+                A new course has been added to your center. You can now assign
+                faculty members, monitor enrollments, and manage course
+                activities from the course dashboard.
+              </p>
+            </div>
           </>
         );
+
+
+      case "student":
+        return (
+          <>
+            <h2 className="text-2xl font-bold text-green-700 mb-4">
+              🎓 New Student Enrollment
+            </h2>
+
+            <p className="text-gray-700 text-lg mb-4 leading-relaxed">
+              {notification.message}
+            </p>
+
+            <div className="bg-green-50 border border-green-100 rounded-xl p-4">
+              <p className="text-gray-800">
+                A new student has successfully enrolled in your center.
+                You can track student progress, course participation,
+                and academic performance from the student management panel.
+              </p>
+            </div>
+          </>
+        );
+
 
       default:
         return renderGeneric(notification);
@@ -178,8 +255,21 @@ export default function NotificationDetailPanel({
               🏢 Administrative Update
             </h2>
 
-            <p className="text-gray-700 text-lg">
+            <p className="text-gray-700 text-lg mb-4 leading-relaxed">
               {notification.message}
+            </p>
+
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6">
+              <p className="text-gray-800">
+                A new academic administrator has been successfully added to the
+                system. This user will now be able to manage academic operations,
+                oversee courses, and coordinate with faculty members.
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              You can monitor all administrative users and permissions from the
+              Super Admin control panel.
             </p>
           </>
         );
@@ -191,8 +281,21 @@ export default function NotificationDetailPanel({
               📊 System Course Activity
             </h2>
 
-            <p className="text-gray-700 text-lg">
+            <p className="text-gray-700 text-lg mb-4 leading-relaxed">
               {notification.message}
+            </p>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
+              <p className="text-gray-800">
+                A new course has been added to the learning platform. This course is
+                now available within the academic system and can be assigned to
+                faculty members and enrolled by students.
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              Visit the course management section to review course details,
+              instructor assignments, and enrollment activity.
             </p>
           </>
         );
@@ -223,8 +326,8 @@ export default function NotificationDetailPanel({
       case "faculty":
         return renderFaculty(notification);
 
-      case "admin":
-        return renderAdmin(notification);
+      case "academicadmin":
+        return renderAcademicAdmin(notification);
 
       case "superadmin":
         return renderSuperAdmin(notification);
