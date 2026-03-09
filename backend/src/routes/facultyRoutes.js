@@ -9,7 +9,13 @@ import {
   getCourseDetails, 
   getUpcomingClasses,
   getUpcomingExams,
-  getFacultyNotifications
+  getFacultyNotifications,
+  changeFacultyPassword,
+  deleteFacultyAccount,
+  checkFacultyEmailAvailability,
+  markNotificationAsRead,
+  facultySendDualOtp,
+  facultyFinalizeLogin
 } from '../controllers/facultyController.js';
 
 import { uploadProfilePic } from '../controllers/facultyController.js';
@@ -19,11 +25,11 @@ import {
   getCourseAssessments,
   getAssignmentSubmissions,
   updateSubmissionEvaluation,
-  uploadAnswer,           // ← Import the multer middleware
-  submitAssignmentAnswer  // ← Import the handler
+  uploadAnswer,
+  submitAssignmentAnswer
 } from '../controllers/assessmentController.js';
 
-import { getFacultyCourses, createExam, getFacultyExams } from '../controllers/examController.js';
+import { getFacultyCourses, createExam, getFacultyExams,getExamSubmissions, updateExamSubmissionEvaluation } from '../controllers/examController.js';
 
 import {
   uploadChapterVideo,
@@ -47,7 +53,11 @@ router.post('/login', facultyLogin);
 router.get('/dashboard', protectFaculty, getFacultyDashboard);
 router.get('/upcoming-classes', protectFaculty, getUpcomingClasses);
 router.get('/courses/:id', protectFaculty, getCourseDetails);
+
+// FIXED: Add profile routes
 router.get('/profile', protectFaculty, getFacultyProfile);
+router.put('/profile', protectFaculty, updateFacultyProfile);  // ← Added for edit
+
 router.patch('/profile', protectFaculty, uploadProfilePic, updateFacultyProfile);
 
 // Assignment routes - Faculty creates and views assessments
@@ -62,9 +72,9 @@ router.patch('/submissions/:submissionId', protectFaculty, updateSubmissionEvalu
 
 router.post(
   '/assignments/:assignmentId/submit',
-  protectStudent,                // ← Change to protectStudent later
-  uploadAnswer,                  // ← multer middleware (called correctly)
-  submitAssignmentAnswer         // ← handler
+  protectStudent,
+  uploadAnswer,
+  submitAssignmentAnswer
 );
 
 // Exam routes
@@ -72,6 +82,12 @@ router.get('/my-courses', protectFaculty, getFacultyCourses);
 router.post('/exams', protectFaculty, createExam);
 router.get('/exams', protectFaculty, getFacultyExams);
 router.get('/upcoming-exams', protectFaculty, getUpcomingExams);
+
+// Get submissions for a specific exam (to show students in dropdown + table)
+router.get('/exams/:examId/submissions', protectFaculty, getExamSubmissions);
+
+// Update marks & remarks for an exam submission
+router.patch('/exams/submissions/:submissionId', protectFaculty, updateExamSubmissionEvaluation);
 
 // Notifications
 router.get('/notifications', protectFaculty, getFacultyNotifications);
@@ -87,5 +103,20 @@ router.post('/verify-email/verify-otp', verifyEmailOTP);
 router.post('/verify-phone/send-otp', sendOTP);
 router.post('/verify-phone/verify-otp', verifyOTP);
 router.post('/verify-phone/resend-otp', resendOTP);
+
+// Change faculty password
+router.put('/change-password', protectFaculty, changeFacultyPassword);
+
+// Delete faculty account
+router.delete('/account', protectFaculty, deleteFacultyAccount);
+
+// New route to check email availability
+router.post('/check-email', checkFacultyEmailAvailability);
+
+router.put('/notifications/:notificationId/read', protectFaculty, markNotificationAsRead);
+
+router.post('/login/send-otp', facultySendDualOtp);
+router.post('/login/verify-otp', verifyOTP);           // ← reuse existing
+router.post('/login/finalize', facultyFinalizeLogin);
 
 export default router;

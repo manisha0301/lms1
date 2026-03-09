@@ -18,7 +18,7 @@ export function ChapterItem({ chapter, idx, courseId, weekId, moduleId, onChapte
       if (!chapter?.id) return;
       setLoadingVideo(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         const res = await axios.get(
           `${apiConfig.API_BASE_URL}/api/faculty/chapter-video/${chapter.id}`,
           {
@@ -77,7 +77,7 @@ export function ChapterItem({ chapter, idx, courseId, weekId, moduleId, onChapte
       console.log(`${key}:`, value instanceof Blob ? '[File - ' + value.name + ']' : value);
     }
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('facultyToken');
 
     try {
       const res = await axios.post(

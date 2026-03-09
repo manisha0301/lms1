@@ -12,7 +12,7 @@ const OTPVerification = () => {
   // Get data passed from signup page
   const { phone, user_type, returnTo, isPhoneVerification } = location.state || {};
 
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '','','']);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,8 @@ const OTPVerification = () => {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (value !== '' && index < 3) {
+    // Auto-focus next input
+    if (value !== '' && index < 5) {
       inputRefs.current[index + 1].focus();
     }
   };
@@ -51,8 +52,8 @@ const OTPVerification = () => {
 
   const handleVerify = async () => {
     const otpValue = otp.join('');
-    if (otpValue.length !== 4) {
-      setError('Please enter a 4-digit OTP');
+    if (otpValue.length !== 6) {
+      setError('Please enter a 6-digit OTP');
       return;
     }
 
@@ -103,7 +104,7 @@ const OTPVerification = () => {
       if (res.data.success) {
         setTimer(60);
         setCanResend(false);
-        setOtp(['', '', '', '']);
+        setOtp(['', '', '', '','','']);
         setError('');
         inputRefs.current[0]?.focus();
         alert('New OTP has been sent!');

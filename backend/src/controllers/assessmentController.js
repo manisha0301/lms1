@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import pool from '../config/db.js';
 
-import { addNotificationForFaculty } from '../models/notificationModel.js';
+import { addNotificationForFaculty, addNotificationForStudents } from '../models/notificationModel.js';
 
 // Ensure folders exist
 const questionUploadDir = path.join(process.cwd(), 'uploads/assessments/questions');
@@ -173,6 +173,7 @@ export const createCourseAssessment = (req, res) => {
         dueDate
       ]);
 
+      // Faculty self notification 
       if (facultyId) {
         const { rows: [course] } = await pool.query(
           'SELECT name FROM courses WHERE id = $1',
@@ -197,49 +198,62 @@ export const createCourseAssessment = (req, res) => {
         );
       }
 
+      // Notify all students belonging to the same university/center
+      
       try {
-        const { rows: courseAdmin } = await pool.query(`
-          SELECT caa.academic_admin_id
-          FROM course_academic_assignments caa
-          WHERE caa.course_id = $1
-          LIMIT 1
+
+        // Find all academic admins this course is assigned to
+        const { rows: courseAdmins } = await pool.query(`
+          SELECT academic_admin_id
+          FROM course_academic_assignments
+          WHERE course_id = $1
         `, [courseId]);
 
-        if (courseAdmin.length === 0) return;
+        if (courseAdmins.length === 0) {
+          console.log(`No academic admin assignment found for course ${courseId} → skipping student notifications`);
+        } else {
+          const adminIds = courseAdmins.map(row => row.academic_admin_id);
 
-        const adminId = courseAdmin[0].academic_admin_id;
+          // Get all students whose graduation_university matches any of these centers
+          const { rows: students } = await pool.query(`
+            SELECT id
+            FROM students
+            WHERE graduation_university IS NOT NULL
+              AND LOWER(graduation_university) IN (
+                SELECT LOWER(academic_name)
+                FROM academic_admins
+                WHERE id = ANY($1)
+              )
+          `, [adminIds]);
 
-        const { rows: adminInfo } = await pool.query(`
-          SELECT academic_name 
-          FROM academic_admins 
-          WHERE id = $1
-        `, [adminId]);
+          if (students.length > 0) {
+            const studentIds = students.map(s => s.id);
 
-        if (adminInfo.length === 0) return;
+            const dueFormatted = new Date(dueDate).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            });
 
-        const universityName = adminInfo[0].academic_name.trim();
+            const message = `New Assignment: "${title}" (Due: ${dueFormatted})`;
 
-        const { rows: students } = await pool.query(`
-          SELECT id 
-          FROM students 
-          WHERE graduation_university ILIKE $1
-        `, [`%${universityName}%`]);
+            // Send bulk notification to all relevant students
+            await addNotificationForStudents(
+              pool,
+              message,
+              'assignment',
+              'medium',           
+              studentIds
+            );
 
-        const studentIds = students.map(s => s.id);
-
-        if (studentIds.length > 0) {
-          const dueFormatted = new Date(dueDate).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          });
-
-          const message = `New Assignment Posted: "${title}" (Due: ${dueFormatted})`;
-
-          // await notifyStudents(pool, message, 'assignment', 'medium', studentIds);  // Uncomment if function exists
+            console.log(`Sent new assignment notification to ${studentIds.length} students`);
+          } else {
+            console.log(`No matching students found for this center → no notifications sent`);
+          }
         }
-      } catch (err) {
-        console.error('Failed to notify students about new assignment:', err.message);
+      } catch (notifyError) {
+        console.error('Failed to send student notifications (non-blocking):', notifyError.message);
+        
       }
 
       res.status(201).json({
@@ -340,7 +354,7 @@ export const getAssignmentSubmissions = async (req, res) => {
     const { assignmentId } = req.params;
     const facultyId = req.user.id;
 
-    // Security: Only faculty who teaches the course can see submissions
+    //Only faculty who teaches the course can see submissions
     const { rows: permCheck } = await pool.query(`
       SELECT ca.course_id 
       FROM course_assessments ca 
@@ -355,10 +369,13 @@ export const getAssignmentSubmissions = async (req, res) => {
     const { rows: submissions } = await pool.query(`
       SELECT 
         s.id,
-        s.student_id,
+        st.student_id AS student_code,
         CONCAT(st.first_name, ' ', st.last_name) AS student_name,
         s.answer_pdf_path,
-        s.submitted_at
+        s.submitted_at,
+        s.marks,
+        s.remarks,
+        s.graded_at
       FROM assignment_submissions s
       JOIN students st ON s.student_id = st.id
       WHERE s.assignment_id = $1
@@ -393,9 +410,16 @@ export const updateSubmissionEvaluation = async (req, res) => {
 
     await pool.query(`
       UPDATE assignment_submissions
-      SET marks = $1, remarks = $2, updated_at = CURRENT_TIMESTAMP
+      SET 
+        marks = $1,
+        remarks = $2,
+        graded_at = CURRENT_TIMESTAMP
       WHERE id = $3
-    `, [marks || null, remarks || null, submissionId]);
+    `, [
+      marks !== undefined ? marks : null,
+      remarks !== undefined ? remarks : null,
+      submissionId
+    ]);
 
     res.json({ success: true, message: 'Evaluation updated' });
   } catch (error) {
@@ -404,7 +428,7 @@ export const updateSubmissionEvaluation = async (req, res) => {
   }
 };
 
-// FIXED: Add this missing function that studentRoutes.js is looking for
+
 export const getCourseAssignmentsForStudent = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -417,7 +441,9 @@ export const getCourseAssignmentsForStudent = async (req, res) => {
         a.total_marks AS marks,
         TO_CHAR(a.due_date, 'YYYY-MM-DD') AS due_date,
         a.pdf_path AS question_pdf,
-        s.answer_pdf_path AS answer_pdf
+        s.answer_pdf_path AS answer_pdf,
+        s.marks AS marks_obtained,
+        s.remarks AS remarks
       FROM course_assessments a
       LEFT JOIN assignment_submissions s
         ON a.id = s.assignment_id AND s.student_id = $2

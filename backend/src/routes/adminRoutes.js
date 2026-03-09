@@ -9,7 +9,13 @@ import {
   updateAcademicAdminProfile,
   getUniversityStudents,
   getStudentByIdForAdmin,
-  getAcademicAdminNotifications
+  getAcademicAdminNotifications,
+  getCourseStudentsWithProgress,
+  updateFacultyDetails,
+  markAdminNotificationAsRead,
+  getAdminDashboardStats,
+  academicAdminSendDualOtp,
+  academicAdminFinalizeLogin
 } from '../controllers/academicAdminController.js';
 
 import { protectAcademicAdmin } from '../middleware/authMiddleware.js';
@@ -19,7 +25,8 @@ import { createFaculty,
         getFacultyList, 
         uploadProfilePic , 
         approvePendingFaculty,
-        rejectPendingFaculty
+        rejectPendingFaculty,
+        deleteFacultyMember
  } from '../controllers/facultyController.js';
 
 import { 
@@ -27,6 +34,8 @@ import {
   getAcademicCourseScheduleCtrl,
   saveAcademicCourseScheduleCtrl
 } from '../controllers/courseController.js';
+
+import { verifyOTP } from '../controllers/otpController.js';
 
 const router = express.Router();
 
@@ -46,6 +55,10 @@ router.patch('/faculty/:facultyId/reject', protectAcademicAdmin, rejectPendingFa
 
 router.patch('/courses/:courseId/teachers', protectAcademicAdmin, updateCourseTeachers);
 
+router.delete('/faculty/:facultyId', protectAcademicAdmin, deleteFacultyMember);
+
+router.patch('/faculty/:facultyId', protectAcademicAdmin, updateFacultyDetails);
+
 // NEW: Academic admin specific course schedule (batch timings + meeting link)
 router.get('/courses/:id/schedule', protectAcademicAdmin, getAcademicCourseScheduleCtrl);
 router.post('/courses/:id/schedule', protectAcademicAdmin, saveAcademicCourseScheduleCtrl);
@@ -57,4 +70,14 @@ router.get('/university-students', protectAcademicAdmin, getUniversityStudents);
 
 router.get('/notifications', protectAcademicAdmin, getAcademicAdminNotifications);
 
+router.get('/courses/:courseId/students-progress', protectAcademicAdmin, getCourseStudentsWithProgress);
+
+router.put('/notifications/:notificationId/read', protectAcademicAdmin, markAdminNotificationAsRead);
+
+router.get('/dashboard-stats', protectAcademicAdmin, getAdminDashboardStats);
+
+router.post('/login/send-otp', academicAdminSendDualOtp);
+router.post('/login/verify-otp', verifyOTP);          // reuse from otpController
+router.post('/login/finalize', academicAdminFinalizeLogin);
+  
 export default router;

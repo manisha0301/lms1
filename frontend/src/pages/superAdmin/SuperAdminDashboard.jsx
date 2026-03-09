@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import NotificationDetailPanel from "../../components/notifications/NotificationDetailPanel";
+import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
 
 const SuperAdminDashboard = () => {
@@ -34,6 +36,11 @@ const SuperAdminDashboard = () => {
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // New state for selected notification detail modal (same as faculty)
+  const [selectedNotification, setSelectedNotification] = useState(null);
+
   const [stats, setStats] = useState({
       totalStudents: 0,
       totalFaculties: 0,
@@ -45,78 +52,148 @@ const SuperAdminDashboard = () => {
       totalAssignments: 0,
       totalRevenue: 0,
   });
+
+  // ────────────────────────────────────────────────
+  // NEW: State for real revenue data from API
+  // ────────────────────────────────────────────────
+  const [revenueData, setRevenueData] = useState({
+    totalRevenue: 0,
+    formattedTotal: "₹0",
+    thisMonthRevenue: 0,
+    formattedThisMonth: "₹0",
+    percentageChange: "0.0",
+    changeSign: ""
+  });
+  const [revenueLoading, setRevenueLoading] = useState(true);
+  const [revenueError, setRevenueError] = useState(null);
+
   const [notifications, setNotifications] = useState([]);  // Full list for modal
   const [recentNotifications, setRecentNotifications] = useState([]);  // Top 4 for summary
-  const [notificationsLoading, setNotificationsLoading] = useState(true);  // NEW
-  const [notificationsError, setNotificationsError] = useState(null);  // NEW
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
-  try {
-    const token = localStorage.getItem('superAdminToken');
-    const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/stats`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    const data = await response.json();
-    if (data.success) {
-      setStats(data.stats);
-    } else {
-      console.error('Failed to load stats:', data.error);
-    }
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-  }
-};
+      try {
+        const token = localStorage.getItem('superAdminToken');
+        const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.stats);
+        } else {
+          console.error('Failed to load stats:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
 
     // NEW: Fetch notifications
-  const fetchNotifications = async () => {
-    try {
-      setNotificationsLoading(true);
-      const token = localStorage.getItem('superAdminToken');
+    const fetchNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+        const token = localStorage.getItem('superAdminToken');
 
-      // Fetch recent (limit 4)
-      const recentRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications?limit=4`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const recentData = await recentRes.json();
-      if (recentData.success) {
-        setRecentNotifications(
-          recentData.notifications.map(notif => ({
-            ...notif,
-            time: formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })  // e.g., "2 mins ago"
-          }))
-        );
-      } else {
-        throw new Error(recentData.error);
-      }
+        // Fetch recent (limit 4) for sidebar preview
+        const recentRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications?limit=4`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const recentData = await recentRes.json();
+        if (recentData.success) {
+          setRecentNotifications(
+            recentData.notifications.map(notif => ({
+              ...notif,
+              time: formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })
+            }))
+          );
+        }
 
-      // Fetch full list
-      const fullRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const fullData = await fullRes.json();
-      if (fullData.success) {
-        setNotifications(
-          fullData.notifications.map(notif => ({
-            ...notif,
-            time: formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })
-          }))
-        );
-      } else {
-        throw new Error(fullData.error);
+        // Fetch full list for dropdown
+        const fullRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const fullData = await fullRes.json();
+        if (fullData.success) {
+          setNotifications(
+            fullData.notifications.map(notif => ({
+              ...notif,
+              time: formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })
+            }))
+          );
+        }
+      } catch (err) {
+        setNotificationsError(err.message);
+        console.error('Notifications fetch error:', err);
+      } finally {
+        setNotificationsLoading(false);
       }
-    } catch (err) {
-      setNotificationsError(err.message);
-    } finally {
-      setNotificationsLoading(false);
-    }
-  };
+    };
+
+    // ────────────────────────────────────────────────
+    // NEW: Fetch real revenue data from backend
+    // ────────────────────────────────────────────────
+    const fetchRevenue = async () => {
+      try {
+        setRevenueLoading(true);
+        setRevenueError(null);
+        const token = localStorage.getItem('superAdminToken');
+        const response = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/superadmin/revenue/overview`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.success) {
+          setRevenueData(response.data.data);
+        } else {
+          setRevenueError(response.data.error || 'Failed to load revenue');
+        }
+      } catch (err) {
+        console.error('Failed to fetch revenue:', err);
+        setRevenueError('Failed to load revenue data');
+      } finally {
+        setRevenueLoading(false);
+      }
+    };
 
     fetchNotifications();
     fetchStats();
+    fetchRevenue();           // ← This fetches the actual revenue from backend
   }, []);
+
+  // Calculate unread count for bell badge (same as faculty)
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+
+  // Handle clicking a notification → open detail panel + mark as read (exact same as faculty)
+  const handleNotificationClick = async (notif) => {
+    // Open detail panel immediately
+    setSelectedNotification(notif);
+
+    // If already read → no need to call API
+    if (notif.status === 'read') return;
+
+    try {
+      const token = localStorage.getItem('superAdminToken');
+      await axios.put(
+        `${apiConfig.API_BASE_URL}/api/auth/superadmin/notifications/${notif.id}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Optimistic update: mark as read in local state
+      const updateList = (list) =>
+        list.map(n => n.id === notif.id ? { ...n, status: 'read' } : n);
+
+      setNotifications(prev => updateList(prev));
+      setRecentNotifications(prev => updateList(prev));
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  };
 
   // Regular stats (non-clickable)
   const safeLocaleString = (val) => {
@@ -155,6 +232,78 @@ const SuperAdminDashboard = () => {
             <button className="p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer" onClick={() => navigate('/settings')}>
               <Settings className="w-6 h-6" />
             </button>
+
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
+              >
+                <Bell className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown – now clickable (same as faculty) */}
+              {isNotificationOpen && (
+                <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+                  <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
+                    <h3 className="font-bold text-lg">Notifications</h3>
+                    <button
+                      onClick={() => setIsNotificationOpen(false)}
+                      className="hover:bg-white/20 p-1 rounded cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notificationsLoading ? (
+                      <div className="p-6 text-center text-gray-500">Loading notifications...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-6 text-center text-gray-500">No notifications yet</div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div 
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
+                            notif.status === 'unread'
+                              ? notif.priority === 'high'
+                                ? 'bg-red-50'
+                                : notif.priority === 'medium'
+                                ? 'bg-yellow-50'
+                                : 'bg-blue-50'
+                              : 'bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                              notif.priority === 'high' ? 'bg-red-500' :
+                              notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                            }`}></div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">{notif.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {notif.time}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="p-3 bg-gray-50 text-center">
+                    <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">
+                      View all notifications
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-3 pl-6 border-l border-white/20">
               <div className="text-right">
                 <p className="font-semibold">Super Admin</p>
@@ -310,16 +459,37 @@ const SuperAdminDashboard = () => {
 
         {/* Revenue and Recent Notifications */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Revenue Card */}
-          <button onClick={() => navigate('/finance')} className="group bg-gradient-to-br from-[#1e3a8a] to-indigo-800 text-white rounded-md shadow-xl p-8 relative overflow-hidden cursor-pointer hover:shadow-2xl transition-all">
+          {/* Revenue Card  */}
+          <button 
+            onClick={() => navigate('/finance')} 
+            className="group bg-gradient-to-br from-[#1e3a8a] to-indigo-800 text-white rounded-md shadow-xl px-8 relative overflow-hidden cursor-pointer hover:shadow-2xl transition-all"
+          >
             <div className="relative z-10">
-              <div className="flex justify-between items-start mb-8">
+              <div className="flex justify-between items-start mb-12">
                 <div>
                   <p className="text-white/80 font-medium text-lg mb-2 text-left">Total Platform Revenue</p>
-                  <p className="text-5xl font-black mb-3 text-left">₹28.5L</p>
+                  
+                  {/* Dynamic total revenue */}
+                  {revenueLoading ? (
+                    <p className="text-5xl font-black mb-3 text-left">Loading...</p>
+                  ) : revenueError ? (
+                    <p className="text-5xl font-black mb-3 text-left text-red-300">Error</p>
+                  ) : (
+                    <p className="text-5xl font-black mb-3 text-left">{revenueData.formattedTotal || '₹0'}</p>
+                  )}
+
                   <div className="flex items-center gap-2 text-white/90">
                     <TrendingUp className="w-5 h-5" />
-                    <span className="font-bold">+₹3.2L this month (+12.5%)</span>
+                    {revenueLoading ? (
+                      <span className="font-bold">Loading...</span>
+                    ) : revenueError ? (
+                      <span className="font-bold text-red-300">Failed to load</span>
+                    ) : (
+                      <span className="font-bold">
+                        {revenueData.changeSign}{revenueData.formattedThisMonth || '₹0'} this month 
+                        ({revenueData.changeSign}{revenueData.percentageChange || '0.0'}%)
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -328,60 +498,56 @@ const SuperAdminDashboard = () => {
               </div>
               <div className="bg-white/15 backdrop-blur rounded-2xl p-5 border border-white/20">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">Next payout cycle</span>
-                  <span className="font-bold">5 Dec 2025</span>
+                  View detailed report <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                 </div>
-              </div>
-              <div className="mt-6 flex items-center gap-2 font-bold opacity-90 group-hover:opacity-100">
-                View detailed report <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
               </div>
             </div>
           </button>
 
-          {/* Recent Notifications */}
+          {/* Recent Notifications – NOW CLICKABLE (exact same pattern as faculty sidebar) */}
           <div className="bg-white rounded-md shadow-xl border border-gray-100 p-8">
-  <div className="flex justify-between items-center mb-8">
-    <div className="flex items-center gap-4">
-      <div className="w-12 h-12 bg-[#1e3a8a] rounded-2xl shadow-lg flex items-center justify-center">
-        <BellRing className="w-7 h-7 text-white" />
-      </div>
-      <h3 className="text-xl font-bold text-gray-900">Recent Notifications</h3>
-    </div>
-    {/* <button
-      onClick={() => setShowAllNotifications(true)}
-      className="text-[#1e3a8a] font-bold flex items-center gap-1 hover:underline cursor-pointer"
-    >
-      View all <ChevronRight className="w-4 h-4" />
-    </button> */}
-  </div>
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#1e3a8a] rounded-2xl shadow-lg flex items-center justify-center">
+                  <BellRing className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Recent Notifications</h3>
+              </div>
+            </div>
 
-  {/* Scrollable Notification List */}
-  <div className="space-y-5 max-h-[230px] overflow-y-auto pr-2">
-    {recentNotifications.map((notif, idx) => (
-      <div
-        key={`${notif.id}-${idx}`}
-        className="p-5 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-2xl border border-[#1e3a8a]/10 hover:shadow-md transition"
-      >
-        <div className="flex items-start gap-4">
-          <div
-            className={`w-3 h-3 mt-1.5 rounded-full flex-shrink-0 ${
-              notif.type === 'warning'
-                ? 'bg-orange-500'
-                : notif.type === 'success' || notif.type === 'revenue'
-                ? 'bg-emerald-500'
-                : 'bg-[#1e3a8a]'
-            }`}
-          />
-          <div>
-            <p className="font-bold text-gray-900">{notif.message}</p>
-            <p className="text-sm text-gray-500 mt-1">{notif.time}</p>
+            {/* Scrollable Notification List */}
+            <div className="space-y-5 max-h-[230px] overflow-y-auto pr-2">
+              {notificationsLoading ? (
+                <div className="text-center py-10 text-gray-500">Loading notifications...</div>
+              ) : recentNotifications.length === 0 ? (
+                <div className="text-center py-10 text-gray-500">No new notifications</div>
+              ) : (
+                recentNotifications.map((notif, idx) => (
+                  <div
+                    key={`${notif.id}-${idx}`}
+                    onClick={() => handleNotificationClick(notif)}
+                    className="p-5 bg-gradient-to-r from-[#1e3a8a]/5 to-white rounded-2xl border border-[#1e3a8a]/10 hover:shadow-md transition cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-3 h-3 mt-1.5 rounded-full flex-shrink-0 ${
+                          notif.type === 'warning'
+                            ? 'bg-orange-500'
+                            : notif.type === 'success' || notif.type === 'revenue'
+                            ? 'bg-emerald-500'
+                            : 'bg-[#1e3a8a]'
+                        }`}
+                      />
+                      <div>
+                        <p className="font-bold text-gray-900">{notif.message}</p>
+                        <p className="text-sm text-gray-500 mt-1">{notif.time}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
-
         </div>
 
         {/* Footer */}
@@ -393,68 +559,14 @@ const SuperAdminDashboard = () => {
         </div>
       </div>
 
-      {/* All Notifications Modal - Matching AcademicDashboard style */}
-      {/* {showAllNotifications && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-md shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="sticky top-0 bg-[#1e3a8a] text-white px-8 py-6 flex justify-between items-center">
-              <div>
-                <h2 className="text-3xl font-bold">All Notifications</h2>
-                <p className="text-sm opacity-90">Stay updated with all activities</p>
-              </div>
-              <button 
-                onClick={() => setShowAllNotifications(false)}
-                className="p-3 hover:bg-white/20 rounded-xl transition cursor-pointer"
-              >
-                <X className="w-7 h-7" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto max-h-[65vh] divide-y divide-gray-200">
-              {notifications.map((notif) => (
-                <div 
-                  key={notif.id} 
-                  className={`px-8 py-6 hover:bg-gray-50 transition ${notif.priority === 'high' ? 'bg-red-50' : notif.priority === 'medium' ? 'bg-orange-50' : ''}`}
-                >
-                  <div className="flex items-start gap-6">
-                    <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                      notif.type === 'exam' ? 'bg-orange-100' : 'bg-[#1e3a8a]/10'
-                    }`}>
-                      {notif.type === 'exam' ? 
-                        <CheckCircle className="w-7 h-7 text-orange-600" /> : 
-                        <Bell className="w-7 h-7 text-[#1e3a8a]" />
-                      }
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-lg font-bold text-gray-900">{notif.message}</p>
-                      <div className="flex items-center gap-4 mt-3 text-gray-600">
-                        <span className="text-sm">{notif.time}</span>
-                        {notif.status && (
-                          <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${
-                            notif.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            notif.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : ''
-                          }`}>
-                            {notif.status.toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="px-8 py-6 bg-gray-50 border-t border-gray-200 text-center">
-              <button 
-                onClick={() => setShowAllNotifications(false)}
-                className="px-12 py-4 bg-[#1e3a8a] hover:bg-blue-800 text-white font-bold rounded-2xl shadow-xl transition hover:scale-105 cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
+      {/* Notification Detail Modal – same as faculty */}
+      {selectedNotification && (
+        <NotificationDetailPanel
+          notification={selectedNotification}
+          recipient_type="superadmin"
+          onClose={() => setSelectedNotification(null)}
+        />
+      )}
     </div>
   );
 };

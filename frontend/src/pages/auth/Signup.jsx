@@ -30,6 +30,12 @@ const Signup = () => {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [verifyingPhone, setVerifyingPhone] = useState(false);
 
+  // Validation error states
+  const [formErrors, setFormErrors] = useState({});
+
+  // Duplicate email error (shown above email field)
+  const [duplicateEmailError, setDuplicateEmailError] = useState("");
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -85,26 +91,99 @@ const Signup = () => {
   }, []);
 
   useEffect(() => {
-  const savedForm = sessionStorage.getItem('studentSignupForm');
-  if (savedForm) {
-    try {
-      setFormData(JSON.parse(savedForm));
-    } catch (err) {
-      console.error('Failed to parse saved student form:', err);
+    const savedForm = sessionStorage.getItem('studentSignupForm');
+    if (savedForm) {
+      try {
+        setFormData(JSON.parse(savedForm));
+      } catch (err) {
+        console.error('Failed to parse saved student form:', err);
+      }
     }
-  }
 
-  setEmailVerified(sessionStorage.getItem('studentEmailVerified') === 'true');
-  setPhoneVerified(sessionStorage.getItem('studentPhoneVerified') === 'true');
-}, []);
+    setEmailVerified(sessionStorage.getItem('studentEmailVerified') === 'true');
+    setPhoneVerified(sessionStorage.getItem('studentPhoneVerified') === 'true');
+  }, []);
 
+  // Real-time validation
+  const validateField = (name, value) => {
+    const errors = { ...formErrors };
+
+    if (name === "firstName" || name === "lastName") {
+      const trimmed = (value || "").trim();
+      const nameRegex = /^[A-Za-z ]+$/;
+      if (!trimmed) {
+        errors[name] = `${name === "firstName" ? "First" : "Last"} name is required`;
+      } else if (!nameRegex.test(trimmed)) {
+        errors[name] = "Name must contain only letters and spaces";
+      } else if (trimmed.length < 2) {
+        errors[name] = "Name is too short (minimum 2 characters)";
+      } else if (trimmed.length > 50) {
+        errors[name] = "Name is too long (maximum 50 characters)";
+      } else {
+        delete errors[name];
+      }
+    }
+
+    if (name === "email") {
+      const trimmed = (value || "").trim().toLowerCase();
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!trimmed) {
+        errors.email = "Email is required";
+      } else if (!emailRegex.test(trimmed)) {
+        errors.email = "Please enter a valid email address";
+      } else {
+        const tld = trimmed.split('@')[1]?.split('.').pop() || '';
+        if (/\d$/.test(tld)) {
+          errors.email = "Invalid email domain – top-level domain cannot end with a number";
+        } else {
+          delete errors.email;
+        }
+      }
+      // Clear duplicate error when user starts typing again
+      setDuplicateEmailError("");
+    }
+
+    if (name === "mobileNumber") {
+      const cleaned = (value || "").replace(/[\s\-+]/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!cleaned) {
+        errors.mobileNumber = "Mobile number is required";
+      } else if (!phoneRegex.test(cleaned)) {
+        errors.mobileNumber = "Mobile number must be a valid 10-digit Indian number starting with 6-9";
+      } else {
+        delete errors.mobileNumber;
+      }
+    }
+
+    if (name === "password") {
+      if (!value) {
+        errors.password = "Password is required";
+      } else if (value.length < 8 || value.length > 16) {
+        errors.password = "Password must be between 8 and 16 characters long";
+      } else {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+        if (!passwordRegex.test(value)) {
+          errors.password = "Password must contain at least one uppercase, one lowercase, one number, and one special character";
+        } else {
+          delete errors.password;
+        }
+      }
+    }
+
+    setFormErrors(errors);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === "checkbox" ? checked : value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: newValue,
     }));
+
+    // Validate on change
+    validateField(name, newValue);
 
     if (name === "graduationUniversity") {
       const filtered = institutes.filter((inst) =>
@@ -124,41 +203,76 @@ const Signup = () => {
     setShowDropdown((prev) => !prev);
   };
 
-  // Verify Email handler
+  // Verify Email handler with duplicate check
   const handleVerifyEmail = async () => {
     const email = formData.email.trim();
+
+    // First run local format validation
+    validateField("email", email);
+    if (formErrors.email) {
+      alert("Please fix the email format error first");
+      return;
+    }
+
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       alert("Please enter a valid email address");
       return;
     }
 
     setVerifyingEmail(true);
+    setDuplicateEmailError(""); // clear previous duplicate message
 
-    sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
+    try {
+      // Check for duplicate email BEFORE sending OTP
+      const checkRes = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/check-email`, { email });
 
-    navigate('/verify-email-otp', {
-      state: {
-        email,
-        user_type: 'student',
-        returnTo: '/signup'
+      if (!checkRes.data.available) {
+        setDuplicateEmailError("This email address is already registered. Please use a different email or login.");
+        alert("This email is already taken. Please login or use another email.");
+        setVerifyingEmail(false);
+        return;
       }
-    });
 
-    axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-email/send-otp`, {
-      email,
-      user_type: 'student'
-    }).catch(() => {
-      alert('Failed to send OTP. Please try again.');
-    });
+      // Email is available → proceed with OTP
+      sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
 
-    setVerifyingEmail(false);
+      // Your existing OTP flow
+      await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-email/send-otp`, {
+        email,
+        user_type: 'student'
+      });
+
+      navigate('/verify-email-otp', {
+        state: {
+          email,
+          user_type: 'student',
+          returnTo: '/signup'
+        }
+      });
+
+    } catch (err) {
+      if (err.response?.status === 409 || err.response?.data?.error?.includes("already")) {
+        setDuplicateEmailError("This email address is already registered. Please use a different email or login.");
+      } else {
+        alert("Failed to send OTP. Please try again.");
+      }
+    } finally {
+      setVerifyingEmail(false);
+    }
   };
 
-  // Verify Phone handler – now connected
+  // Verify Phone handler
   const handleVerifyPhone = async () => {
-    const phone = formData.mobileNumber.trim();
-    if (!phone || phone.length < 10) {
-      alert("Please enter a valid 10-digit phone number");
+    const phone = formData.mobileNumber.trim().replace(/[\s\-+]/g, '');
+
+    validateField("mobileNumber", phone);
+    if (formErrors.mobileNumber) {
+      alert("Please fix the phone number error first");
+      return;
+    }
+
+    if (!phone || phone.length !== 10 || !/^[6789]\d{9}$/.test(phone)) {
+      alert("Please enter a valid 10-digit Indian mobile number");
       return;
     }
 
@@ -185,15 +299,31 @@ const Signup = () => {
         alert(res.data.message || 'Failed to send OTP');
       }
     } catch (err) {
-      console.error('Phone OTP error:', err);
       alert('Failed to send OTP. Please try again.');
+    } finally {
+      setVerifyingPhone(false);
     }
-
-    setVerifyingPhone(false);
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
+
+    // Final validation pass
+    validateField("firstName", formData.firstName);
+    validateField("lastName", formData.lastName);
+    validateField("email", formData.email);
+    validateField("mobileNumber", formData.mobileNumber);
+    validateField("password", formData.password);
+
+    if (Object.keys(formErrors).length > 0) {
+      alert("Please fix all validation errors before submitting");
+      return;
+    }
+
+    if (duplicateEmailError) {
+      alert("Cannot create account: Email is already registered");
+      return;
+    }
 
     if (!formData.agreeTerms) {
       alert("Please accept the Terms & Conditions");
@@ -226,12 +356,11 @@ const Signup = () => {
       );
 
       if (response.data.success) {
-        // ✅ FULL cleanup (THIS IS WHAT YOU MISSED)
+        // Cleanup session storage
         sessionStorage.removeItem('studentSignupForm');
         sessionStorage.removeItem('studentEmailVerified');
         sessionStorage.removeItem('studentPhoneVerified');
 
-        // ✅ Auth should persist across refresh
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.setItem("role", "student");
@@ -241,8 +370,10 @@ const Signup = () => {
       }
 
     } catch (error) {
-      const errorMsg =
-        error.response?.data?.error || "Something went wrong. Please try again.";
+      const errorMsg = error.response?.data?.error || "Something went wrong. Please try again.";
+      if (errorMsg.includes("already registered") || errorMsg.includes("duplicate")) {
+        setDuplicateEmailError("This email address is already registered. Please use a different email or login.");
+      }
       alert("Error: " + errorMsg);
     } finally {
       setLoading(false);
@@ -252,12 +383,12 @@ const Signup = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a]/5 via-white to-green-50/30 flex items-center justify-center px-4 py-12">
       <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-0 bg-white rounded-3xl shadow-2xl overflow-hidden">
-        {/* LEFT SIDE – BRANDING */}
+        {/* LEFT SIDE – BRANDING (unchanged) */}
         <div className="bg-gradient-to-br from-[#1e3a8a] to-[#1e40af] text-white p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-10">
-              <div className="text-4xl font-black tracking-tighter">CodeKart</div>
+              <div className="text-4xl font-black tracking-tighter">Kristellar's LMS</div>
             </div>
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Your Journey to a <span className="text-green-400">6-Figure Tech Career</span> Starts Here
@@ -297,7 +428,7 @@ const Signup = () => {
             </div>
           </div>
           <div className="relative z-10 mt-16 text-center">
-            <p className="text-sm opacity-70">© 2025 CodeKart Solutions Pvt. Ltd.</p>
+            <p className="text-sm opacity-70">© 2026 Kristellar Cyberspace Pvt. Ltd.</p>
           </div>
         </div>
 
@@ -314,29 +445,29 @@ const Signup = () => {
             </div>
 
             {/* Social Buttons */}
-            <div className="space-y-3 mb-8">
+            {/* <div className="space-y-3 mb-8">
               <button className="w-full flex items-center justify-center gap-3 bg-[#1e40af] text-white py-4 rounded-xl font-medium hover:bg-[#1e3a8a] transition">
                 <Mail className="w-5 h-5" /> Continue with Google
               </button>
               <button className="w-full flex items-center justify-center gap-3 border-2 border-gray-300 py-4 rounded-xl font-medium hover:border-[#1e40af] transition">
                 <Phone className="w-5 h-5" /> Continue with Phone
               </button>
-            </div>
+            </div> */}
 
-            <div className="relative mb-8">
+            {/* <div className="relative mb-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
+              </div> */}
+              {/* <div className="relative flex justify-center text-sm">
                 <span className="bg-white px-4 text-gray-500">OR</span>
               </div>
-            </div>
+            </div> */}
 
             <form onSubmit={handleSignup} className="space-y-5">
               {/* First Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
@@ -346,16 +477,24 @@ const Signup = () => {
                     required
                     value={formData.firstName}
                     onChange={handleChange}
+                    onKeyPress={(e) => {
+                      if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
+                    }}
                     placeholder="Rahul"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                    className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
+                      formErrors.firstName ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {formErrors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.firstName}</p>
+                  )}
                 </div>
               </div>
 
               {/* Last Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
@@ -365,16 +504,30 @@ const Signup = () => {
                     required
                     value={formData.lastName}
                     onChange={handleChange}
+                    onKeyPress={(e) => {
+                      if (!/[A-Za-z ]/.test(e.key)) e.preventDefault();
+                    }}
                     placeholder="Sharma"
-                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                    className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
+                      formErrors.lastName ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {formErrors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Email with Verify Button */}
+              {/* Email with Verify Button + Duplicate Error Above */}
               <div>
+                {duplicateEmailError && (
+                  <div className="mb-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+                    {duplicateEmailError}
+                  </div>
+                )}
+
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -387,7 +540,9 @@ const Signup = () => {
                     placeholder="you@example.com"
                     disabled={emailVerified}
                     className={`w-full pl-12 pr-36 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
-                      emailVerified
+                      formErrors.email || duplicateEmailError
+                        ? "border-red-500"
+                        : emailVerified
                         ? "bg-green-50 border-green-300 text-green-700 cursor-not-allowed"
                         : "border-gray-300"
                     }`}
@@ -400,7 +555,7 @@ const Signup = () => {
                     <button
                       type="button"
                       onClick={handleVerifyEmail}
-                      disabled={verifyingEmail || emailVerified || !formData.email.trim()}
+                      disabled={verifyingEmail || emailVerified || !formData.email.trim() || !!formErrors.email}
                       className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium rounded-md transition ${
                         emailVerified
                           ? "bg-green-100 text-green-700 border border-green-300 cursor-default"
@@ -411,12 +566,15 @@ const Signup = () => {
                     </button>
                   )}
                 </div>
+                {formErrors.email && !duplicateEmailError && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+                )}
               </div>
 
-              {/* Phone with Verify Button – NOW CONNECTED */}
+              {/* Phone with Verify Button */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
+                  Phone Number <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -429,7 +587,9 @@ const Signup = () => {
                     placeholder="+91 9876543210"
                     disabled={phoneVerified}
                     className={`w-full pl-12 pr-36 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
-                      phoneVerified
+                      formErrors.mobileNumber
+                        ? "border-red-500"
+                        : phoneVerified
                         ? "bg-green-50 border-green-300 text-green-700 cursor-not-allowed"
                         : "border-gray-300"
                     }`}
@@ -442,20 +602,23 @@ const Signup = () => {
                     <button
                       type="button"
                       onClick={handleVerifyPhone}
-                      disabled={verifyingPhone || phoneVerified || !formData.mobileNumber.trim()}
+                      disabled={verifyingPhone || phoneVerified || !formData.mobileNumber.trim() || !!formErrors.mobileNumber}
                       className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium rounded-md transition ${
                         phoneVerified
                           ? "bg-green-100 text-green-700 border border-green-300 cursor-default"
                           : "bg-[#1e40af] text-white hover:bg-[#1e3a8a]"
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {verifyingPhone ? "Sending..." : phoneVerified ? "Verified ✓" : "Verify Phone"}
+                      {verifyingPhone ? "Sending..." : "Verify Phone"}
                     </button>
                   )}
                 </div>
+                {formErrors.mobileNumber && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.mobileNumber}</p>
+                )}
               </div>
 
-              {/* UNIVERSITY */}
+              {/* UNIVERSITY (unchanged) */}
               <div className="relative" ref={dropdownRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Graduation / University
@@ -512,7 +675,7 @@ const Signup = () => {
               {/* PASSWORD */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
@@ -523,7 +686,9 @@ const Signup = () => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition"
+                    className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:ring-2 focus:ring-[#1e40af] focus:border-transparent transition ${
+                      formErrors.password ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
                   <button
                     type="button"
@@ -537,6 +702,9 @@ const Signup = () => {
                     )}
                   </button>
                 </div>
+                {formErrors.password && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+                )}
               </div>
 
               {/* Terms */}
@@ -555,7 +723,7 @@ const Signup = () => {
                 >
                   I agree to the{" "}
                   <Link to="/terms" className="text-[#1e40af] font-medium hover:underline">
-                    Terms & Conditions
+                    Terms & Conditions {" "}
                   </Link>
                   and{" "}
                   <Link to="/privacy" className="text-[#1e40af] font-medium hover:underline">
@@ -567,7 +735,14 @@ const Signup = () => {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={loading || !formData.agreeTerms || !emailVerified || !phoneVerified}
+                disabled={
+                  loading ||
+                  !formData.agreeTerms ||
+                  !emailVerified ||
+                  !phoneVerified ||
+                  Object.keys(formErrors).length > 0 ||
+                  !!duplicateEmailError
+                }
                 className="w-full bg-gradient-to-r from-[#1e40af] to-green-600 text-white py-5 rounded-xl font-bold text-lg hover:shadow-xl transition transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? "Creating Account..." : "Create Free Account"}
@@ -587,9 +762,9 @@ const Signup = () => {
               </p>
             </div>
 
-            <p className="text-center text-xs text-gray-500 mt-10">
+            {/* <p className="text-center text-xs text-gray-500 mt-10">
               By signing up, you agree to receive course updates via WhatsApp & Email.
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

@@ -9,44 +9,49 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NotificationDetailPanel from "../../components/notifications/NotificationDetailPanel";
+import axios from 'axios';
 import apiConfig from '../../config/apiConfig';
 
 export default function AdminDashboard() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("adminUser"));
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // ─── Real states for notifications ───────────────────────────────
+  // ─── Real states for notifications 
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // ─── Stats states (already existed) ──────────────────────────────
+  // New state for selected notification detail modal
+  const [selectedNotification, setSelectedNotification] = useState(null);
+
+  // ─── Stats states ──────────────────────────────
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalFaculty: 0,
     totalCourses: 0,
+    studentGrowth: "0%",
+    courseGrowth: "0%",
+    facultyGrowth: "0%"
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
-  // Add this after other useState declarations, before useEffect
-  // const [branchHierarchy, setBranchHierarchy] = useState([]);
-
   // ─── Fetch both stats and real notifications ─────────────────────
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/courses`, {
+        const token = localStorage.getItem('adminToken');
+        const response = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/admin/dashboard-stats`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        const data = await response.json();
-        if (data.success) {
-          setStats(data.stats);
+
+        if (response.data.success) {
+          setStats(response.data.stats);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
@@ -57,7 +62,7 @@ export default function AdminDashboard() {
 
     const fetchNotifications = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/notifications?limit=5`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -81,7 +86,11 @@ export default function AdminDashboard() {
                   notif.type === 'student' || notif.type === 'new-enrollment' ? Users :
                   notif.type === 'faculty' ? GraduationCap :
                   notif.type === 'alert' ? AlertCircle :
-                  notif.type === 'achievement' ? Award : Users // fallback
+                  notif.type === 'achievement' ? Award : Users, // fallback
+            // ─── FIXED: Added created_at so modal can use it for date display
+            created_at: notif.created_at,
+            priority: notif.priority,
+            status: notif.status
           }));
 
           setRecentNotifications(formatted);
@@ -93,7 +102,7 @@ export default function AdminDashboard() {
       }
     };
 
-    fetchStats();
+    fetchDashboardStats();
     fetchNotifications();
   }, []);
 
@@ -106,13 +115,38 @@ export default function AdminDashboard() {
     { id: 6, name: "Chennai", dean: "Prof. Arjun Nair", students: 122, faculty: 3 },
   ];
 
-  
-
   const handlelogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
     navigate('/login');
   };
+
+  // Handle clicking a notification → open modal + mark as read
+  const handleNotificationClick = async (notif) => {
+    setSelectedNotification(notif);
+
+    if (notif.status === 'read') return;
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(
+        `${apiConfig.API_BASE_URL}/api/auth/admin/notifications/${notif.id}/read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setRecentNotifications(prev =>
+        prev.map(n =>
+          n.id === notif.id ? { ...n, status: 'read' } : n
+        )
+      );
+    } catch (err) {
+      console.error('Failed to mark admin notification as read:', err);
+    }
+  };
+
+  // Count unread for bell badge
+  const unreadCount = recentNotifications.filter(n => n.status === 'unread' || n.status === 'Unread').length;
 
   return (
     <>
@@ -133,21 +167,23 @@ export default function AdminDashboard() {
 
             <div className="flex items-center gap-6">
 
-              {/* Notification Bell */}
+              {/* Notification Bell – updated with real unread count */}
               <div className="relative">
                 <button
                   onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                   className="relative p-2.5 hover:bg-white/10 rounded-xl transition cursor-pointer"
                 >
                   <Bell className="w-6 h-6" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                    5
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </button>
 
-                {/* Notification Dropdown */}
+                {/* Notification Dropdown – matched faculty style */}
                 {isNotificationOpen && (
-                  <div className="absolute right-0 mt-4 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                  <div className="absolute right-0 mt-4 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
                     <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
                       <h3 className="font-bold text-lg">Notifications</h3>
                       <button onClick={() => setIsNotificationOpen(false)} className="hover:bg-white/20 p-1 rounded cursor-pointer">
@@ -155,29 +191,48 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      {recentNotifications.map(notif => (
-                        <div key={notif.id} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                              notif.type === 'alert' ? 'bg-red-100' :
-                              notif.type === 'achievement' ? 'bg-emerald-100' :
-                              'bg-indigo-100'
-                            }`}>
-                              <notif.icon className={`w-5 h-5 ${
-                                notif.type === 'alert' ? 'text-red-600' :
-                                notif.type === 'achievement' ? 'text-emerald-600' :
-                                'text-indigo-600'
-                              }`} />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">{notif.message}</p>
-                              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {notif.time}
-                              </p>
+                      {notificationsLoading ? (
+                        <div className="p-6 text-center text-gray-500">Loading notifications...</div>
+                      ) : recentNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-gray-500">No notifications yet</div>
+                      ) : (
+                        recentNotifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
+                              notif.status === 'unread' || notif.status === 'Unread'
+                                ? notif.priority === 'high'
+                                  ? 'bg-red-50'
+                                  : notif.priority === 'medium'
+                                  ? 'bg-yellow-50'
+                                  : 'bg-blue-50'
+                                : 'bg-white'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                                notif.priority === 'high' ? 'bg-red-500' :
+                                notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                              }`}></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 line-clamp-2">{notif.message}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(notif.created_at).toLocaleString('en-IN', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short'
+                                  })}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 bg-gray-50 text-center">
+                      <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">
+                        View all notifications
+                      </button>
                     </div>
                   </div>
                 )}
@@ -243,26 +298,35 @@ export default function AdminDashboard() {
         </header>
 
         <div className="mx-auto px-8 py-10 ">
-          {/* Statistics Grid - Same Style */}
+          {/* Statistics Grid - Updated with real MoM % */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {[
               { 
                 label: "Total Students", 
                 value: loadingStats ? '...' : stats.totalStudents.toLocaleString(), 
                 icon: Users, 
-                growth: "+12%" 
+                growth: loadingStats ? '...' : stats.studentGrowth,
+                color: loadingStats ? 'bg-gray-100 text-gray-700' : 
+                      stats.studentGrowth?.startsWith('+') ? 'bg-emerald-100 text-emerald-700' :
+                      stats.studentGrowth?.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
               },
               { 
                 label: "Active Courses", 
                 value: loadingStats ? '...' : stats.totalCourses, 
                 icon: BookOpen, 
-                growth: "+3" 
+                growth: loadingStats ? '...' : stats.courseGrowth,
+                color: loadingStats ? 'bg-gray-100 text-gray-700' : 
+                      stats.courseGrowth?.startsWith('+') ? 'bg-emerald-100 text-emerald-700' :
+                      stats.courseGrowth?.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
               },
               { 
                 label: "Faculty Members", 
                 value: loadingStats ? '...' : stats.totalFaculty, 
                 icon: GraduationCap, 
-                growth: "+8" 
+                growth: loadingStats ? '...' : stats.facultyGrowth,
+                color: loadingStats ? 'bg-gray-100 text-gray-700' : 
+                      stats.facultyGrowth?.startsWith('+') ? 'bg-emerald-100 text-emerald-700' :
+                      stats.facultyGrowth?.startsWith('-') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
               },
             ].map((stat, i) => (
               <div
@@ -278,7 +342,7 @@ export default function AdminDashboard() {
                   <div className={`w-14 h-14 bg-[#1e3a8a] rounded-2xl shadow-lg flex items-center justify-center`}>
                     <stat.icon className="w-8 h-8 text-white" />
                   </div>
-                  <span className="px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm">
+                  <span className={`px-4 py-2 ${stat.color} font-bold rounded-full text-sm`}>
                     {stat.growth}
                   </span>
                 </div>
@@ -344,17 +408,17 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Notifications Panel - Now with REAL data */}
+            {/* Recent Notifications Panel - matched faculty style */}
             <div>
               <div className="bg-white rounded-xl shadow-xl border border-gray-100 ">
                 <div className="bg-white text-[#1e3a8a] px-8 pt-6 rounded-t-xl">
                   <h2 className="text-2xl font-bold flex items-center gap-4">
                     <Bell className="w-8 h-8" />
-                    Recent Notifications
+                    Notifications
                   </h2>
                   <p className="opacity-90 mt-1">Latest system updates</p>
                 </div>
-                <div className="p-8 space-y-5 overflow-y-auto flex-1 max-h-[525px]">
+                <div className="p-6 max-h-[525px] overflow-y-auto">
                   {notificationsLoading ? (
                     <div className="text-center py-10 text-gray-500">
                       Loading notifications...
@@ -364,30 +428,37 @@ export default function AdminDashboard() {
                       No new notifications yet
                     </div>
                   ) : (
-                    recentNotifications.map((notif) => (
-                      <div 
-                        key={notif.id} 
-                        className="flex gap-5 p-5 bg-gray-50 rounded-2xl hover:bg-[#1e3a8a]/5 transition group"
-                      >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          notif.type === 'alert' ? 'bg-red-100' :
-                          notif.type === 'achievement' ? 'bg-emerald-100' :
-                          'bg-indigo-100'
-                        }`}>
-                          <notif.icon className={`w-6 h-6 ${
-                            notif.type === 'alert' ? 'text-red-600' :
-                            notif.type === 'achievement' ? 'text-emerald-600' :
-                            'text-indigo-600'
-                          }`} />
+                    <div className="divide-y divide-gray-200">
+                      {recentNotifications.map((notif) => (
+                        <div 
+                          key={notif.id} 
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`py-4 flex items-start gap-3 hover:bg-gray-50 transition cursor-pointer ${
+                            (notif.status === 'unread' || notif.status === 'Unread')
+                              ? notif.priority === 'high'
+                                ? 'bg-red-50'
+                                : notif.priority === 'medium'
+                                ? 'bg-yellow-50'
+                                : 'bg-blue-50'
+                              : ''
+                          }`}
+                        >
+                          <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                            notif.priority === 'high' ? 'bg-red-500' :
+                            notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 line-clamp-2">{notif.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(notif.created_at).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-900">{notif.message}</p>
-                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                            <Clock className="w-4 h-4" /> {notif.time}
-                          </p>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -400,6 +471,15 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <NotificationDetailPanel
+          notification={selectedNotification}
+          recipient_type="academicadmin"  
+          onClose={() => setSelectedNotification(null)}
+        />
+      )}
     </>
   );
 }

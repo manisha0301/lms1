@@ -11,11 +11,14 @@ import VerifyEmailOTP from "../pages/auth/VerifyEmailOTP";
 import OTPVerification from "../pages/auth/VerifyOTP";
 import Terms from "../pages/legal/terms";
 import Privacy from "../pages/legal/privacy";
+import CourseOverview from "../pages/student/CourseOverview";
+import About from "../pages/About";
 
 export default function StudentRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} /> 
+      <Route path="/" element={<Home />} />
+      <Route path="/about" element={<About />} /> 
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/verify-email-otp" element={<VerifyEmailOTP />} />
@@ -29,6 +32,8 @@ export default function StudentRoutes() {
         //Assignment Route Needed
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/courses/:courseId/overview" element={<CourseOverview />} />
+      
     </Routes>
   );
 }

@@ -32,11 +32,17 @@ export default function FacultyProfile() {
 
   const [editData, setEditData] = useState({});
 
+  // NEW: Validation errors for editable fields
+  const [editErrors, setEditErrors] = useState({
+    name: '',
+    phone: ''
+  });
+
   // Fetch faculty profile and dashboard data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('facultyToken');
         if (!token) {
           navigate('/login');
           return;
@@ -91,12 +97,56 @@ export default function FacultyProfile() {
     fetchData();
   }, [navigate]);
 
+  // NEW: Validate editable fields in real-time
+  const validateField = (field, value) => {
+    const errors = { ...editErrors };
+
+    if (field === 'name') {
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        errors.name = 'Full name is required';
+      } else if (!/^[A-Za-z\s]+$/.test(trimmed)) {
+        errors.name = 'Name can only contain letters and spaces';
+      } else if (trimmed.length < 2) {
+        errors.name = 'Name must be at least 2 characters';
+      } else if (trimmed.length > 100) {
+        errors.name = 'Name cannot exceed 100 characters';
+      } else {
+        delete errors.name;
+      }
+    }
+
+    if (field === 'phone') {
+      const cleaned = (value || '').replace(/\D/g, ''); // Remove non-digits
+      if (!cleaned) {
+        errors.phone = 'Phone number is required';
+      } else if (cleaned.length !== 10) {
+        errors.phone = 'Phone number must be exactly 10 digits';
+      } else if (!/^[6789]/.test(cleaned)) {
+        errors.phone = 'Phone number must start with 6, 7, 8, or 9';
+      } else {
+        delete errors.phone;
+      }
+    }
+
+    setEditErrors(errors);
+  };
+
   const handleSave = async () => {
+    // Final validation before save
+    validateField('name', editData.name);
+    validateField('phone', editData.phone);
+
+    if (Object.keys(editErrors).length > 0 || !editData.name.trim() || !editData.phone.trim()) {
+      alert('Please fix all validation errors before saving.');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       const response = await axios.patch(`${apiConfig.API_BASE_URL}/api/faculty/profile`, {
-        full_name: editData.name,
-        phone: editData.phone,
+        full_name: editData.name.trim(),
+        phone: editData.phone.trim(),
         designation: editData.designation,
         qualification: editData.qualifications
       }, {
@@ -115,10 +165,11 @@ export default function FacultyProfile() {
           qualifications: updatedProfile.qualification || '',
           profilePicture: updatedProfile.profile_picture,
           address: updatedProfile.address || '',
-          totalCourses: faculty.totalCourses, // Keep existing
-          totalStudents: faculty.totalStudents // Keep existing
+          totalCourses: faculty.totalCourses,
+          totalStudents: faculty.totalStudents
         });
         setIsEditing(false);
+        setEditErrors({});
       } else {
         alert('Failed to update profile');
       }
@@ -130,6 +181,7 @@ export default function FacultyProfile() {
 
   const handleCancel = () => {
     setEditData({ ...faculty });
+    setEditErrors({});
     setIsEditing(false);
   };
 
@@ -161,10 +213,10 @@ export default function FacultyProfile() {
       {/* Header */}
       <div className="mb-8 bg-[#1e3a8a] border border-gray-200 shadow-sm px-8 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white">My Profile</h1>
-          <p className="text-white mt-1">Manage your personal information and settings</p>
-        </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">My Profile</h1>
+            <p className="text-white mt-1">Manage your personal information and settings</p>
+          </div>
         </div>
       </div>
 
@@ -233,11 +285,22 @@ export default function FacultyProfile() {
               </h3>
               {isEditing && (
                 <div className="flex gap-2">
-                  <button onClick={handleSave} className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium">
+                  <button 
+                    onClick={handleSave}
+                    disabled={Object.keys(editErrors).length > 0}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
+                      Object.keys(editErrors).length === 0 
+                        ? 'bg-green-600 text-white hover:bg-green-700' 
+                        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    }`}
+                  >
                     <Save className="w-5 h-5" />
                     Save
                   </button>
-                  <button onClick={handleCancel} className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
+                  <button 
+                    onClick={handleCancel}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium"
+                  >
                     <X className="w-5 h-5" />
                     Cancel
                   </button>
@@ -261,12 +324,25 @@ export default function FacultyProfile() {
                     {field.label}
                   </p>
                   {isEditing && field.editable ? (
-                    <input
-                      type="text"
-                      value={editData[field.key]}
-                      onChange={(e) => setEditData({...editData, [field.key]: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        value={editData[field.key] || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setEditData({ ...editData, [field.key]: value });
+                          if (field.key === 'name' || field.key === 'phone') {
+                            validateField(field.key, value);
+                          }
+                        }}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition ${
+                          editErrors[field.key] ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      {editErrors[field.key] && (
+                        <p className="mt-1 text-sm text-red-600">{editErrors[field.key]}</p>
+                      )}
+                    </div>
                   ) : (
                     <p className="font-medium text-gray-800">{field.value}</p>
                   )}

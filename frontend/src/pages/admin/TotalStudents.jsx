@@ -23,7 +23,7 @@ const TotalStudents = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const token = localStorage.getItem("token"); // or your admin token key
+        const token = localStorage.getItem("adminToken"); // or your admin token key
         const response = await axios.get(
           `${apiConfig.API_BASE_URL}/api/auth/admin/university-students`,
           {

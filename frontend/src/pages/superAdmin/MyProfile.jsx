@@ -110,8 +110,37 @@ export default function MyProfile() {
   };
 
   const handleSave = async () => {
-    if (!editData.name.trim()) {
-      alert('Full name is required');
+    // Name validation
+    const trimmedName = editData.name.trim();
+    if (!trimmedName) {
+      // We'll show error under field instead of alert
+    }
+    const nameRegex = /^[A-Za-z ]+$/;
+    if (trimmedName && !nameRegex.test(trimmedName)) {
+      // Error shown under field
+    }
+    if (trimmedName && (trimmedName.length < 2 || trimmedName.length > 100)) {
+      // Error shown under field
+    }
+
+    // Phone validation (optional but strict if provided)
+    let cleanedPhone = null;
+    if (editData.phone.trim()) {
+      cleanedPhone = editData.phone.replace(/[\s\-+]/g, '');
+      const phoneRegex = /^[6789]\d{9}$/;
+      if (!phoneRegex.test(cleanedPhone)) {
+        // Error shown under field
+      }
+    }
+
+    // If any validation fails, don't proceed (errors are shown under fields)
+    if (
+      !trimmedName ||
+      !nameRegex.test(trimmedName) ||
+      trimmedName.length < 2 ||
+      trimmedName.length > 100 ||
+      (editData.phone.trim() && !/^[6789]\d{9}$/.test(cleanedPhone))
+    ) {
       return;
     }
 
@@ -121,8 +150,8 @@ export default function MyProfile() {
       const response = await axios.put(
         `${apiConfig.API_BASE_URL}/api/auth/superadmin/profile`,
         {
-          fullName: editData.name.trim(),
-          phone: editData.phone.trim() || null,
+          fullName: trimmedName,
+          phone: cleanedPhone,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -158,16 +187,38 @@ export default function MyProfile() {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Reset previous field errors (we'll set them conditionally)
+    setPasswordData(prev => ({ ...prev, errors: {} }));
+
+    let hasError = false;
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New password and confirm password do not match!");
-      return;
+      hasError = true;
+      setPasswordData(prev => ({
+        ...prev,
+        errors: { ...prev.errors, confirmPassword: "Passwords do not match" }
+      }));
     }
 
-    if (passwordData.newPassword.length < 8) {
-      alert("New password must be at least 8 characters long.");
-      return;
+    if (passwordData.newPassword.length < 8 || passwordData.newPassword.length > 16) {
+      hasError = true;
+      setPasswordData(prev => ({
+        ...prev,
+        errors: { ...prev.errors, newPassword: "Password must be between 8 and 16 characters long" }
+      }));
     }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/;
+    if (!passwordRegex.test(passwordData.newPassword)) {
+      hasError = true;
+      setPasswordData(prev => ({
+        ...prev,
+        errors: { ...prev.errors, newPassword: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character" }
+      }));
+    }
+
+    if (hasError) return;
 
     try {
       const token = localStorage.getItem('superAdminToken');
@@ -287,13 +338,41 @@ export default function MyProfile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                   {isEditing ? (
-                    <input 
-                      type="text"
-                      name="name"
-                      value={editData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
-                    />
+                    <>
+                      <input 
+                        type="text"
+                        name="name"
+                        value={editData.name}
+                        onChange={handleInputChange}
+                        className={`w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition ${
+                          editData.name.trim() &&
+                          (
+                            !/^[A-Za-z ]+$/.test(editData.name.trim()) ||
+                            editData.name.trim().length < 2 ||
+                            editData.name.trim().length > 100
+                          )
+                            ? "border-red-500 focus:ring-red-500"
+                            : "border-gray-300"
+                        }`}
+                      />
+                      {editData.name.trim() && (
+                        (!/^[A-Za-z ]+$/.test(editData.name.trim()) && (
+                          <p className="mt-1 text-sm text-red-600">
+                            Full name must contain only letters and spaces.
+                          </p>
+                        )) ||
+                        (editData.name.trim().length < 2 && (
+                          <p className="mt-1 text-sm text-red-600">
+                            Full name is too short (minimum 2 characters).
+                          </p>
+                        )) ||
+                        (editData.name.trim().length > 100 && (
+                          <p className="mt-1 text-sm text-red-600">
+                            Full name is too long (maximum 100 characters).
+                          </p>
+                        ))
+                      )}
+                    </>
                   ) : (
                     <p className="text-gray-900">{profile.name}</p>
                   )}
@@ -305,14 +384,27 @@ export default function MyProfile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                   {isEditing ? (
-                    <input 
-                      type="tel"
-                      name="phone"
-                      value={editData.phone}
-                      onChange={handleInputChange}
-                      placeholder="Enter phone number"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
-                    />
+                    <>
+                      <input 
+                        type="tel"
+                        name="phone"
+                        value={editData.phone}
+                        onChange={handleInputChange}
+                        placeholder="Enter phone number"
+                        className={`w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition ${
+                          editData.phone.trim() &&
+                          !/^[6789]\d{9}$/.test(editData.phone.replace(/[\s\-+]/g, ''))
+                            ? "border-red-500 focus:ring-red-500"
+                            : "border-gray-300"
+                        }`}
+                      />
+                      {editData.phone.trim() &&
+                        !/^[6789]\d{9}$/.test(editData.phone.replace(/[\s\-+]/g, '')) && (
+                          <p className="mt-1 text-sm text-red-600">
+                            Phone number must be a valid 10-digit number (e.g., 9876543210)
+                          </p>
+                        )}
+                    </>
                   ) : (
                     <p className="text-gray-900">{profile.phone}</p>
                   )}
@@ -378,9 +470,30 @@ export default function MyProfile() {
                           value={passwordData.newPassword}
                           onChange={handlePasswordChange}
                           required
-                          minLength="8"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
+                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition ${
+                            passwordData.newPassword &&
+                            (
+                              passwordData.newPassword.length < 8 ||
+                              passwordData.newPassword.length > 16 ||
+                              !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/.test(passwordData.newPassword)
+                            )
+                              ? "border-red-500 focus:ring-red-500"
+                              : "border-gray-300"
+                          }`}
                         />
+                        {passwordData.newPassword && (
+                          (passwordData.newPassword.length < 8 || passwordData.newPassword.length > 16) && (
+                            <p className="mt-1 text-sm text-red-600">
+                              Password must be between 8 and 16 characters long.
+                            </p>
+                          )
+                        )}
+                        {passwordData.newPassword &&
+                          !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]{8,16}$/.test(passwordData.newPassword) && (
+                            <p className="mt-1 text-sm text-red-600">
+                              Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+                            </p>
+                          )}
                       </div>
 
                       <div>
@@ -393,9 +506,19 @@ export default function MyProfile() {
                           value={passwordData.confirmPassword}
                           onChange={handlePasswordChange}
                           required
-                          minLength="8"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition"
+                          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] transition ${
+                            passwordData.confirmPassword &&
+                            passwordData.newPassword !== passwordData.confirmPassword
+                              ? "border-red-500 focus:ring-red-500"
+                              : "border-gray-300"
+                          }`}
                         />
+                        {passwordData.confirmPassword &&
+                          passwordData.newPassword !== passwordData.confirmPassword && (
+                            <p className="mt-1 text-sm text-red-600">
+                              Passwords do not match
+                            </p>
+                          )}
                       </div>
                     </div>
 

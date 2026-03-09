@@ -114,7 +114,3 @@ const AcademicLogin = () => {
 };
 
 export default AcademicLogin;
-
-
-
-

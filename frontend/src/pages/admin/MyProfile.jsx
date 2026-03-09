@@ -43,7 +43,7 @@ const MyProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token"); 
+        const token = localStorage.getItem("adminToken"); 
         if (!token) {
           alert("Please login again");
           navigate("/login");
@@ -84,7 +84,7 @@ const MyProfile = () => {
   // Save changes to backend (PUT request)
   const saveChanges = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
 
       const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/profile`, {
         method: "PUT",
@@ -155,7 +155,7 @@ const MyProfile = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken');
       const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/change-password`, {
         method: "POST",
         headers: {

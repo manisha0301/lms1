@@ -59,9 +59,22 @@ const CourseDetailsAdmin = () => {
     modules: [{ name: "", chapters: [""] }],
   });
 
-  const openContentModal = () => {
-    setNewSection({ name: "", modules: [{ name: "", chapters: [""] }] });
-    setShowContentModal(true);
+  // Validate date to ensure year is 4 digits
+  const validateAndSetBatchDate = (dateValue, field) => {
+    if (!dateValue) {
+      setBatchForm(prev => ({ ...prev, [field]: dateValue }));
+      return;
+    }
+    
+    // Check if date format is valid (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (dateRegex.test(dateValue)) {
+      const year = dateValue.split('-')[0];
+      // Ensure year is exactly 4 digits
+      if (year.length === 4) {
+        setBatchForm(prev => ({ ...prev, [field]: dateValue }));
+      }
+    }
   };
 
   // Fetch course details + university students
@@ -69,7 +82,7 @@ const CourseDetailsAdmin = () => {
     const fetchCourseDetails = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         if (!token) return;
 
         // Fetch course basic info + structure
@@ -200,11 +213,11 @@ const CourseDetailsAdmin = () => {
     const fetchUniversityStudents = async () => {
       try {
         setStudentsLoading(true);
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("adminToken");
         if (!token) return;
 
         const response = await fetch(
-          `${apiConfig.API_BASE_URL}/api/auth/admin/university-students`,
+          `${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}/students-progress`,
           {
             method: "GET",
             headers: {
@@ -222,7 +235,7 @@ const CourseDetailsAdmin = () => {
             name: s.name || "Unknown Student",
             phone: s.phone || s.mobile_number || "—",
             email: s.email || "—",
-            assignments: "0", // placeholder for now
+            assignments: s.submitted_assignments,
             exams: "0",       // placeholder for now
           }));
 
@@ -244,7 +257,7 @@ const CourseDetailsAdmin = () => {
   // Save batch schedule
   const handleSaveBatch = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
 
       if (!batchForm.startDate || !batchForm.endDate || !batchForm.startTime || !batchForm.endTime) {
         alert('Please fill all fields');
@@ -278,7 +291,7 @@ const CourseDetailsAdmin = () => {
   // Save meeting link
   const handleSaveLink = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       if (!meetingLinkForm.meetingLink.trim()) {
         alert('Please enter a meeting link');
         return;
@@ -561,12 +574,12 @@ const CourseDetailsAdmin = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left min-w-[800px]">
                     <thead>
-                  <tr className="text-gray-600 border-b border-gray-200">
-                    <th className="py-3 px-4">Name</th>
-                    <th className="py-3 px-4">Mobile</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Assignments</th>
-                    <th className="py-3 px-4">Exams</th>
+                      <tr className="text-gray-600 border-b border-gray-200">
+                        <th className="py-3 px-4">Name</th>
+                        <th className="py-3 px-4">Mobile</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Assignments</th>
+                        <th className="py-3 px-4">Exams</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -575,11 +588,11 @@ const CourseDetailsAdmin = () => {
                           key={student.id}
                           className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                         >
-                           <td className="py-4 px-4 font-medium text-gray-900">{student.name}</td>
-                      <td className="py-4 px-4 text-gray-600">{student.phone}</td>
-                      <td className="py-4 px-4 text-gray-600">{student.email}</td>
-                      <td className="py-4 px-4 text-gray-600">{student.assignments} submitted</td>
-                      <td className="py-4 px-4 text-gray-600">{student.exams} attempted</td>
+                          <td className="py-4 px-4 font-medium text-gray-900">{student.name}</td>
+                          <td className="py-4 px-4 text-gray-600">{student.phone}</td>
+                          <td className="py-4 px-4 text-gray-600">{student.email}</td>
+                          <td className="py-4 px-4 text-gray-600">{student.assignments} submitted</td>
+                          <td className="py-4 px-4 text-gray-600">{student.exams} attempted</td>
                         </tr>
                       ))}
                     </tbody>
@@ -607,7 +620,7 @@ const CourseDetailsAdmin = () => {
                     <input
                       type="date"
                       value={batchForm.startDate}
-                      onChange={(e) => setBatchForm(prev => ({ ...prev, startDate: e.target.value }))}
+                      onChange={(e) => validateAndSetBatchDate(e.target.value, 'startDate')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>
@@ -616,7 +629,7 @@ const CourseDetailsAdmin = () => {
                     <input
                       type="date"
                       value={batchForm.endDate}
-                      onChange={(e) => setBatchForm(prev => ({ ...prev, endDate: e.target.value }))}
+                      onChange={(e) => validateAndSetBatchDate(e.target.value, 'endDate')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     />
                   </div>

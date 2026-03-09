@@ -18,12 +18,16 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import apiConfig from '../../config/apiConfig.js'; 
+import NotificationDetailPanel from "../../components/notifications/NotificationDetailPanel";
 
 const FacultyHome = () => {
   const navigate = useNavigate();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // New state for selected notification detail
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   // Data state
   const [dashboardData, setDashboardData] = useState({
@@ -44,7 +48,7 @@ const FacultyHome = () => {
   // Fetch all data on mount
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('facultyToken');
       if (!token) {
         navigate('/login');
         return;
@@ -80,7 +84,7 @@ const FacultyHome = () => {
           setUpcomingExams(examsRes.data.upcomingExams || []);
         }
 
-        // 4. Notifications (NEW)
+        // 4. Notifications
         const notifRes = await axios.get(`${apiConfig.API_BASE_URL}/api/faculty/notifications?limit=12`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -173,6 +177,36 @@ const FacultyHome = () => {
   // Calculate unread count for bell badge
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
+  // Handle clicking a notification → open detail panel + mark as read if needed
+  const handleNotificationClick = async (notif) => {
+    // Open detail panel immediately
+    setSelectedNotification(notif);
+
+    // If already read → no need to call API
+    if (notif.status === 'read') return;
+
+    try {
+      const token = localStorage.getItem('facultyToken');
+      await axios.put(
+        `${apiConfig.API_BASE_URL}/api/faculty/notifications/${notif.id}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Optimistic update: mark as read in local state
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notif.id ? { ...n, status: 'read' } : n
+        )
+      );
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+      // You can add toast notification here later if desired
+    }
+  };
+
   // Loading & Error states
   if (loading) {
     return (
@@ -222,9 +256,9 @@ const FacultyHome = () => {
                 )}
               </button>
 
-              {/* Notification Dropdown */}
+              {/* Notification Dropdown – now clickable */}
               {isNotificationOpen && (
-                <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden ">
                   <div className="bg-[#1e3a8a] text-white p-5 flex justify-between items-center">
                     <h3 className="font-bold text-lg">Notifications</h3>
                     <button
@@ -242,10 +276,16 @@ const FacultyHome = () => {
                     ) : (
                       notifications.map((notif) => (
                         <div 
-                          key={notif.id} 
-                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
-                            notif.priority === 'high' ? 'bg-red-50' :
-                            notif.priority === 'medium' ? 'bg-yellow-50' : ''
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
+                            notif.status === 'unread'
+                              ? notif.priority === 'high'
+                                ? 'bg-red-50'
+                                : notif.priority === 'medium'
+                                ? 'bg-yellow-50'
+                                : 'bg-blue-50'
+                              : 'bg-white'
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -266,6 +306,11 @@ const FacultyHome = () => {
                         </div>
                       ))
                     )}
+                  </div>
+                  <div className="p-3 bg-gray-50 text-center">
+                    <button className="text-[#1e3a8a] font-medium text-sm hover:underline cursor-pointer">
+                      View all notifications
+                    </button>
                   </div>
                 </div>
               )}
@@ -330,7 +375,7 @@ const FacultyHome = () => {
                       <span className="font-medium">Logout</span>
                     </button>
                   </div>
-                </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -414,8 +459,8 @@ const FacultyHome = () => {
             </div>
           </section>
 
-          {/* Notifications */}
-          <section>
+          {/* Notifications Sidebar Preview – NOW CLICKABLE */}
+          <section className="hidden md:block">
             <h2 className="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-2">
               <Bell className="w-6 h-6 text-[#1e3a8a]" />
               Notifications
@@ -427,14 +472,18 @@ const FacultyHome = () => {
                 <div className="p-6 text-center text-gray-500">No new notifications</div>
               ) : (
                 <ul className="divide-y divide-gray-200">
-                  {notifications.map((notif) => (
-                    <li key={notif.id} className="p-4 flex items-start gap-3 hover:bg-gray-50 transition">
+                  {notifications.slice(0, 5).map((notif) => (
+                    <li 
+                      key={notif.id}
+                      onClick={() => handleNotificationClick(notif)}  // ← Added click handler here
+                      className="p-4 flex items-start gap-3 hover:bg-gray-50 transition cursor-pointer"
+                    >
                       <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
                         notif.priority === 'high' ? 'bg-red-500' :
                         notif.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
                       }`}></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">{notif.message}</p>
+                        <p className="text-sm font-medium text-gray-800 line-clamp-2">{notif.message}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(notif.created_at).toLocaleString('en-IN', {
                             dateStyle: 'medium',
@@ -495,7 +544,7 @@ const FacultyHome = () => {
             </div>
           </div>
 
-          {/* Upcoming Exams - REAL DATA */}
+          {/* Upcoming Exams */}
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-2">
               <Clock className="w-6 h-6 text-red-600" />
@@ -541,6 +590,15 @@ const FacultyHome = () => {
           © 2025 Cybernetics LMS • Faculty Portal
         </footer>
       </div>
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <NotificationDetailPanel
+          notification={selectedNotification}
+          recipient_type="faculty"
+          onClose={() => setSelectedNotification(null)}
+        />
+      )}
     </div>
   );
 };

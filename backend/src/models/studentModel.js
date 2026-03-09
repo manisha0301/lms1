@@ -42,13 +42,24 @@ export const createStudent = async ({
   const year = new Date().getFullYear();
 
   // Get count of students created in this year (for sequential number)
-  const { rows: countRes } = await pool.query(
-    `SELECT COUNT(*) FROM students 
-     WHERE EXTRACT(YEAR FROM created_at) = $1`,
-    [year]
+  const { rows: lastStudent } = await pool.query(
+    `SELECT student_id 
+    FROM students 
+    WHERE student_id LIKE $1
+    ORDER BY id DESC 
+    LIMIT 1`,
+    [`STU-${year}-%`]
   );
-  const count = parseInt(countRes[0].count, 10) + 1;
-  const studentId = `STU-${year}-${String(count).padStart(4, '0')}`;
+
+  let nextNumber = 1;
+
+  if (lastStudent.length > 0) {
+    const lastId = lastStudent[0].student_id; // STU-2026-0007
+    const lastNumber = parseInt(lastId.split("-")[2], 10);
+    nextNumber = lastNumber + 1;
+  }
+
+  const studentId = `STU-${year}-${String(nextNumber).padStart(4, '0')}`;
 
   const query = `
     INSERT INTO students (
@@ -87,4 +98,20 @@ export const findStudentByEmail = async (email) => {
 export const findStudentByMobile = async (mobileNumber) => {
   const { rows } = await pool.query('SELECT * FROM students WHERE mobile_number = $1', [mobileNumber]);
   return rows[0] || null;
+};
+
+export const createRatingsTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS ratings (
+      id SERIAL PRIMARY KEY,
+      academic_admin_id INTEGER NOT NULL REFERENCES academic_admins(id) ON DELETE CASCADE,
+      student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(student_id, course_id)  -- One rating per student per course
+    );
+  `;
+  await pool.query(query);
+  console.log('Ratings table created');
 };

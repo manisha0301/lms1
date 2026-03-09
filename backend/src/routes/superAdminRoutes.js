@@ -10,7 +10,16 @@ import {
   superAdminLogin, 
   getAcademicInstitutes,
   updateSuperAdminProfile ,
-  getTotalUserCount  // ← FIXED: from superAdminController.js
+  getTotalUserCount,
+  deleteAcademicAdmin,
+  deleteCourse,
+  markSuperAdminNotificationAsRead,
+  getRevenueOverview,
+  getMonthlyRevenueTrend,
+  getRevenueByCourse,
+  getRevenueByCentre,
+  superAdminSendDualOtp
+    
 } from '../controllers/superAdminController.js';
 
 import { protectSuperAdmin } from '../middleware/authMiddleware.js';
@@ -27,6 +36,8 @@ import {
   getCourseAssignments,
   getCoursesForManagement
 } from '../controllers/courseController.js';
+
+import { verifyOTP } from '../controllers/otpController.js';
 
 // Multer setup for image upload
 import multer from 'multer';
@@ -82,6 +93,7 @@ const router = express.Router();
 
 // Existing Super Admin routes 
 router.post('/login', superAdminLogin);
+router.post('/login/send-otp', superAdminSendDualOtp);
 router.post('/change-password', protectSuperAdmin, superAdminChangePassword);
 router.get('/stats', protectSuperAdmin, getDashboardStats); 
 router.get('/profile', protectSuperAdmin, getSuperAdminProfile);
@@ -119,5 +131,21 @@ router.put('/profile', protectSuperAdmin, updateSuperAdminProfile);
 
 // Route to get total user count (students + faculty + academic admins)
 router.get('/user-count', protectSuperAdmin, getTotalUserCount);
+
+
+router.delete('/academic-admins/:id', protectSuperAdmin, deleteAcademicAdmin);
+
+router.delete('/courses/:courseId', protectSuperAdmin, deleteCourse);
+
+router.put('/notifications/:notificationId/read', protectSuperAdmin, markSuperAdminNotificationAsRead);
+
+router.get('/revenue/overview', protectSuperAdmin, getRevenueOverview);
+
+router.get('/revenue/monthly-trend', protectSuperAdmin, getMonthlyRevenueTrend);
+router.get('/revenue/by-course', protectSuperAdmin, getRevenueByCourse);
+router.get('/revenue/by-centre', protectSuperAdmin, getRevenueByCentre);
+
+router.post('/login/verify-otp', verifyOTP);
+
 
 export default router;

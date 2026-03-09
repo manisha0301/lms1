@@ -8,7 +8,7 @@ export const createNotificationsTable = async () => {
       recipient_type VARCHAR(20) NOT NULL,  -- 'superadmin', 'admin', 'academicadmin', 'faculty', 'student'
       recipient_id INTEGER NOT NULL,        -- ID from the respective user table
       message TEXT NOT NULL,
-      type VARCHAR(50),                     -- e.g., 'course', 'student', 'faculty', 'alert', 'success'
+      type VARCHAR(50),                     -- e.g., 'course', 'student', 'faculty', 'alert', 'success', 'assignment'
       priority VARCHAR(20) DEFAULT 'medium',-- 'high', 'medium', 'low'
       status VARCHAR(20) DEFAULT 'unread',  -- 'unread', 'read'
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -122,8 +122,6 @@ export const getAllActiveAcademicAdminIds = async (customPool) => {
   return rows.map(r => r.id);
 };
 
-
-
 export const addNotificationForFaculty = async (
   pool,
   message,
@@ -178,8 +176,9 @@ export const addNotificationForFaculties = async (
   }
 };
 
-// Add these two at the bottom
-
+// ────────────────────────────────────────────────
+// NEW: Single student notification
+// ────────────────────────────────────────────────
 export const addNotificationForStudent = async (
   pool,
   message,
@@ -202,6 +201,9 @@ export const addNotificationForStudent = async (
   }
 };
 
+// ────────────────────────────────────────────────
+// NEW: Bulk notification to multiple students
+// ────────────────────────────────────────────────
 export const addNotificationForStudents = async (
   pool,
   message,
