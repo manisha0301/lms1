@@ -12,9 +12,9 @@ const SettingsAdmin = () => {
 
   // Dummy Data for All Tabs
   const [aboutSections] = useState([
-    { title: "Welcome to CodeKart LMS", content: "India's leading platform for job-oriented technical education with live classes, real projects and 100% placement support." },
+    { title: "Welcome to <Kristellar></Kristellar> LMS", content: "India's leading platform for job-oriented technical education with live classes, real projects and 100% placement support." },
     { title: "Our Mission", content: "To empower 1 Million+ students across India with industry-ready skills and guaranteed career growth." },
-    { title: "Why Choose CodeKart?", content: "Live Interactive Classes • 1:1 Mentorship • Real-Time Projects • Placement Assistance • Lifetime Access • Certified Courses" }
+    { title: "Why Choose Kristellar?", content: "Live Interactive Classes • 1:1 Mentorship • Real-Time Projects • Placement Assistance • Lifetime Access • Certified Courses" }
   ]);
 
   const banners = [
@@ -24,15 +24,15 @@ const SettingsAdmin = () => {
   ];
 
   const coupons = [
-    { code: "CODEKART50", discount: "50%", expiry: "2025-12-31", status: "Active", uses: 245 },
+    { code: "KRISTELLAR50", discount: "50%", expiry: "2025-12-31", status: "Active", uses: 245 },
     { code: "WELCOME30", discount: "30%", expiry: "2025-11-30", status: "Active", uses: 189 },
     { code: "DIWALI2024", discount: "40%", expiry: "2024-11-15", status: "Expired", uses: 567 }
   ];
 
   const courseAdmins = [
-    { name: "Priya Sharma", email: "priya@codekart.com", privileges: "Full Access", joined: "2024-06-15" },
-    { name: "Rahul Verma", email: "rahul@codekart.com", privileges: "Courses + Faculty", joined: "2024-08-20" },
-    { name: "Amit Kumar", email: "amit@codekart.com", privileges: "Read Only", joined: "2025-01-10" }
+    { name: "Priya Sharma", email: "priya@ kristellar.com", privileges: "Full Access", joined: "2024-06-15" },
+    { name: "Rahul Verma", email: "rahul@ kristellar.com", privileges: "Courses + Faculty", joined: "2024-08-20" },
+    { name: "Amit Kumar", email: "amit@ kristellar.com", privileges: "Read Only", joined: "2025-01-10" }
   ];
 
   const policies = [
@@ -54,10 +54,10 @@ const SettingsAdmin = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* LEFT SIDEBAR - CODEKART STYLE */}
+      {/* LEFT SIDEBAR - Kristellar STYLE */}
       <div className="w-72 bg-white shadow-lg border-r border-gray-200">
         <div className="p-6 bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white">
-          <h1 className="text-2xl font-bold">CodeKart LMS</h1>
+          <h1 className="text-2xl font-bold">Kristellar LMS</h1>
           <p className="text-sm opacity-90">Admin Settings</p>
         </div>
         <nav className="p-4">
@@ -91,7 +91,7 @@ const SettingsAdmin = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-8">Edit Admin Profile</h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <Input label="Full Name" defaultValue="Dr. Rajesh Kumar" />
-                <Input label="Email" defaultValue="admin@codekart.com" />
+                <Input label="Email" defaultValue="admin@ kristellar.com" />
                 <Input label="Username" defaultValue="admin_rajesh" />
                 <Input label="Date of Birth" type="date" defaultValue="1980-05-15" />
                 <Input label="Address" defaultValue="Plot No 504/2382/2701, First Floor, Kanan Vihar, Phase 2, Patia" />
@@ -244,7 +244,7 @@ const SettingsAdmin = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-8">Contact Information</h2>
               <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
-                <Input label="Support Email" defaultValue="info@thecodekart.com" />
+                <Input label="Support Email" defaultValue="info@ kristellar.com" />
                 <Input label="Phone" defaultValue="+91-9178518343" />
                 <Input label="Address Line 1" defaultValue="Plot No 504/2382/2701, First Floor" />
                 <Input label="Address Line 2" defaultValue="Kanan Vihar, Phase 2, Patia" />

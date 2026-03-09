@@ -188,10 +188,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Why Choose CodeKart */}
+      {/* Why Choose Kristellar */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold text-gray-800 mb-12">Why Students Choose CodeKart</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-12">Why Students Choose Kristellar's LMS</h2>
           <div className="grid md:grid-cols-4 gap-10">
             {[
               { icon: BookOpen, title: "Live Interactive Classes", desc: "Daily doubt clearing sessions" },
@@ -215,18 +215,18 @@ const Home = () => {
       <footer className="bg-[#1e3a8a] text-white py-12">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold">CodeKart Solutions Pvt. Ltd.</h2>
+            <h2 className="text-2xl font-bold">Kristellar Cyberspace Pvt. Ltd.</h2>
             <p className="text-sm opacity-80 mt-2">CIN: U72900OR2021PTC036225</p>
           </div>
           <p className="text-sm opacity-90">
-            Plot No 504/2382/2701, First Floor, Kanan Vihar, Phase 2, Patia, Bhubaneswar, Odisha 751024
+            3rd Floor, The Utkal Chamber of Commerce and Industry Limited, Nayapalli, Bhubaneswar 751015
           </p>
           <p className="text-sm mt-4">
-            Email: <a href="mailto:info@thecodekart.com" className="underline">info@thecodekart.com</a> | 
-            Phone: <a href="tel:+919178518343" className="underline"> +91-9178518343</a>
+            Email: <a href="support@kristellar.com" className="underline">support@kristellar.com</a> | 
+            Phone: <a href="tel:+919178518343" className="underline"> +91 6744085430</a>
           </p>
           <p className="text-xs mt-8 opacity-70">
-            © 2025 CodeKart Solutions Pvt. Ltd. All rights reserved.
+            © 2026 Kristellar Cyberspace Pvt. Ltd. All rights reserved.
           </p>
         </div>
       </footer>

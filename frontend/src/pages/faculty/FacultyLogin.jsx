@@ -239,7 +239,7 @@ const FacultyLogin = () => {
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-10">
-              <div className="text-4xl font-black tracking-tighter">CodeKart</div>
+              <div className="text-4xl font-black tracking-tighter">Kristellar</div>
             </div>
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Faculty <span className="text-green-400">Portal</span>
@@ -266,7 +266,7 @@ const FacultyLogin = () => {
 
           <div className="relative z-10 mt-16 text-center">
             <p className="text-sm opacity-70">
-              © 2025 CodeKart Solutions Pvt. Ltd. • CIN: U72900OR2021PTC036225
+              © 2026 Kristellar Cyberspace Pvt. Ltd. • CIN: U72900OR2021PTC036225
             </p>
           </div>
         </div>
@@ -276,7 +276,7 @@ const FacultyLogin = () => {
           <div className="max-w-md mx-auto w-full">
             <div className="text-center mb-10">
               <h2 className="text-3xl font-bold text-gray-900">Faculty Login</h2>
-              <p className="mt-3 text-gray-600">Secure access for CodeKart faculty members</p>
+              <p className="mt-3 text-gray-600">Secure access for Kristellar faculty members</p>
             </div>
 
             {/* Social buttons (kept as-is) */}

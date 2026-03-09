@@ -387,7 +387,7 @@ const Signup = () => {
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-10">
-              <div className="text-4xl font-black tracking-tighter">CodeKart</div>
+              <div className="text-4xl font-black tracking-tighter">Kristellar</div>
             </div>
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Your Journey to a <span className="text-green-400">6-Figure Tech Career</span> Starts Here
@@ -427,7 +427,7 @@ const Signup = () => {
             </div>
           </div>
           <div className="relative z-10 mt-16 text-center">
-            <p className="text-sm opacity-70">© 2025 CodeKart Solutions Pvt. Ltd.</p>
+            <p className="text-sm opacity-70">© 2026 Kristellar Cyberspace Pvt. Ltd.</p>
           </div>
         </div>
 
