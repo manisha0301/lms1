@@ -57,7 +57,7 @@ const SettingsAdmin = () => {
       {/* LEFT SIDEBAR - Kristellar STYLE */}
       <div className="w-72 bg-white shadow-lg border-r border-gray-200">
         <div className="p-6 bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white">
-          <h1 className="text-2xl font-bold">Kristellar LMS</h1>
+          <h1 className="text-2xl font-bold">Kristellar's LMS</h1>
           <p className="text-sm opacity-90">Admin Settings</p>
         </div>
         <nav className="p-4">

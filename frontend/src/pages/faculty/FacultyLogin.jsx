@@ -239,7 +239,7 @@ const FacultyLogin = () => {
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-10">
-              <div className="text-4xl font-black tracking-tighter">Kristellar</div>
+              <div className="text-4xl font-black tracking-tighter">Kristellar's LMS</div>
             </div>
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Faculty <span className="text-green-400">Portal</span>

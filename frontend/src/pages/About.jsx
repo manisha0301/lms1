@@ -50,7 +50,7 @@ const About = () => {
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white py-20 text-center">
         <h1 className="text-4xl md:text-5xl font-bold mb-6">
-          About Kristellar LMS
+          About Kristellar's LMS
         </h1>
         <p className="max-w-3xl mx-auto text-lg opacity-90">
           Empowering students with industry-ready skills through live training,
@@ -106,7 +106,7 @@ const About = () => {
       {/* Why Choose Us */}
       <section className="py-16 max-w-7xl mx-auto px-6 text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-12">
-          Why Choose Kristellar?
+          Why Choose Kristellar's LMS?
         </h2>
         <div className="grid md:grid-cols-3 gap-10">
           <div className="bg-white p-8 rounded-xl shadow hover:shadow-lg transition">

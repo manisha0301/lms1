@@ -128,6 +128,12 @@ const AcademicAdminsPage = () => {
       }
     }
 
+    // Two-Factor Authentication validation
+    if (!newAdmin.twoFactor) {
+      alert('Please check the "Enable Two-Factor Authentication" checkbox to add an admin.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const token = getToken();

@@ -579,7 +579,7 @@ const handleDownloadPDF = async () => {
         </div>
       </header>
 
-      <div className="mx-auto px-8 py-8">
+      <div className="mx-auto px-8 pt-8">
         {/* Total Revenue Hero Card */}
         <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-10 mb-8 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a]/10 to-transparent"></div>
@@ -735,8 +735,8 @@ const handleDownloadPDF = async () => {
         </div>
 
         {/* Footer */}
-        <footer className="text-center py-6 text-sm text-gray-500 border-t border-gray-200">
-          © 2026 Kristellar Solutions Pvt. Ltd. • All financial data is updated as of 27 Nov 2025
+        <footer className="text-center py-3 text-sm text-gray-500 border-t border-gray-200">
+          © 2026 Kristellar Solutions Pvt. Ltd.
         </footer>
       </div>
     </div>
