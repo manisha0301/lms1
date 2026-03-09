@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import axios from "axios";
+import apiConfig from "../../config/apiConfig";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ const Signup = () => {
     const fetchInstitutes = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:5000/api/auth/superadmin/institutes"
+          `${apiConfig.API_BASE_URL}/api/auth/superadmin/institutes`
         );
         if (res.data.success) {
           const instituteList = res.data.institutes;
@@ -223,7 +224,7 @@ const Signup = () => {
 
     try {
       // Check for duplicate email BEFORE sending OTP
-      const checkRes = await axios.post("http://localhost:5000/api/auth/student/check-email", { email });
+      const checkRes = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/check-email`, { email });
 
       if (!checkRes.data.available) {
         setDuplicateEmailError("This email address is already registered. Please use a different email or login.");
@@ -236,7 +237,7 @@ const Signup = () => {
       sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
 
       // Your existing OTP flow
-      await axios.post('http://localhost:5000/api/auth/student/verify-email/send-otp', {
+      await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-email/send-otp`, {
         email,
         user_type: 'student'
       });
@@ -280,7 +281,7 @@ const Signup = () => {
     sessionStorage.setItem('studentSignupForm', JSON.stringify(formData));
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/student/verify-phone/send-otp', {
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/auth/student/verify-phone/send-otp`, {
         phone,
         user_type: 'student'
       });
@@ -343,7 +344,7 @@ const Signup = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/student/signup",
+        `${apiConfig.API_BASE_URL}/api/auth/student/signup`,
         {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
@@ -387,7 +388,7 @@ const Signup = () => {
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-10">
-              <div className="text-4xl font-black tracking-tighter">Kristellar</div>
+              <div className="text-4xl font-black tracking-tighter">Kristellar's LMS</div>
             </div>
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Your Journey to a <span className="text-green-400">6-Figure Tech Career</span> Starts Here
@@ -722,7 +723,7 @@ const Signup = () => {
                 >
                   I agree to the{" "}
                   <Link to="/terms" className="text-[#1e40af] font-medium hover:underline">
-                    Terms & Conditions
+                    Terms & Conditions {" "}
                   </Link>
                   and{" "}
                   <Link to="/privacy" className="text-[#1e40af] font-medium hover:underline">
@@ -761,9 +762,9 @@ const Signup = () => {
               </p>
             </div>
 
-            <p className="text-center text-xs text-gray-500 mt-10">
+            {/* <p className="text-center text-xs text-gray-500 mt-10">
               By signing up, you agree to receive course updates via WhatsApp & Email.
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

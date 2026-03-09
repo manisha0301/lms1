@@ -82,6 +82,7 @@ export const findSuperAdminByEmail = async (pool, email) => {
 export const createDefaultSuperAdmin = async (pool) => {
   const defaultEmail = process.env.SUPER_ADMIN_EMAIL || 'superadmin@example.com';
   const defaultPlainPassword = process.env.SUPER_ADMIN_PASSWORD;
+  const defaultPhone = process.env.SUPER_ADMIN_PHONE || '9999999999';
 
   if (!defaultPlainPassword) {
     console.warn('SUPER_ADMIN_PASSWORD not set in .env – skipping default super admin creation');
@@ -97,8 +98,8 @@ export const createDefaultSuperAdmin = async (pool) => {
   try {
     const passwordHash = await bcrypt.hash(defaultPlainPassword, 10);
     await pool.query(
-      `INSERT INTO super_admins (email, password_hash) VALUES ($1, $2)`,
-      [defaultEmail, passwordHash]
+      `INSERT INTO super_admins (email, password_hash, phone) VALUES ($1, $2, $3)`,
+      [defaultEmail, passwordHash, defaultPhone]
     );
     console.log(`Default super admin created: ${defaultEmail}`);
     console.log('IMPORTANT: Change the password immediately after first login!');

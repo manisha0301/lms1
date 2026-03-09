@@ -11,9 +11,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationDetailPanel from "../../components/notifications/NotificationDetailPanel";
 import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
 
 export default function AdminDashboard() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("adminUser"));
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
     const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem('adminToken');
-        const response = await axios.get('http://localhost:5000/api/auth/admin/dashboard-stats', {
+        const response = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/admin/dashboard-stats`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -62,7 +63,7 @@ export default function AdminDashboard() {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await fetch('http://localhost:5000/api/auth/admin/notifications?limit=5', {
+        const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/notifications?limit=5`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -129,7 +130,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('adminToken');
       await axios.put(
-        `http://localhost:5000/api/auth/admin/notifications/${notif.id}/read`,
+        `${apiConfig.API_BASE_URL}/api/auth/admin/notifications/${notif.id}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

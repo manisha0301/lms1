@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, ShieldCheck, RefreshCw, X } from "lucide-react";
 import axios from "axios";
+import apiConfig from "../../config/apiConfig";
 
 const SuperAdminLogin = () => {
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ const SuperAdminLogin = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/superadmin/login/send-otp",
+        `${apiConfig.API_BASE_URL}/api/auth/superadmin/login/send-otp`,
         formData
       );
 
@@ -66,7 +67,7 @@ const SuperAdminLogin = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/superadmin/login/verify-otp",
+        `${apiConfig.API_BASE_URL}/api/auth/superadmin/login/verify-otp`,
         {
           phone: otpSentTo.realPhone,
           otp,
@@ -95,7 +96,7 @@ const SuperAdminLogin = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/superadmin/login/send-otp",
+        `${apiConfig.API_BASE_URL}/api/auth/superadmin/login/send-otp`,
         {
           email: otpSentTo.realEmail,
           // password is NOT sent again on resend

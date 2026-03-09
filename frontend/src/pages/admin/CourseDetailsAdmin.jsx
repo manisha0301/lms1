@@ -86,7 +86,7 @@ const CourseDetailsAdmin = () => {
         if (!token) return;
 
         // Fetch course basic info + structure
-        const res = await fetch(`http://localhost:5000/api/auth/admin/courses/${id}`, {
+        const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/admin/courses/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

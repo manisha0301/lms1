@@ -6,6 +6,7 @@ import {
   Lock, CreditCard, Users, Video, BookOpen, Award,
   Download, X, Plus, Trash2, ChevronRight, Edit3
 } from "lucide-react";
+import apiConfig from "../../config/apiConfig";
 
 export default function CourseDetails() {
   const { id } = useParams();
@@ -71,7 +72,7 @@ export default function CourseDetails() {
 
     try {
       const token = localStorage.getItem("superAdminToken");
-      const res = await fetch("http://localhost:5000/api/auth/superadmin/courses/assign", {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/courses/assign`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,12 +102,12 @@ export default function CourseDetails() {
     try {
       const token = localStorage.getItem("superAdminToken");
 
-      const adminsRes = await fetch("http://localhost:5000/api/auth/superadmin/academic-admins-assign", {
+      const adminsRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/academic-admins-assign`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const adminsData = await adminsRes.json();
 
-      const assignRes = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${id}/assignments`, {
+      const assignRes = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/courses/${id}/assignments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const assignData = await assignRes.json();
@@ -131,7 +132,7 @@ export default function CourseDetails() {
   const fetchCourse = async () => {
     try {
       const token = localStorage.getItem("superAdminToken");
-      const res = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${id}`, {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/courses/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -180,7 +181,7 @@ export default function CourseDetails() {
           chapters: mod.chapters, // strings
         })),
       }));
-      const res = await fetch(`http://localhost:5000/api/auth/superadmin/courses/${id}/contents`, {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/courses/${id}/contents`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -311,7 +312,7 @@ export default function CourseDetails() {
                 <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-2xl -rotate-6 scale-95"></div>
                 {course.image ? (
                   <img
-                    src={`http://localhost:5000/uploads/${course.image}`}
+                    src={`${apiConfig.API_BASE_URL}/uploads/${course.image}`}
                     alt={course.name}
                     className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl border-4 border-white/30 h-60"
                   />

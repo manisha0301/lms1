@@ -35,6 +35,7 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
+import apiConfig from '../../config/apiConfig';
 
 // Professional color palette for pie chart
 const PIE_COLORS = [
@@ -83,7 +84,7 @@ const FinanceDashboard = () => {
         const headers = { Authorization: `Bearer ${token}` };
 
         const overviewRes = await axios.get(
-          'http://localhost:5000/api/auth/superadmin/revenue/overview',
+          `${apiConfig.API_BASE_URL}/api/auth/superadmin/revenue/overview`,
           { headers }
         );
         if (overviewRes.data.success) {
@@ -91,7 +92,7 @@ const FinanceDashboard = () => {
         }
 
         const monthlyRes = await axios.get(
-          'http://localhost:5000/api/auth/superadmin/revenue/monthly-trend',
+          `${apiConfig.API_BASE_URL}/api/auth/superadmin/revenue/monthly-trend`,
           { headers }
         );
         if (monthlyRes.data.success) {
@@ -99,7 +100,7 @@ const FinanceDashboard = () => {
         }
 
         const courseRes = await axios.get(
-          'http://localhost:5000/api/auth/superadmin/revenue/by-course',
+          `${apiConfig.API_BASE_URL}/api/auth/superadmin/revenue/by-course`,
           { headers }
         );
         if (courseRes.data.success) {
@@ -111,7 +112,7 @@ const FinanceDashboard = () => {
         }
 
         const centreRes = await axios.get(
-          'http://localhost:5000/api/auth/superadmin/revenue/by-centre',
+          `${apiConfig.API_BASE_URL}/api/auth/superadmin/revenue/by-centre`,
           { headers }
         );
         if (centreRes.data.success) {

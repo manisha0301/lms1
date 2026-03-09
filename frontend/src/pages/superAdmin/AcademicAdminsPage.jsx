@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import AdminDetailView from './AdminDetailView';
 import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
 
-const API_BASE = 'http://localhost:5000/api/auth/superadmin';
+const API_BASE = `${apiConfig.API_BASE_URL}/api/auth/superadmin`;
 
 const AcademicAdminsPage = () => {
   const [academicAdmins, setAcademicAdmins] = useState([]);

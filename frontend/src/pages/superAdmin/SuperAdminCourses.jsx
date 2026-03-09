@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Clock, IndianRupee, X, Image as ImageIcon, Trash2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import apiConfig from "../../config/apiConfig";
 
 const SuperAdminCourses = () => {
   const [courses, setCourses] = useState([]);
@@ -31,7 +32,8 @@ const SuperAdminCourses = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("superAdminToken");
-        const res = await fetch("http://localhost:5000/api/auth/superadmin/courses", {
+
+        const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/courses`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -97,7 +99,8 @@ const SuperAdminCourses = () => {
       if (newCourse.thumbnail) {
         formData.append("image", newCourse.thumbnail);
       }
-      const res = await fetch("http://localhost:5000/api/auth/superadmin/courses", {
+
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/courses`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -137,7 +140,7 @@ const SuperAdminCourses = () => {
     try {
       const token = localStorage.getItem("superAdminToken");
       const response = await axios.delete(
-        `http://localhost:5000/api/auth/superadmin/courses/${courseToDelete.id}`,
+        `${apiConfig.API_BASE_URL}/api/auth/superadmin/courses/${courseToDelete.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -194,7 +197,7 @@ const SuperAdminCourses = () => {
                 <div className="h-48 bg-gray-200 border-b border-gray-200 relative">
                   {course.image ? (
                     <img
-                      src={`http://localhost:5000/uploads/${course.image}`}
+                      src={`${apiConfig.API_BASE_URL}/uploads/${course.image}`}
                       alt={course.name}
                       className="w-full h-full object-cover"
                     />

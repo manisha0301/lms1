@@ -19,6 +19,7 @@ import {
   Award,
   User,
 } from 'lucide-react';
+import apiConfig from '../../config/apiConfig';
 
 const CoursesManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,7 +33,7 @@ const CoursesManagementPage = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('superAdminToken'); // Assuming JWT stored in localStorage
-        const response = await fetch('http://localhost:5000/api/auth/superadmin/course/management', {
+        const response = await fetch(`${apiConfig.API_BASE_URL}/api/auth/superadmin/course/management`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

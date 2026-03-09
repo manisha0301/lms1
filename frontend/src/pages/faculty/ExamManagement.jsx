@@ -439,7 +439,7 @@ export default function ExamManagement() {
                           <td className="px-6 py-4">
                             {sub.answer_pdf_path ? (
                               <a
-                                href={`http://localhost:5000/uploads/${sub.answer_pdf_path}`}
+                                href={`${apiConfig.API_BASE_URL}/uploads/${sub.answer_pdf_path}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-indigo-600 hover:underline flex items-center gap-2"

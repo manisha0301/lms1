@@ -3,11 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { School, ChevronDown, Check, X } from 'lucide-react';
 import axios from 'axios';
-
+import apiConfig from '../../config/apiConfig';
+ 
 const FacultySignup = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
+ 
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -27,7 +28,7 @@ const FacultySignup = () => {
     termsAccepted: false,
     university: '',
   });
-
+ 
   // Validation states
   const [formErrors, setFormErrors] = useState({});
   const [emailDuplicateError, setEmailDuplicateError] = useState('');
@@ -38,14 +39,14 @@ const FacultySignup = () => {
   const [submitting, setSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [profilePreview, setProfilePreview] = useState(null);
-
+ 
   // University dropdown logic
   const [universities, setUniversities] = useState([]);
   const [filteredUniversities, setFilteredUniversities] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [universityLoading, setUniversityLoading] = useState(true);
   const dropdownRef = useRef(null);
-
+ 
   // Restore saved form on mount
   useEffect(() => {
     const savedForm = sessionStorage.getItem('facultySignupForm');
@@ -56,16 +57,16 @@ const FacultySignup = () => {
         console.error('Failed to parse saved form data:', err);
       }
     }
-
+ 
     setEmailVerified(sessionStorage.getItem('facultyEmailVerified') === 'true');
     setPhoneVerified(sessionStorage.getItem('facultyPhoneVerified') === 'true');
   }, []);
-
+ 
   // Fetch universities
   useEffect(() => {
     const fetchUniversities = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/auth/superadmin/institutes');
+        const res = await axios.get(`${apiConfig.API_BASE_URL}/api/auth/superadmin/institutes`);
         if (res.data.success) {
           setUniversities(res.data.institutes);
           setFilteredUniversities(res.data.institutes);
@@ -79,7 +80,7 @@ const FacultySignup = () => {
     };
     fetchUniversities();
   }, []);
-
+ 
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -90,7 +91,7 @@ const FacultySignup = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
+ 
   // Password match check
   useEffect(() => {
     if (form.password || form.confirmPassword) {
@@ -101,11 +102,11 @@ const FacultySignup = () => {
       setPasswordError('');
     }
   }, [form.password, form.confirmPassword]);
-
+ 
   // Real-time field validation
   const validateField = (name, value) => {
     const errors = { ...formErrors };
-
+ 
     if (name === 'firstName' || name === 'lastName') {
       const trimmed = (value || '').trim();
       const nameRegex = /^[A-Za-z ]+$/;
@@ -121,7 +122,7 @@ const FacultySignup = () => {
         delete errors[name];
       }
     }
-
+ 
     if (name === 'email') {
       const trimmed = (value || '').trim().toLowerCase();
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -140,7 +141,7 @@ const FacultySignup = () => {
       // Clear duplicate error when user types
       setEmailDuplicateError('');
     }
-
+ 
     if (name === 'phone') {
       const cleaned = (value || '').replace(/[\s\-+]/g, '');
       const phoneRegex = /^[6789]\d{9}$/;
@@ -152,7 +153,7 @@ const FacultySignup = () => {
         delete errors.phone;
       }
     }
-
+ 
     if (name === 'password') {
       if (!value) {
         errors.password = 'Password is required';
@@ -167,13 +168,13 @@ const FacultySignup = () => {
         }
       }
     }
-
+ 
     setFormErrors(errors);
   };
-
+ 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-
+ 
     if (type === 'file') {
       const file = files[0];
       setForm((prev) => ({ ...prev, [name]: file }));
@@ -188,10 +189,10 @@ const FacultySignup = () => {
       setForm((prev) => ({ ...prev, [name]: checked }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
-
+ 
       // Validate on change
       validateField(name, value);
-
+ 
       if (name === 'university') {
         const filtered = universities.filter((u) =>
           u.toLowerCase().includes(value.toLowerCase())
@@ -201,25 +202,25 @@ const FacultySignup = () => {
       }
     }
   };
-
+ 
   const selectUniversity = (university) => {
     setForm((prev) => ({ ...prev, university }));
     setShowDropdown(false);
   };
-
+ 
   const toggleDropdown = () => {
     setShowDropdown((prev) => !prev);
   };
-
+ 
   const countWords = (text) =>
     text.trim().split(/\s+/).filter((w) => w.length > 0).length;
-
+ 
   // Real-time email duplicate check
   const checkEmailDuplicate = async (emailValue) => {
     if (!emailValue || formErrors.email) return;
-
+ 
     try {
-      const res = await axios.post('http://localhost:5000/api/faculty/check-email', { email: emailValue });
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/faculty/check-email`, { email: emailValue });
       if (!res.data.available) {
         setEmailDuplicateError('This email is already registered. Please use another email or login.');
       } else {
@@ -230,38 +231,38 @@ const FacultySignup = () => {
       setEmailDuplicateError('Could not check email availability. Try again.');
     }
   };
-
+ 
   // Handle Verify Email
   const handleVerifyEmail = async () => {
     const emailValue = form.email.trim();
-
+ 
     // Validate first
     validateField('email', emailValue);
     if (formErrors.email || emailDuplicateError) {
       alert('Please fix email errors first');
       return;
     }
-
+ 
     // Save form state
     sessionStorage.setItem('facultySignupForm', JSON.stringify(form));
-
+ 
     setVerifyingEmail(true);
-
+ 
     try {
       // Final duplicate check before OTP
-      const checkRes = await axios.post('http://localhost:5000/api/faculty/check-email', { email: emailValue });
+      const checkRes = await axios.post(`${apiConfig.API_BASE_URL}/api/faculty/check-email`, { email: emailValue });
       if (!checkRes.data.available) {
         setEmailDuplicateError('This email is already registered. Please use another email or login.');
         alert('Email already taken');
         return;
       }
-
+ 
       // Send OTP
-      await axios.post('http://localhost:5000/api/faculty/verify-email/send-otp', {
+      await axios.post(`${apiConfig.API_BASE_URL}/api/faculty/verify-email/send-otp`, {
         email: emailValue,
         user_type: 'faculty'
       });
-
+ 
       navigate('/verify-email-otp', {
         state: {
           email: emailValue,
@@ -275,26 +276,26 @@ const FacultySignup = () => {
       setVerifyingEmail(false);
     }
   };
-
+ 
   // Handle Verify Phone
   const handleVerifyPhone = async () => {
     let phoneValue = form.phone.trim().replace(/\D/g, '');
     if (phoneValue.startsWith('91') && phoneValue.length === 12) {
       phoneValue = phoneValue.substring(2);
     }
-
+ 
     validateField('phone', phoneValue);
     if (formErrors.phone) {
       alert('Please fix phone number errors first');
       return;
     }
-
+ 
     sessionStorage.setItem('facultySignupForm', JSON.stringify(form));
-
+ 
     setVerifyingPhone(true);
-
+ 
     try {
-      const res = await axios.post('http://localhost:5000/api/faculty/verify-phone/send-otp', {
+      const res = await axios.post(`${apiConfig.API_BASE_URL}/api/faculty/verify-phone/send-otp`, {
         phone: phoneValue,
         user_type: 'faculty'
       });
@@ -316,23 +317,23 @@ const FacultySignup = () => {
       setVerifyingPhone(false);
     }
   };
-
+ 
   // Final signup handler with all validations
   const handleSignup = async (e) => {
     e.preventDefault();
-
+ 
     // 1. Run final validation on all fields
     validateField('firstName', form.firstName);
     validateField('lastName', form.lastName);
     validateField('email', form.email);
     validateField('phone', form.phone);
     validateField('password', form.password);
-
+ 
     if (Object.keys(formErrors).length > 0 || emailDuplicateError) {
       alert('Please fix all validation errors before submitting');
       return;
     }
-
+ 
     if (!form.termsAccepted) return alert('Accept Terms & Conditions');
     if (!emailVerified) return alert('Please verify your email first');
     if (!phoneVerified) return alert('Please verify your phone number first');
@@ -342,9 +343,9 @@ const FacultySignup = () => {
       return alert('Passwords do not match');
     if (form.password.length < 8)
       return alert('Password must be at least 8 characters');
-
+ 
     setSubmitting(true);
-
+ 
     const formData = new FormData();
     formData.append('firstName', form.firstName.trim());
     formData.append('lastName', form.lastName.trim());
@@ -363,28 +364,28 @@ const FacultySignup = () => {
     if (form.profilePicture) {
       formData.append('profilePicture', form.profilePicture);
     }
-
+ 
     try {
-      const res = await fetch('http://localhost:5000/api/faculty/signup', {
+      const res = await fetch(`${apiConfig.API_BASE_URL}/api/faculty/signup`, {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
-
+ 
       if (data.success) {
         // Cleanup session storage
         sessionStorage.removeItem('facultySignupForm');
         sessionStorage.removeItem('facultyEmailVerified');
         sessionStorage.removeItem('facultyPhoneVerified');
-
+ 
         setProfilePreview(null);
         setEmailVerified(false);
         setPhoneVerified(false);
-        
+       
         alert(
           'Signup successful! Your account is pending admin approval.\nYou will be notified once approved.'
         );
-
+ 
         // Reset form
         setForm({
           firstName: '',
@@ -405,7 +406,7 @@ const FacultySignup = () => {
           termsAccepted: false,
           university: '',
         });
-
+ 
         navigate('/login');
       } else {
         alert('Signup failed: ' + (data.error || 'Unknown error'));
@@ -417,7 +418,7 @@ const FacultySignup = () => {
       setSubmitting(false);
     }
   };
-
+ 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -430,7 +431,7 @@ const FacultySignup = () => {
               Join Cybernetics LMS Professional Network
             </p>
           </div>
-
+ 
           <form onSubmit={handleSignup} className="space-y-6">
             {/* Name */}
             <div className="grid md:grid-cols-2 gap-5">
@@ -467,7 +468,7 @@ const FacultySignup = () => {
                 )}
               </div>
             </div>
-
+ 
             {/* University Dropdown */}
             <div className="relative mb-4" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -514,13 +515,13 @@ const FacultySignup = () => {
                 </div>
               )}
             </div>
-
+ 
             {/* Email + Verify + Duplicate Error */}
             <div>
               {emailDuplicateError && (
                 <p className="mb-2 text-sm text-red-600">{emailDuplicateError}</p>
               )}
-
+ 
               <div className="relative">
                 <input
                   type="email"
@@ -562,7 +563,7 @@ const FacultySignup = () => {
                 <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
               )}
             </div>
-
+ 
             {/* Phone + Verify */}
             <div className="relative">
               <input
@@ -603,7 +604,7 @@ const FacultySignup = () => {
                 <p className="mt-1 text-sm text-red-600">{formErrors.phone}</p>
               )}
             </div>
-
+ 
             {/* Rest of the form remains unchanged */}
             <textarea
               name="address"
@@ -614,7 +615,7 @@ const FacultySignup = () => {
               rows="3"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
-
+ 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Employment Status
@@ -645,7 +646,7 @@ const FacultySignup = () => {
                 </label>
               </div>
             </div>
-
+ 
             <div className="grid md:grid-cols-2 gap-5">
               <input
                 type="text"
@@ -666,7 +667,7 @@ const FacultySignup = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-
+ 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Short CV (Max 100 words) — {countWords(form.shortCV)} words
@@ -681,7 +682,7 @@ const FacultySignup = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-
+ 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Profile Picture
@@ -703,7 +704,7 @@ const FacultySignup = () => {
                 </div>
               )}
             </div>
-
+ 
             <div className="grid md:grid-cols-3 gap-5">
               <input
                 type="url"
@@ -730,7 +731,7 @@ const FacultySignup = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-
+ 
             <div>
               <input
                 type="password"
@@ -748,7 +749,7 @@ const FacultySignup = () => {
                 <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
               )}
             </div>
-
+ 
             <div>
               <input
                 type="password"
@@ -766,7 +767,7 @@ const FacultySignup = () => {
                 <p className="mt-1 text-sm text-red-600">{passwordError}</p>
               )}
             </div>
-
+ 
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -787,7 +788,7 @@ const FacultySignup = () => {
                 </Link>
               </span>
             </label>
-
+ 
             <button
               type="submit"
               disabled={
@@ -808,7 +809,7 @@ const FacultySignup = () => {
               {submitting ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
-
+ 
           <p className="text-center mt-8 text-gray-600">
             Already have an account?{' '}
             <Link to="/login" className="text-blue-600 font-medium hover:underline">
@@ -820,5 +821,5 @@ const FacultySignup = () => {
     </div>
   );
 };
-
+ 
 export default FacultySignup;

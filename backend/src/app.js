@@ -46,15 +46,40 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://superadmin.localhost:5173",
-    "http://admin.localhost:5173",
-    "http://faculty.localhost:5173",
-    "http://academic.localhost:5173",
-    "http://student.localhost:5173"
-  ],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+
+    // Allow anything on localhost / 127.0.0.1 / your LAN IP
+    if (
+      origin.startsWith('http://localhost') ||
+      origin.startsWith('http://127.0.0.1') ||
+      origin.startsWith('http://172.30.3.') ||           // ← your current subnet
+      origin.startsWith('http://192.168.') ||             // common home/office subnets
+      origin.startsWith('http://10.')                     // another common private range
+    ) {
+      return callback(null, true);
+    }
+
+    // You can later tighten this list for production
+    const allowed = [
+      'http://localhost:5173',
+      'http://superadmin.localhost:5173',
+      'http://admin.localhost:5173',
+      'http://faculty.localhost:5173',
+      'http://academic.localhost:5173',
+      'http://student.localhost:5173',
+    ];
+
+    if (allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json({ limit: '20mb' }));

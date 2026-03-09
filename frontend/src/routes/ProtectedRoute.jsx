@@ -4,7 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 // Admin protected route — checks admin token
 export const AdminProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('adminToken');
   const location = useLocation();
 
   if (!token) {
