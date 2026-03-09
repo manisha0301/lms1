@@ -391,7 +391,7 @@ export default function SuperAdminSettings() {
       </div>
 
       <footer className="py-6 text-center text-sm text-gray-500 border-t border-gray-200">
-        © 2025 Kristellar • Super Admin Portal
+        © 2026 Kristellar • Super Admin Portal
       </footer>
     </div>
   );

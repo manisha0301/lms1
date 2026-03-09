@@ -122,7 +122,7 @@ const SuperAdminLogin = () => {
         <div className="bg-gradient-to-br from-[#1e3a8a] to-[#1e40af] text-white p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
-            <div className="text-4xl font-black tracking-tighter mb-10">Kristellar Aerospace</div>
+            <div className="text-4xl font-black tracking-tighter mb-10">Kristellar Cyberspace</div>
             <h1 className="text-5xl font-bold leading-tight mb-6">
               Super Admin <span className="text-green-400">Portal</span>
             </h1>
@@ -130,11 +130,11 @@ const SuperAdminLogin = () => {
               Manage organizations, courses, faculty, and the entire LMS ecosystem.
             </p>
             <div className="space-y-3 text-lg opacity-80">
-              <p>Kristellar Aerospace Solutions Pvt. Ltd.</p>
+              <p>Kristellar Cyberspace Solutions Pvt. Ltd.</p>
             </div>
           </div>
           <div className="relative z-10 mt-16 text-center">
-            <p className="text-sm opacity-70">© 2025 Kristellar Aerospace Solutions Pvt. Ltd. All Rights Reserved.</p>
+            <p className="text-sm opacity-70">© 2026 Kristellar Cyberspace Solutions Pvt. Ltd. All Rights Reserved.</p>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ const SuperAdminLogin = () => {
           <div className="max-w-md mx-auto w-full">
             <div className="text-center mb-10">
               <h2 className="text-3xl font-bold text-gray-900">Super Admin Login</h2>
-              <p className="mt-3 text-gray-600">Restricted access for Kristellar Aerospace management only</p>
+              <p className="mt-3 text-gray-600">Restricted access for Kristellar Cyberspace management only</p>
             </div>
 
             {!showOtpModal ? (

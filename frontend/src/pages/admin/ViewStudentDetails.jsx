@@ -126,7 +126,7 @@ const ViewStudentDetails = () => {
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(
-        "© 2025 Kristellar Solutions Pvt. Ltd. | Confidential Student Report",
+        " © 2026 Kristellar Cyberspace Pvt. Ltd. | Confidential Student Report",
         105,
         280,
         { align: "center" }

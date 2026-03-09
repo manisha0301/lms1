@@ -222,7 +222,7 @@ const AdminDetailView = ({ admin, onBack }) => {
       </div>
 
       <footer className="mt-12 py-6 text-center text-sm text-gray-500 border-t border-gray-200">
-        © 2025 Kristellar • Admin Portal
+        © 2026 Kristellar • Admin Portal
       </footer>
     </div>
   );

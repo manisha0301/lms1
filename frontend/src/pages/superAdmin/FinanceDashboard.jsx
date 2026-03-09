@@ -533,7 +533,7 @@ const handleDownloadPDF = async () => {
   doc.setFontSize(9);
   doc.setTextColor(120);
   doc.text(
-    "© 2025 Kristellar Solutions Pvt. Ltd. | Confidential",
+    "© 2026 Kristellar Solutions Pvt. Ltd. | Confidential",
     14,
     290
   );
@@ -735,7 +735,7 @@ const handleDownloadPDF = async () => {
 
         {/* Footer */}
         <footer className="text-center py-6 text-sm text-gray-500 border-t border-gray-200">
-          © 2025 Kristellar Solutions Pvt. Ltd. • All financial data is updated as of 27 Nov 2025
+          © 2026 Kristellar Solutions Pvt. Ltd. • All financial data is updated as of 27 Nov 2025
         </footer>
       </div>
     </div>

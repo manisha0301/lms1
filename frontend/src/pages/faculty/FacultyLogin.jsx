@@ -266,7 +266,7 @@ const FacultyLogin = () => {
 
           <div className="relative z-10 mt-16 text-center">
             <p className="text-sm opacity-70">
-              © 2026 Kristellar Cyberspace Pvt. Ltd. • CIN: U72900OR2021PTC036225
+              © 2026 Kristellar Cyberspace Pvt. Ltd. • CIN: U62099OD2023PTC043827
             </p>
           </div>
         </div>

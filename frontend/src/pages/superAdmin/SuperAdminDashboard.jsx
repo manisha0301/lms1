@@ -551,9 +551,9 @@ const SuperAdminDashboard = () => {
 
         {/* Footer */}
         <div className="pt-4 border-t border-gray-200 text-center">
-          <p className="text-sm text-gray-600 font-medium">© 2025 Kristellar Solutions Pvt. Ltd.</p>
+          <p className="text-sm text-gray-600 font-medium">© 2026 Kristellar Solutions Pvt. Ltd.</p>
           <p className="text-xs text-gray-500 mt-2">
-            CIN: U72900OR2021PTC036225 | Plot No 504/2382/2701, Bhubaneswar, Odisha, India
+            CIN: U62099OD2023PTC043827 | 3rd Floor, The Utkal Chamber of Commerce and Industry Limited, N/6, beside Union Bank of India, Indradhanu Market, IRC Village, Nayapalli, Bhubaneswar, Odisha 751015
           </p>
         </div>
       </div>

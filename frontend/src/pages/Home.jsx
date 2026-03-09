@@ -216,7 +216,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="mb-6">
             <h2 className="text-2xl font-bold">Kristellar Cyberspace Pvt. Ltd.</h2>
-            <p className="text-sm opacity-80 mt-2">CIN: U72900OR2021PTC036225</p>
+            <p className="text-sm opacity-80 mt-2">CIN: U62099OD2023PTC043827</p>
           </div>
           <p className="text-sm opacity-90">
             3rd Floor, The Utkal Chamber of Commerce and Industry Limited, Nayapalli, Bhubaneswar 751015
