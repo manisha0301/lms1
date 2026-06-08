@@ -212,7 +212,7 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#1e3a8a] text-white py-12">
+      <footer className="bg-[#1e3a8a] text-white pb-4 pt-8">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="mb-6">
             <h2 className="text-2xl font-bold">Kristellar Cyberspace Pvt. Ltd.</h2>
